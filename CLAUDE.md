@@ -111,7 +111,10 @@ The command outputs three types of JSON messages:
 
 ## Commands for Claude
 
-- **Lint**: Check if your project has linting configured
-- **Test**: Check if your project has testing configured  
-- **Build**: Check frontend build process with `npm run build`
 - **Development**: Use `deno task dev` for backend and `npm run dev` for frontend
+- **Format**: Use `deno task format` for backend and `npm run format` for frontend
+- **Lint**: Frontend has `npm run lint` (ESLint configured)
+- **Build**: Frontend build with `npm run build`
+- **Test**: No testing configured yet
+
+**Note**: Always run format commands before committing to ensure consistent code style.
