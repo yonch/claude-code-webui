@@ -113,8 +113,9 @@ The command outputs three types of JSON messages:
 
 - **Development**: Use `deno task dev` for backend and `npm run dev` for frontend
 - **Format**: Use `deno task format` for backend and `npm run format` for frontend
-- **Lint**: Frontend has `npm run lint` (ESLint configured)
+- **Lint**: Use `deno task lint` for backend and `npm run lint` for frontend
+- **Type Check**: Use `deno task check` for backend and `npm run typecheck` for frontend
 - **Build**: Frontend build with `npm run build`
 - **Test**: No testing configured yet
 
-**Note**: Always run format commands before committing to ensure consistent code style.
+**Note**: Always run format and lint commands before committing to ensure consistent code style.

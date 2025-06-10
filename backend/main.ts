@@ -29,7 +29,7 @@ async function* executeClaudeCommand(
             try {
               const jsonData = JSON.parse(buffer.trim());
               yield { type: "claude_json", data: jsonData };
-            } catch (e) {
+            } catch (_e) {
               yield {
                 type: "claude_json",
                 data: { type: "raw", content: buffer.trim() },
@@ -52,7 +52,7 @@ async function* executeClaudeCommand(
             try {
               const jsonData = JSON.parse(line.trim());
               yield { type: "claude_json", data: jsonData };
-            } catch (e) {
+            } catch (_e) {
               yield {
                 type: "claude_json",
                 data: { type: "raw", content: line },
@@ -75,11 +75,17 @@ async function* executeClaudeCommand(
         if (done) break;
         errorChunks.push(value);
       }
-      const errorText = decoder.decode(
-        new Uint8Array(
-          errorChunks.reduce((acc, chunk) => [...acc, ...chunk], []),
-        ),
+      const totalLength = errorChunks.reduce(
+        (sum, chunk) => sum + chunk.length,
+        0,
       );
+      const combined = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const chunk of errorChunks) {
+        combined.set(chunk, offset);
+        offset += chunk.length;
+      }
+      const errorText = decoder.decode(combined);
       console.error("Claude command failed:", errorText);
       yield {
         type: "error",
@@ -92,7 +98,9 @@ async function* executeClaudeCommand(
     console.error("Command execution error:", error);
     yield {
       type: "error",
-      error: `Failed to execute claude command: ${error.message}`,
+      error: `Failed to execute claude command: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
     };
   }
 }
@@ -126,7 +134,7 @@ async function handler(req: Request): Promise<Response> {
           console.error("Stream error:", error);
           const errorResponse: StreamResponse = {
             type: "error",
-            error: String(error),
+            error: error instanceof Error ? error.message : String(error),
           };
           controller.enqueue(
             new TextEncoder().encode(JSON.stringify(errorResponse) + "\n"),

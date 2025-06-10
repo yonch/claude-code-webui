@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  ChatMessage,
-  ChatRequest,
-  StreamResponse,
-  ClaudeAssistantMessage,
-  ClaudeResultMessage,
-} from "@shared/types";
+import type { ChatMessage, ChatRequest, StreamResponse } from "@shared/types";
 import "./App.css";
 
 function App() {
