@@ -24,14 +24,16 @@ This project consists of three main components:
 ### Frontend (React)
 - **Location**: `frontend/`
 - **Port**: 3000
-- **Technology**: Vite + React + SWC + TypeScript
+- **Technology**: Vite + React + SWC + TypeScript + TailwindCSS
 - **Purpose**: Provides chat interface and handles streaming responses
 
 **Key Features**:
 - Real-time streaming response display
 - Parses different Claude JSON message types (system, assistant, result)
+- TailwindCSS utility-first styling for responsive design
 - Light theme with high contrast for readability
 - Responsive chat interface
+- Comprehensive component testing with Vitest and Testing Library
 
 ### Shared Types
 - **Location**: `shared/`
@@ -87,11 +89,11 @@ The command outputs three types of JSON messages:
 │   └── main.ts       # Main server implementation
 ├── frontend/         # React frontend application
 │   ├── src/
-│   │   ├── App.tsx   # Main chat interface
-│   │   ├── App.css   # Chat styling
-│   │   └── index.css # Global styles
+│   │   ├── App.tsx   # Main chat interface with TailwindCSS
+│   │   └── main.tsx  # Application entry point
 │   ├── package.json
-│   └── vite.config.ts
+│   ├── tailwind.config.js  # TailwindCSS configuration
+│   └── vite.config.ts     # Vite config with TailwindCSS plugin
 ├── shared/           # Shared TypeScript types
 │   └── types.ts
 └── CLAUDE.md        # This documentation
@@ -105,9 +107,11 @@ The command outputs three types of JSON messages:
 
 3. **TypeScript Throughout**: Consistent TypeScript usage across all components with shared type definitions.
 
-4. **Light Theme**: Fixed light theme for better readability and contrast.
+4. **TailwindCSS Styling**: Uses @tailwindcss/vite plugin for utility-first CSS without separate CSS files.
 
-5. **Project Root Execution**: Claude commands execute from project root to have full access to project files.
+5. **Light Theme**: Fixed light theme for better readability and contrast.
+
+6. **Project Root Execution**: Claude commands execute from project root to have full access to project files.
 
 ## Commands for Claude
 
@@ -116,7 +120,7 @@ The command outputs three types of JSON messages:
 - **Lint**: Use `deno task lint` for backend and `npm run lint` for frontend
 - **Type Check**: Use `deno task check` for backend and `npm run typecheck` for frontend
 - **Build**: Frontend build with `npm run build`
-- **Test**: No testing configured yet
+- **Test**: Use `npm test` for frontend (React component tests with Vitest and Testing Library)
 
 **Note**: Always run format and lint commands before committing to ensure consistent code style. GitHub Actions will automatically run all quality checks on push and pull requests.
 
