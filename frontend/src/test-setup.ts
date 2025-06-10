@@ -1,7 +1,7 @@
-import '@testing-library/jest-dom'
+import "@testing-library/jest-dom";
 
 // Mock window.matchMedia for tests
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: (query: string) => ({
     matches: false, // Default to light mode for tests
@@ -13,18 +13,18 @@ Object.defineProperty(window, 'matchMedia', {
     removeEventListener: () => {},
     dispatchEvent: () => {},
   }),
-})
+});
 
 // Mock localStorage for tests
 const localStorageMock = {
-  getItem: (key: string) => null,
-  setItem: (key: string, value: string) => {},
-  removeItem: (key: string) => {},
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
   clear: () => {},
   length: 0,
-  key: (index: number) => null,
-}
+  key: () => null,
+};
 
-Object.defineProperty(window, 'localStorage', {
+Object.defineProperty(window, "localStorage", {
   value: localStorageMock,
-})
+});

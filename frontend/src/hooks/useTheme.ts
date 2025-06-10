@@ -9,11 +9,13 @@ export function useTheme() {
   useEffect(() => {
     // Initialize theme on client side
     const saved = localStorage.getItem("theme") as Theme;
-    
+
     if (saved && (saved === "light" || saved === "dark")) {
       setTheme(saved);
     } else {
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const prefersDark = window.matchMedia(
+        "(prefers-color-scheme: dark)",
+      ).matches;
       setTheme(prefersDark ? "dark" : "light");
     }
     setIsInitialized(true);
@@ -21,20 +23,20 @@ export function useTheme() {
 
   useEffect(() => {
     if (!isInitialized) return;
-    
+
     const root = window.document.documentElement;
-    
+
     if (theme === "dark") {
       root.classList.add("dark");
     } else {
       root.classList.remove("dark");
     }
-    
+
     localStorage.setItem("theme", theme);
   }, [theme, isInitialized]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === "light" ? "dark" : "light");
+    setTheme((prev) => (prev === "light" ? "dark" : "light"));
   };
 
   return { theme, toggleTheme };
