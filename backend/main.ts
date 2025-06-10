@@ -6,8 +6,21 @@ async function* executeClaudeCommand(
   message: string,
 ): AsyncGenerator<StreamResponse> {
   try {
+    // Process commands that start with '/'
+    let processedMessage = message;
+    if (message.startsWith("/")) {
+      // Remove the '/' and send just the command
+      processedMessage = message.substring(1);
+    }
+
     const command = new Deno.Command("claude", {
-      args: ["--output-format", "stream-json", "--verbose", "-p", message],
+      args: [
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "-p",
+        processedMessage,
+      ],
       stdout: "piped",
       cwd: "../",
     });
@@ -28,6 +41,10 @@ async function* executeClaudeCommand(
 
         for (const line of lines) {
           if (line.trim()) {
+            console.log(
+              `[${new Date().toISOString()}] Claude JSON:`,
+              line.trim(),
+            );
             yield { type: "claude_json", data: line.trim() };
           }
         }
@@ -35,6 +52,10 @@ async function* executeClaudeCommand(
 
       // Handle remaining buffer
       if (buffer.trim()) {
+        console.log(
+          `[${new Date().toISOString()}] Claude JSON (final):`,
+          buffer.trim(),
+        );
         yield { type: "claude_json", data: buffer.trim() };
       }
     } finally {

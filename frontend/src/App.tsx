@@ -1,10 +1,23 @@
 import { useState, useRef, useEffect } from "react";
-import type { ChatMessage, ChatRequest, StreamResponse } from "@shared/types";
+import type {
+  ChatRequest,
+  StreamResponse,
+  AllMessage,
+  ChatMessage,
+  SystemMessage,
+  ToolMessage,
+} from "./types";
 import { useTheme } from "./hooks/useTheme";
 import { SunIcon, MoonIcon } from "@heroicons/react/24/outline";
+import {
+  ChatMessageComponent,
+  SystemMessageComponent,
+  ToolMessageComponent,
+  LoadingComponent,
+} from "./components/MessageComponents";
 
 function App() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<AllMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { theme, toggleTheme } = useTheme();
@@ -52,13 +65,7 @@ function App() {
       const decoder = new TextDecoder();
       let assistantContent = "";
 
-      const assistantMessage: ChatMessage = {
-        role: "assistant",
-        content: "",
-        timestamp: Date.now(),
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
+      let currentAssistantMessage: ChatMessage | null = null;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -75,29 +82,93 @@ function App() {
               try {
                 const claudeData = JSON.parse(data.data);
 
-                if (
+                if (claudeData.type === "system") {
+                  // Add system message separately
+                  let systemContent = "";
+                  if (claudeData.subtype === "init") {
+                    systemContent = `🔧 Claude Code initialized\nModel: ${claudeData.model || "Unknown"}\nSession: ${claudeData.session_id?.substring(0, 8) || "Unknown"}\nTools: ${claudeData.tools?.length || 0} available`;
+                  } else {
+                    systemContent = `System: ${claudeData.message || JSON.stringify(claudeData)}`;
+                  }
+
+                  const systemMessage: SystemMessage = {
+                    type: "system",
+                    content: systemContent,
+                    timestamp: Date.now(),
+                  };
+                  setMessages((prev) => [...prev, systemMessage]);
+                } else if (
                   claudeData.type === "assistant" &&
                   claudeData.message?.content
                 ) {
-                  // Extract text from assistant message
+                  // Handle assistant messages
                   for (const contentItem of claudeData.message.content) {
                     if (contentItem.type === "text") {
-                      assistantContent += contentItem.text;
+                      // Create or update assistant message for text responses
+                      if (!currentAssistantMessage) {
+                        currentAssistantMessage = {
+                          role: "assistant",
+                          content: "",
+                          timestamp: Date.now(),
+                        };
+                        setMessages((prev) => [
+                          ...prev,
+                          currentAssistantMessage!,
+                        ]);
+                      }
+                      currentAssistantMessage.content += contentItem.text;
                       setMessages((prev) =>
                         prev.map((msg, index) =>
-                          index === prev.length - 1
-                            ? { ...msg, content: assistantContent }
+                          index === prev.length - 1 &&
+                          msg.type !== "system" &&
+                          msg.type !== "tool"
+                            ? {
+                                ...msg,
+                                content: currentAssistantMessage!.content,
+                              }
                             : msg,
                         ),
                       );
+                    } else if (contentItem.type === "tool_use") {
+                      // Add tool message separately
+                      let toolContent = `🔧 Using tool: ${contentItem.name}`;
+                      if (contentItem.input?.description) {
+                        toolContent += `\n${contentItem.input.description}`;
+                      }
+                      if (contentItem.input?.command) {
+                        toolContent += `\n$ ${contentItem.input.command}`;
+                      }
+
+                      const toolMessage: ToolMessage = {
+                        type: "tool",
+                        content: toolContent,
+                        timestamp: Date.now(),
+                      };
+                      setMessages((prev) => [...prev, toolMessage]);
                     }
                   }
-                } else if (claudeData.type === "result" && claudeData.result) {
-                  // Final result - could show cost info etc.
-                  console.log("Claude execution completed:", claudeData);
-                } else if (claudeData.type === "system") {
-                  // System initialization - could show model info etc.
-                  console.log("Claude system init:", claudeData);
+                } else if (
+                  claudeData.type === "user" &&
+                  claudeData.message?.content
+                ) {
+                  // Handle tool results
+                  for (const contentItem of claudeData.message.content) {
+                    if (contentItem.type === "tool_result") {
+                      let resultContent = "";
+                      if (contentItem.is_error) {
+                        resultContent = `❌ Error: ${contentItem.content}`;
+                      } else {
+                        resultContent = contentItem.content;
+                      }
+
+                      const toolResultMessage: ToolMessage = {
+                        type: "tool",
+                        content: resultContent,
+                        timestamp: Date.now(),
+                      };
+                      setMessages((prev) => [...prev, toolResultMessage]);
+                    }
+                  }
                 }
               } catch {
                 // If JSON parsing fails, treat as raw text
@@ -121,12 +192,26 @@ function App() {
                 ),
               );
             } else if (data.type === "error") {
-              console.error("Stream error:", data.error);
+              assistantContent += `\nError: ${data.error}\n`;
+              setMessages((prev) =>
+                prev.map((msg, index) =>
+                  index === prev.length - 1
+                    ? { ...msg, content: assistantContent }
+                    : msg,
+                ),
+              );
             } else if (data.type === "done") {
               break;
             }
-          } catch (e) {
-            console.error("Failed to parse JSON:", e);
+          } catch {
+            assistantContent += `Parse error: ${line}\n`;
+            setMessages((prev) =>
+              prev.map((msg, index) =>
+                index === prev.length - 1
+                  ? { ...msg, content: assistantContent }
+                  : msg,
+              ),
+            );
           }
         }
       }
@@ -184,61 +269,16 @@ function App() {
               </p>
             </div>
           )}
-          {messages.map((message, index) => (
-            <div
-              key={index}
-              className={`mb-6 p-6 rounded-2xl ${
-                message.role === "user"
-                  ? "bg-indigo-50/80 dark:bg-indigo-900/20 border-l-4 border-indigo-400 dark:border-indigo-500"
-                  : "bg-slate-50/80 dark:bg-slate-700/40 border-l-4 border-emerald-400 dark:border-emerald-500"
-              }`}
-            >
-              <div className="text-slate-800 dark:text-slate-200 text-sm font-semibold mb-4 flex items-center gap-3">
-                {message.role === "user" ? (
-                  <>
-                    <div className="w-7 h-7 bg-indigo-400 dark:bg-indigo-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                      U
-                    </div>
-                    You
-                  </>
-                ) : (
-                  <>
-                    <div className="w-7 h-7 bg-emerald-400 dark:bg-emerald-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                      AI
-                    </div>
-                    Assistant
-                  </>
-                )}
-              </div>
-              <pre className="whitespace-pre-wrap text-slate-700 dark:text-slate-300 text-sm font-mono leading-relaxed">
-                {message.content}
-              </pre>
-            </div>
-          ))}
-          {isLoading && (
-            <div className="flex items-center gap-3 p-6 text-slate-600 dark:text-slate-400 bg-slate-50/80 dark:bg-slate-700/40 rounded-2xl border-l-4 border-amber-400 dark:border-amber-500">
-              <div className="w-7 h-7 bg-amber-400 dark:bg-amber-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                AI
-              </div>
-              <div className="flex items-center gap-1">
-                <span>Thinking</span>
-                <div className="flex gap-1">
-                  <div
-                    className="w-1 h-1 bg-current rounded-full animate-bounce"
-                    style={{ animationDelay: "0ms" }}
-                  ></div>
-                  <div
-                    className="w-1 h-1 bg-current rounded-full animate-bounce"
-                    style={{ animationDelay: "150ms" }}
-                  ></div>
-                  <div
-                    className="w-1 h-1 bg-current rounded-full animate-bounce"
-                    style={{ animationDelay: "300ms" }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          )}
+          {messages.map((message, index) => {
+            if (message.type === "system") {
+              return <SystemMessageComponent key={index} message={message} />;
+            } else if (message.type === "tool") {
+              return <ToolMessageComponent key={index} message={message} />;
+            } else {
+              return <ChatMessageComponent key={index} message={message} />;
+            }
+          })}
+          {isLoading && <LoadingComponent />}
         </div>
 
         {/* Input Form */}
