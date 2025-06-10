@@ -1,4 +1,4 @@
-import { ChatRequest, StreamResponse } from "../shared/types.ts";
+import type { ChatRequest, StreamResponse } from "../shared/types.ts";
 
 const PORT = 8080;
 
@@ -6,13 +6,10 @@ async function* executeClaudeCommand(
   message: string,
 ): AsyncGenerator<StreamResponse> {
   try {
-    console.log("Executing claude command");
-
     const command = new Deno.Command("claude", {
       args: ["--output-format", "stream-json", "--verbose", "-p", message],
       stdout: "piped",
-      stderr: "piped",
-      cwd: "../", // Set working directory to project root
+      cwd: "../",
     });
 
     const process = command.spawn();
@@ -23,84 +20,33 @@ async function* executeClaudeCommand(
     try {
       while (true) {
         const { done, value } = await reader.read();
-        if (done) {
-          // Process any remaining data in buffer
-          if (buffer.trim()) {
-            try {
-              const jsonData = JSON.parse(buffer.trim());
-              yield { type: "claude_json", data: jsonData };
-            } catch (_e) {
-              yield {
-                type: "claude_json",
-                data: { type: "raw", content: buffer.trim() },
-              };
-            }
-          }
-          break;
-        }
+        if (done) break;
 
-        const chunk = decoder.decode(value);
-        buffer += chunk;
-
-        // Split by newlines and process complete lines
+        buffer += decoder.decode(value);
         const lines = buffer.split("\n");
-        // Keep the last (potentially incomplete) line in buffer
-        buffer = lines.pop() || "";
+        buffer = lines.pop() || ""; // Keep incomplete line
 
         for (const line of lines) {
           if (line.trim()) {
-            try {
-              const jsonData = JSON.parse(line.trim());
-              yield { type: "claude_json", data: jsonData };
-            } catch (_e) {
-              yield {
-                type: "claude_json",
-                data: { type: "raw", content: line },
-              };
-            }
+            yield { type: "claude_json", data: line.trim() };
           }
         }
+      }
+
+      // Handle remaining buffer
+      if (buffer.trim()) {
+        yield { type: "claude_json", data: buffer.trim() };
       }
     } finally {
       reader.releaseLock();
     }
 
-    const status = await process.status;
-
-    if (!status.success) {
-      const errorReader = process.stderr.getReader();
-      const errorChunks = [];
-      while (true) {
-        const { done, value } = await errorReader.read();
-        if (done) break;
-        errorChunks.push(value);
-      }
-      const totalLength = errorChunks.reduce(
-        (sum, chunk) => sum + chunk.length,
-        0,
-      );
-      const combined = new Uint8Array(totalLength);
-      let offset = 0;
-      for (const chunk of errorChunks) {
-        combined.set(chunk, offset);
-        offset += chunk.length;
-      }
-      const errorText = decoder.decode(combined);
-      console.error("Claude command failed:", errorText);
-      yield {
-        type: "error",
-        error: errorText || `Command failed with exit code ${status.code}`,
-      };
-    }
-
+    await process.status;
     yield { type: "done" };
   } catch (error) {
-    console.error("Command execution error:", error);
     yield {
       type: "error",
-      error: `Failed to execute claude command: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 }
@@ -108,7 +54,6 @@ async function* executeClaudeCommand(
 async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
 
-  // CORS headers
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -131,7 +76,6 @@ async function handler(req: Request): Promise<Response> {
           }
           controller.close();
         } catch (error) {
-          console.error("Stream error:", error);
           const errorResponse: StreamResponse = {
             type: "error",
             error: error instanceof Error ? error.message : String(error),

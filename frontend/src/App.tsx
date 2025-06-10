@@ -55,34 +55,36 @@ function App() {
             const data: StreamResponse = JSON.parse(line);
 
             if (data.type === "claude_json" && data.data) {
-              const claudeData = data.data;
+              try {
+                const claudeData = JSON.parse(data.data);
 
-              if (
-                claudeData.type === "assistant" &&
-                claudeData.message?.content
-              ) {
-                // Extract text from assistant message
-                for (const contentItem of claudeData.message.content) {
-                  if (contentItem.type === "text") {
-                    assistantContent += contentItem.text;
-                    setMessages((prev) =>
-                      prev.map((msg, index) =>
-                        index === prev.length - 1
-                          ? { ...msg, content: assistantContent }
-                          : msg,
-                      ),
-                    );
+                if (
+                  claudeData.type === "assistant" &&
+                  claudeData.message?.content
+                ) {
+                  // Extract text from assistant message
+                  for (const contentItem of claudeData.message.content) {
+                    if (contentItem.type === "text") {
+                      assistantContent += contentItem.text;
+                      setMessages((prev) =>
+                        prev.map((msg, index) =>
+                          index === prev.length - 1
+                            ? { ...msg, content: assistantContent }
+                            : msg,
+                        ),
+                      );
+                    }
                   }
+                } else if (claudeData.type === "result" && claudeData.result) {
+                  // Final result - could show cost info etc.
+                  console.log("Claude execution completed:", claudeData);
+                } else if (claudeData.type === "system") {
+                  // System initialization - could show model info etc.
+                  console.log("Claude system init:", claudeData);
                 }
-              } else if (claudeData.type === "result" && claudeData.result) {
-                // Final result - could show cost info etc.
-                console.log("Claude execution completed:", claudeData);
-              } else if (claudeData.type === "system") {
-                // System initialization - could show model info etc.
-                console.log("Claude system init:", claudeData);
-              } else if (claudeData.type === "raw") {
-                // Raw non-JSON content
-                assistantContent += claudeData.content + "\n";
+              } catch {
+                // If JSON parsing fails, treat as raw text
+                assistantContent += data.data + "\n";
                 setMessages((prev) =>
                   prev.map((msg, index) =>
                     index === prev.length - 1
@@ -91,6 +93,16 @@ function App() {
                   ),
                 );
               }
+            } else if (data.type === "raw" && data.data) {
+              // Raw non-JSON content
+              assistantContent += data.data + "\n";
+              setMessages((prev) =>
+                prev.map((msg, index) =>
+                  index === prev.length - 1
+                    ? { ...msg, content: assistantContent }
+                    : msg,
+                ),
+              );
             } else if (data.type === "error") {
               console.error("Stream error:", data.error);
             } else if (data.type === "done") {
