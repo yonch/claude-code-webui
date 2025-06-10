@@ -118,4 +118,4 @@ The command outputs three types of JSON messages:
 - **Build**: Frontend build with `npm run build`
 - **Test**: No testing configured yet
 
-**Note**: Always run format and lint commands before committing to ensure consistent code style.
+**Note**: Always run format and lint commands before committing to ensure consistent code style. GitHub Actions will automatically run all quality checks on push and pull requests.
