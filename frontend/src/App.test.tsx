@@ -37,7 +37,7 @@ describe('App', () => {
     fireEvent.change(input, { target: { value: 'Test message' } })
     fireEvent.submit(form)
     
-    expect(screen.getByText('You:')).toBeInTheDocument()
+    expect(screen.getByText('You')).toBeInTheDocument()
     expect(screen.getByText('Test message')).toBeInTheDocument()
   })
 })
