@@ -1,10 +1,27 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { ChatMessage, ChatRequest, StreamResponse } from "@shared/types";
+import { useTheme } from "./hooks/useTheme";
 
 function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Auto focus on the input field when component mounts
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+
+  useEffect(() => {
+    // Re-focus input after sending a message
+    if (!isLoading && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isLoading]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -133,51 +150,107 @@ function App() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-5 h-screen flex flex-col">
-      <h1 className="text-gray-900 mb-5 flex-shrink-0 text-2xl font-bold">
-        Claude Code Web UI
-      </h1>
-
-      <div className="flex-1 overflow-y-auto border border-gray-300 p-4 mb-5 bg-white rounded-lg">
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`mb-4 p-4 rounded-lg ${
-              message.role === "user"
-                ? "bg-blue-50 border-l-4 border-blue-500"
-                : "bg-gray-50 border-l-4 border-green-500"
-            }`}
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+      <div className="max-w-6xl mx-auto p-6 h-screen flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8 flex-shrink-0">
+          <h1 className="text-slate-800 dark:text-slate-100 text-3xl font-bold tracking-tight">
+            Claude Code Web UI
+          </h1>
+          <button
+            onClick={toggleTheme}
+            className="p-3 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-all duration-200 backdrop-blur-sm shadow-sm hover:shadow-md"
+            aria-label="Toggle theme"
           >
-            <div className="text-gray-900 text-sm font-semibold mb-2">
-              {message.role === "user" ? "You" : "Assistant"}:
-            </div>
-            <pre className="whitespace-pre-wrap text-gray-900 text-sm font-mono">
-              {message.content}
-            </pre>
-          </div>
-        ))}
-        {isLoading && (
-          <div className="p-4 text-gray-600 italic">Thinking...</div>
-        )}
-      </div>
+            {theme === "light" ? (
+              <svg className="w-5 h-5 text-slate-600 dark:text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5 text-slate-600 dark:text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+              </svg>
+            )}
+          </button>
+        </div>
 
-      <form onSubmit={handleSubmit} className="flex gap-3 flex-shrink-0">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message..."
-          disabled={isLoading}
-          className="flex-1 px-3 py-2 text-base border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-        />
-        <button
-          type="submit"
-          disabled={isLoading || !input.trim()}
-          className="px-6 py-2 text-base bg-blue-600 text-white border-none rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          Send
-        </button>
-      </form>
+        {/* Chat Messages */}
+        <div className="flex-1 overflow-y-auto bg-white/70 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60 p-6 mb-6 rounded-2xl shadow-sm backdrop-blur-sm">
+          {messages.length === 0 && (
+            <div className="text-center text-slate-500 dark:text-slate-400 mt-12">
+              <div className="text-6xl mb-6 opacity-60">💬</div>
+              <p className="text-lg font-medium">Start a conversation with Claude</p>
+              <p className="text-sm mt-2 opacity-80">Type your message below to begin</p>
+            </div>
+          )}
+          {messages.map((message, index) => (
+            <div
+              key={index}
+              className={`mb-6 p-6 rounded-2xl ${
+                message.role === "user"
+                  ? "bg-indigo-50/80 dark:bg-indigo-900/20 border-l-4 border-indigo-400 dark:border-indigo-500"
+                  : "bg-slate-50/80 dark:bg-slate-700/40 border-l-4 border-emerald-400 dark:border-emerald-500"
+              }`}
+            >
+              <div className="text-slate-800 dark:text-slate-200 text-sm font-semibold mb-4 flex items-center gap-3">
+                {message.role === "user" ? (
+                  <>
+                    <div className="w-7 h-7 bg-indigo-400 dark:bg-indigo-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                      U
+                    </div>
+                    You
+                  </>
+                ) : (
+                  <>
+                    <div className="w-7 h-7 bg-emerald-400 dark:bg-emerald-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                      AI
+                    </div>
+                    Assistant
+                  </>
+                )}
+              </div>
+              <pre className="whitespace-pre-wrap text-slate-700 dark:text-slate-300 text-sm font-mono leading-relaxed">
+                {message.content}
+              </pre>
+            </div>
+          ))}
+          {isLoading && (
+            <div className="flex items-center gap-3 p-6 text-slate-600 dark:text-slate-400 bg-slate-50/80 dark:bg-slate-700/40 rounded-2xl border-l-4 border-amber-400 dark:border-amber-500">
+              <div className="w-7 h-7 bg-amber-400 dark:bg-amber-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                AI
+              </div>
+              <div className="flex items-center gap-1">
+                <span>Thinking</span>
+                <div className="flex gap-1">
+                  <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                  <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                  <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Input Form */}
+        <form onSubmit={handleSubmit} className="flex gap-4 flex-shrink-0">
+          <input
+            ref={inputRef}
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type your message..."
+            disabled={isLoading}
+            className="flex-1 px-5 py-4 text-base border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-800 dark:text-slate-200 bg-white/80 dark:bg-slate-800/80 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 placeholder-slate-500 dark:placeholder-slate-400 transition-all duration-200 backdrop-blur-sm shadow-sm"
+          />
+          <button
+            type="submit"
+            disabled={isLoading || !input.trim()}
+            className="px-8 py-4 text-base bg-indigo-500 hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white border-none rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-sm hover:shadow-md"
+          >
+            Send
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
