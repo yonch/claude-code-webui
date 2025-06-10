@@ -1,6 +1,5 @@
 import { useState } from "react";
 import type { ChatMessage, ChatRequest, StreamResponse } from "@shared/types";
-import "./App.css";
 
 function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -134,98 +133,47 @@ function App() {
   };
 
   return (
-    <div
-      className="chat-container"
-      style={{
-        maxWidth: "800px",
-        margin: "0 auto",
-        padding: "20px",
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        boxSizing: "border-box",
-      }}
-    >
-      <h1 style={{ color: "#1a1a1a", margin: "0 0 20px 0", flexShrink: 0 }}>
+    <div className="max-w-4xl mx-auto p-5 h-screen flex flex-col">
+      <h1 className="text-gray-900 mb-5 flex-shrink-0 text-2xl font-bold">
         Claude Code Web UI
       </h1>
 
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          border: "1px solid #ddd",
-          padding: "15px",
-          marginBottom: "20px",
-          backgroundColor: "#ffffff",
-          borderRadius: "8px",
-        }}
-      >
+      <div className="flex-1 overflow-y-auto border border-gray-300 p-4 mb-5 bg-white rounded-lg">
         {messages.map((message, index) => (
           <div
             key={index}
-            className={
-              message.role === "user" ? "message-user" : "message-assistant"
-            }
-            style={{
-              marginBottom: "15px",
-              padding: "15px",
-              borderRadius: "8px",
-            }}
+            className={`mb-4 p-4 rounded-lg ${
+              message.role === "user"
+                ? "bg-blue-50 border-l-4 border-blue-500"
+                : "bg-gray-50 border-l-4 border-green-500"
+            }`}
           >
-            <strong style={{ color: "#1a1a1a", fontSize: "14px" }}>
+            <div className="text-gray-900 text-sm font-semibold mb-2">
               {message.role === "user" ? "You" : "Assistant"}:
-            </strong>
-            <pre
-              className="message-content"
-              style={{
-                whiteSpace: "pre-wrap",
-                margin: "8px 0 0 0",
-                fontFamily: "inherit",
-              }}
-            >
+            </div>
+            <pre className="whitespace-pre-wrap text-gray-900 text-sm font-mono">
               {message.content}
             </pre>
           </div>
         ))}
         {isLoading && (
-          <div className="thinking-indicator" style={{ padding: "15px" }}>
-            Thinking...
-          </div>
+          <div className="p-4 text-gray-600 italic">Thinking...</div>
         )}
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        style={{ display: "flex", gap: "10px", flexShrink: 0 }}
-      >
+      <form onSubmit={handleSubmit} className="flex gap-3 flex-shrink-0">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your message..."
           disabled={isLoading}
-          style={{
-            flex: 1,
-            padding: "12px",
-            fontSize: "16px",
-            border: "1px solid #ddd",
-            borderRadius: "6px",
-            color: "#1a1a1a",
-          }}
+          className="flex-1 px-3 py-2 text-base border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
         />
         <button
           type="submit"
           disabled={isLoading || !input.trim()}
-          style={{
-            padding: "12px 24px",
-            fontSize: "16px",
-            backgroundColor: "#007bff",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: isLoading ? "not-allowed" : "pointer",
-          }}
+          className="px-6 py-2 text-base bg-blue-600 text-white border-none rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           Send
         </button>
