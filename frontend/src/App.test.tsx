@@ -9,7 +9,7 @@ describe("App", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Mock successful fetch response
-    (global.fetch as any).mockResolvedValue({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       body: {
         getReader: () => ({
