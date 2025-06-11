@@ -1,13 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import type {
-  ChatRequest,
-  StreamResponse,
-  AllMessage,
-  ChatMessage,
-  SystemMessage,
-  ToolMessage,
-} from "./types";
+import type { ChatRequest, AllMessage, ChatMessage } from "./types";
+import { isChatMessage, isSystemMessage, isToolMessage } from "./types";
 import { useTheme } from "./hooks/useTheme";
+import { useClaudeStreaming } from "./hooks/useClaudeStreaming";
 import { SunIcon, MoonIcon } from "@heroicons/react/24/outline";
 import {
   ChatMessageComponent,
@@ -21,17 +16,19 @@ function App() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { processStreamLine } = useClaudeStreaming();
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [currentAssistantMessage, setCurrentAssistantMessage] =
+    useState<ChatMessage | null>(null);
+
   useEffect(() => {
-    // Auto focus on the input field when component mounts
     if (inputRef.current) {
       inputRef.current.focus();
     }
   }, []);
 
   useEffect(() => {
-    // Re-focus input after sending a message
     if (!isLoading && inputRef.current) {
       inputRef.current.focus();
     }
@@ -41,6 +38,7 @@ function App() {
     if (!input.trim() || isLoading) return;
 
     const userMessage: ChatMessage = {
+      type: "chat",
       role: "user",
       content: input.trim(),
       timestamp: Date.now(),
@@ -53,9 +51,7 @@ function App() {
     try {
       const response = await fetch("http://localhost:8080/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: input.trim() } as ChatRequest),
       });
 
@@ -63,9 +59,23 @@ function App() {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let assistantContent = "";
 
-      let currentAssistantMessage: ChatMessage | null = null;
+      const streamingContext = {
+        currentAssistantMessage,
+        setCurrentAssistantMessage,
+        addMessage: (msg: AllMessage) => {
+          setMessages((prev) => [...prev, msg]);
+        },
+        updateLastMessage: (content: string) => {
+          setMessages((prev) =>
+            prev.map((msg, index) =>
+              index === prev.length - 1 && isChatMessage(msg)
+                ? { ...msg, content }
+                : msg,
+            ),
+          );
+        },
+      };
 
       while (true) {
         const { done, value } = await reader.read();
@@ -75,144 +85,7 @@ function App() {
         const lines = chunk.split("\n").filter((line) => line.trim());
 
         for (const line of lines) {
-          try {
-            const data: StreamResponse = JSON.parse(line);
-
-            if (data.type === "claude_json" && data.data) {
-              try {
-                const claudeData = JSON.parse(data.data);
-
-                if (claudeData.type === "system") {
-                  // Add system message separately
-                  let systemContent = "";
-                  if (claudeData.subtype === "init") {
-                    systemContent = `🔧 Claude Code initialized\nModel: ${claudeData.model || "Unknown"}\nSession: ${claudeData.session_id?.substring(0, 8) || "Unknown"}\nTools: ${claudeData.tools?.length || 0} available`;
-                  } else {
-                    systemContent = `System: ${claudeData.message || JSON.stringify(claudeData)}`;
-                  }
-
-                  const systemMessage: SystemMessage = {
-                    type: "system",
-                    content: systemContent,
-                    timestamp: Date.now(),
-                  };
-                  setMessages((prev) => [...prev, systemMessage]);
-                } else if (
-                  claudeData.type === "assistant" &&
-                  claudeData.message?.content
-                ) {
-                  // Handle assistant messages
-                  for (const contentItem of claudeData.message.content) {
-                    if (contentItem.type === "text") {
-                      // Create or update assistant message for text responses
-                      if (!currentAssistantMessage) {
-                        currentAssistantMessage = {
-                          role: "assistant",
-                          content: "",
-                          timestamp: Date.now(),
-                        };
-                        setMessages((prev) => [
-                          ...prev,
-                          currentAssistantMessage!,
-                        ]);
-                      }
-                      currentAssistantMessage.content += contentItem.text;
-                      setMessages((prev) =>
-                        prev.map((msg, index) =>
-                          index === prev.length - 1 &&
-                          msg.type !== "system" &&
-                          msg.type !== "tool"
-                            ? {
-                                ...msg,
-                                content: currentAssistantMessage!.content,
-                              }
-                            : msg,
-                        ),
-                      );
-                    } else if (contentItem.type === "tool_use") {
-                      // Add tool message separately
-                      let toolContent = `🔧 Using tool: ${contentItem.name}`;
-                      if (contentItem.input?.description) {
-                        toolContent += `\n${contentItem.input.description}`;
-                      }
-                      if (contentItem.input?.command) {
-                        toolContent += `\n$ ${contentItem.input.command}`;
-                      }
-
-                      const toolMessage: ToolMessage = {
-                        type: "tool",
-                        content: toolContent,
-                        timestamp: Date.now(),
-                      };
-                      setMessages((prev) => [...prev, toolMessage]);
-                    }
-                  }
-                } else if (
-                  claudeData.type === "user" &&
-                  claudeData.message?.content
-                ) {
-                  // Handle tool results
-                  for (const contentItem of claudeData.message.content) {
-                    if (contentItem.type === "tool_result") {
-                      let resultContent = "";
-                      if (contentItem.is_error) {
-                        resultContent = `❌ Error: ${contentItem.content}`;
-                      } else {
-                        resultContent = contentItem.content;
-                      }
-
-                      const toolResultMessage: ToolMessage = {
-                        type: "tool",
-                        content: resultContent,
-                        timestamp: Date.now(),
-                      };
-                      setMessages((prev) => [...prev, toolResultMessage]);
-                    }
-                  }
-                }
-              } catch {
-                // If JSON parsing fails, treat as raw text
-                assistantContent += data.data + "\n";
-                setMessages((prev) =>
-                  prev.map((msg, index) =>
-                    index === prev.length - 1
-                      ? { ...msg, content: assistantContent }
-                      : msg,
-                  ),
-                );
-              }
-            } else if (data.type === "raw" && data.data) {
-              // Raw non-JSON content
-              assistantContent += data.data + "\n";
-              setMessages((prev) =>
-                prev.map((msg, index) =>
-                  index === prev.length - 1
-                    ? { ...msg, content: assistantContent }
-                    : msg,
-                ),
-              );
-            } else if (data.type === "error") {
-              assistantContent += `\nError: ${data.error}\n`;
-              setMessages((prev) =>
-                prev.map((msg, index) =>
-                  index === prev.length - 1
-                    ? { ...msg, content: assistantContent }
-                    : msg,
-                ),
-              );
-            } else if (data.type === "done") {
-              break;
-            }
-          } catch {
-            assistantContent += `Parse error: ${line}\n`;
-            setMessages((prev) =>
-              prev.map((msg, index) =>
-                index === prev.length - 1
-                  ? { ...msg, content: assistantContent }
-                  : msg,
-              ),
-            );
-          }
+          processStreamLine(line, streamingContext);
         }
       }
     } catch (error) {
@@ -220,6 +93,7 @@ function App() {
       setMessages((prev) => [
         ...prev,
         {
+          type: "chat",
           role: "assistant",
           content: "Error: Failed to get response",
           timestamp: Date.now(),
@@ -270,9 +144,9 @@ function App() {
             </div>
           )}
           {messages.map((message, index) => {
-            if (message.type === "system") {
+            if (isSystemMessage(message)) {
               return <SystemMessageComponent key={index} message={message} />;
-            } else if (message.type === "tool") {
+            } else if (isToolMessage(message)) {
               return <ToolMessageComponent key={index} message={message} />;
             } else {
               return <ChatMessageComponent key={index} message={message} />;
@@ -281,25 +155,27 @@ function App() {
           {isLoading && <LoadingComponent />}
         </div>
 
-        {/* Input Form */}
-        <form onSubmit={handleSubmit} className="flex gap-4 flex-shrink-0">
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
-            disabled={isLoading}
-            className="flex-1 px-5 py-4 text-base border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-800 dark:text-slate-200 bg-white/80 dark:bg-slate-800/80 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 placeholder-slate-500 dark:placeholder-slate-400 transition-all duration-200 backdrop-blur-sm shadow-sm"
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !input.trim()}
-            className="px-8 py-4 text-base bg-indigo-500 hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white border-none rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-sm hover:shadow-md"
-          >
-            Send
-          </button>
-        </form>
+        {/* Input */}
+        <div className="flex-shrink-0">
+          <form onSubmit={handleSubmit} className="flex gap-3">
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type your message..."
+              className="flex-1 px-4 py-3 bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm shadow-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
+              disabled={isLoading}
+            />
+            <button
+              type="submit"
+              disabled={!input.trim() || isLoading}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white rounded-xl font-medium transition-all duration-200 shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isLoading ? "Sending..." : "Send"}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 export interface ChatMessage {
+  type: "chat";
   role: "user" | "assistant";
   content: string;
   timestamp: number;
@@ -17,6 +18,19 @@ export type ToolMessage = {
 };
 
 export type AllMessage = ChatMessage | SystemMessage | ToolMessage;
+
+// Type guard functions
+export function isChatMessage(message: AllMessage): message is ChatMessage {
+  return message.type === "chat";
+}
+
+export function isSystemMessage(message: AllMessage): message is SystemMessage {
+  return message.type === "system";
+}
+
+export function isToolMessage(message: AllMessage): message is ToolMessage {
+  return message.type === "tool";
+}
 
 export interface StreamResponse {
   type: "claude_json" | "raw" | "error" | "done";
