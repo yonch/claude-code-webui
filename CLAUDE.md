@@ -162,4 +162,45 @@ cd backend && deno task build
 
 **Note**: Always run format and lint commands before committing to ensure consistent code style. GitHub Actions will automatically run all quality checks on push and pull requests.
 
+## Development Workflow
+
+### Pull Request Process
+
+1. Create a feature branch from `main`: `git checkout -b feature/your-feature-name`
+2. Make your changes and commit them
+3. Run all quality checks locally before pushing
+4. Push your branch and create a pull request
+5. **Add appropriate labels** to categorize the changes (see Labels section below)
+6. **Check corresponding boxes** in the PR template that match the labels
+7. Update CHANGELOG.md with your changes in the Unreleased section
+8. Request review and address feedback
+9. Merge after approval and CI passes
+
+### Labels
+
+The project uses the following labels for categorizing pull requests and issues:
+
+- 🐛 **`bug`** - Bug fixes (non-breaking changes that fix issues)
+- ✨ **`feature`** - New features (non-breaking changes that add functionality)
+- 💥 **`breaking`** - Breaking changes (changes that would cause existing functionality to not work as expected)
+- 📚 **`documentation`** - Documentation improvements or additions
+- ⚡ **`performance`** - Performance improvements
+- 🔨 **`refactor`** - Code refactoring (no functional changes)
+- 🧪 **`test`** - Adding or updating tests
+- 🔧 **`chore`** - Maintenance, dependencies, tooling updates
+
+**For Claude**: When creating PRs, always:
+
+1. Check the appropriate boxes in the PR template
+2. Add the corresponding GitHub labels using `--label` flag: `gh pr create --label "feature,documentation"`
+3. Multiple labels can be applied if the PR covers multiple areas
+
+### Release Process
+
+1. Update CHANGELOG.md moving items from Unreleased to new version section
+2. Commit changelog updates to main branch
+3. Create and push a git tag: `git tag v1.0.0 && git push origin v1.0.0`
+4. GitHub Actions automatically creates release with binaries
+5. Update documentation if needed
+
 **Important for Claude**: Always run commands from the project root directory. When using `cd` commands for backend/frontend, use full paths like `cd /path/to/project/backend` to avoid getting lost in subdirectories.
