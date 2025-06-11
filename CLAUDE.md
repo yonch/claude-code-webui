@@ -162,4 +162,24 @@ cd backend && deno task build
 
 **Note**: Always run format and lint commands before committing to ensure consistent code style. GitHub Actions will automatically run all quality checks on push and pull requests.
 
+## Development Workflow
+
+### Pull Request Process
+
+1. Create a feature branch from `main`: `git checkout -b feature/your-feature-name`
+2. Make your changes and commit them
+3. Run all quality checks locally before pushing
+4. Push your branch and create a pull request
+5. Update CHANGELOG.md with your changes in the Unreleased section
+6. Request review and address feedback
+7. Merge after approval and CI passes
+
+### Release Process
+
+1. Update CHANGELOG.md moving items from Unreleased to new version section
+2. Commit changelog updates to main branch
+3. Create and push a git tag: `git tag v1.0.0 && git push origin v1.0.0`
+4. GitHub Actions automatically creates release with binaries
+5. Update documentation if needed
+
 **Important for Claude**: Always run commands from the project root directory. When using `cd` commands for backend/frontend, use full paths like `cd /path/to/project/backend` to avoid getting lost in subdirectories.
