@@ -4,12 +4,16 @@ Brief description of the changes in this PR.
 
 ## Type of Change
 
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] Documentation update
-- [ ] Performance improvement
-- [ ] Code refactoring
+Please add the appropriate label(s) to this PR and check the relevant box(es):
+
+- [ ] 🐛 `bug` - Bug fix (non-breaking change which fixes an issue)
+- [ ] ✨ `feature` - New feature (non-breaking change which adds functionality)  
+- [ ] 💥 `breaking` - Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] 📚 `documentation` - Documentation update
+- [ ] ⚡ `performance` - Performance improvement
+- [ ] 🔨 `refactor` - Code refactoring
+- [ ] 🧪 `test` - Adding or updating tests
+- [ ] 🔧 `chore` - Maintenance, dependencies, tooling
 
 ## Changes Made
 
