@@ -170,9 +170,30 @@ cd backend && deno task build
 2. Make your changes and commit them
 3. Run all quality checks locally before pushing
 4. Push your branch and create a pull request
-5. Update CHANGELOG.md with your changes in the Unreleased section
-6. Request review and address feedback
-7. Merge after approval and CI passes
+5. **Add appropriate labels** to categorize the changes (see Labels section below)
+6. **Check corresponding boxes** in the PR template that match the labels
+7. Update CHANGELOG.md with your changes in the Unreleased section
+8. Request review and address feedback
+9. Merge after approval and CI passes
+
+### Labels
+
+The project uses the following labels for categorizing pull requests and issues:
+
+- 🐛 **`bug`** - Bug fixes (non-breaking changes that fix issues)
+- ✨ **`feature`** - New features (non-breaking changes that add functionality)
+- 💥 **`breaking`** - Breaking changes (changes that would cause existing functionality to not work as expected)
+- 📚 **`documentation`** - Documentation improvements or additions
+- ⚡ **`performance`** - Performance improvements
+- 🔨 **`refactor`** - Code refactoring (no functional changes)
+- 🧪 **`test`** - Adding or updating tests
+- 🔧 **`chore`** - Maintenance, dependencies, tooling updates
+
+**For Claude**: When creating PRs, always:
+
+1. Check the appropriate boxes in the PR template
+2. Add the corresponding GitHub labels using `--label` flag: `gh pr create --label "feature,documentation"`
+3. Multiple labels can be applied if the PR covers multiple areas
 
 ### Release Process
 
