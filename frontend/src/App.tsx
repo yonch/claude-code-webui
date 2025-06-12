@@ -39,7 +39,9 @@ function App() {
     const textarea = inputRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      const scrollHeight = Math.min(textarea.scrollHeight, 200);
+      const computedStyle = getComputedStyle(textarea);
+      const maxHeight = parseInt(computedStyle.maxHeight, 10) || 200;
+      const scrollHeight = Math.min(textarea.scrollHeight, maxHeight);
       textarea.style.height = `${scrollHeight}px`;
     }
   }, [input]);
