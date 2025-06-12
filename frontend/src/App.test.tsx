@@ -23,10 +23,10 @@ describe("App", () => {
     expect(screen.getByText("Claude Code Web UI")).toBeInTheDocument();
   });
 
-  it("renders input field and send button", () => {
+  it("renders textarea and send button", () => {
     render(<App />);
     expect(
-      screen.getByPlaceholderText("Type your message..."),
+      screen.getByPlaceholderText("Type your message... (Shift+Enter for new line)"),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
   });
@@ -37,21 +37,21 @@ describe("App", () => {
     expect(sendButton).toBeDisabled();
   });
 
-  it("enables send button when input has text", () => {
+  it("enables send button when textarea has text", () => {
     render(<App />);
-    const input = screen.getByPlaceholderText("Type your message...");
+    const textarea = screen.getByPlaceholderText("Type your message... (Shift+Enter for new line)");
     const sendButton = screen.getByRole("button", { name: "Send" });
 
-    fireEvent.change(input, { target: { value: "Hello" } });
+    fireEvent.change(textarea, { target: { value: "Hello" } });
     expect(sendButton).not.toBeDisabled();
   });
 
   it("adds user message when form is submitted", async () => {
     render(<App />);
-    const input = screen.getByPlaceholderText("Type your message...");
-    const form = input.closest("form")!;
+    const textarea = screen.getByPlaceholderText("Type your message... (Shift+Enter for new line)");
+    const form = textarea.closest("form")!;
 
-    fireEvent.change(input, { target: { value: "Test message" } });
+    fireEvent.change(textarea, { target: { value: "Test message" } });
     fireEvent.submit(form);
 
     await waitFor(() => {
