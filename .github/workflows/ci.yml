@@ -46,7 +46,7 @@ jobs:
         run: cd frontend && npm ci
 
       - name: Format check
-        run: cd frontend && npm run format -- --check
+        run: cd frontend && npm run format:check
 
       - name: Lint
         run: cd frontend && npm run lint
