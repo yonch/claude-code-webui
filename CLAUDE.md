@@ -232,4 +232,30 @@ The project uses the following labels for categorizing pull requests and issues:
 
 **Manual override**: Edit `backend/VERSION` file directly if specific version needed
 
+### GitHub Sub-Issues API
+
+**For Claude**: When creating sub-issues to break down larger features:
+
+```bash
+# 1. Create the sub-issue normally
+gh issue create --title "Sub-issue title" --body "..." --label "feature,enhancement"
+
+# 2. Get the sub-issue ID
+SUB_ISSUE_ID=$(gh api repos/owner/repo/issues/ISSUE_NUMBER --jq '.id')
+
+# 3. Add it as sub-issue to parent issue
+gh api repos/owner/repo/issues/PARENT_ISSUE_NUMBER/sub_issues \
+  --method POST \
+  --field sub_issue_id=$SUB_ISSUE_ID
+
+# 4. Verify the relationship
+gh api repos/owner/repo/issues/PARENT_ISSUE_NUMBER/sub_issues
+```
+
+**Key points**:
+- Use issue **ID** (not number) for `sub_issue_id` parameter
+- Endpoint is `/sub_issues` (plural) for POST operations
+- Parent issue will show `sub_issues_summary` with total/completed counts
+- Sub-issues automatically link to parent in GitHub UI
+
 **Important for Claude**: Always run commands from the project root directory. When using `cd` commands for backend/frontend, use full paths like `cd /path/to/project/backend` to avoid getting lost in subdirectories.
