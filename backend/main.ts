@@ -33,8 +33,9 @@ if (args.version) {
   try {
     const version = await Deno.readTextFile("./VERSION");
     console.log(`Claude Code Web UI Backend v${version.trim()}`);
-  } catch {
-    console.log("Claude Code Web UI Backend v0.1.3");
+  } catch (error) {
+    console.error(`Error reading VERSION file: ${error.message}`);
+    Deno.exit(1);
   }
   Deno.exit(0);
 }
