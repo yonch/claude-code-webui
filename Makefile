@@ -28,9 +28,12 @@ test:
 	cd frontend && npm test
 
 # Building
-build: build-frontend build-backend
+build: build-frontend copy-dist build-backend
 build-frontend:
 	cd frontend && npm run build
+copy-dist:
+	rm -rf backend/dist
+	cp -r frontend/dist backend/dist
 build-backend:
 	cd backend && deno task build
 
@@ -57,4 +60,4 @@ format-files:
 # Clean
 clean:
 	cd frontend && rm -rf node_modules dist
-	cd backend && rm -rf ../dist
+	cd backend && rm -rf ../dist dist
