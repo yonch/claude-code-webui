@@ -152,13 +152,17 @@ cd backend && deno task build
 
 ## Commands for Claude
 
-- **Development**: Use `deno task dev` for backend and `npm run dev` for frontend
-- **Build Binary**: Use `deno task build` for local single binary creation
-- **Format**: Use `deno task format` for backend and `npm run format` for frontend
-- **Lint**: Use `deno task lint` for backend and `npm run lint` for frontend
-- **Type Check**: Use `deno task check` for backend and `npm run typecheck` for frontend
-- **Build Frontend**: Frontend build with `npm run build`
-- **Test**: Use `npm test` for frontend (React component tests with Vitest and Testing Library)
+### Unified Commands (from project root)
+- **Format**: `npm run format` or `make format` - Format both frontend and backend
+- **Lint**: `npm run lint` or `make lint` - Lint both frontend and backend  
+- **Type Check**: `npm run typecheck` or `make typecheck` - Type check both frontend and backend
+- **Test**: `npm run test` or `make test` - Run frontend tests
+- **Quality Check**: `make check` - Run all quality checks before commit
+
+### Individual Commands
+- **Development**: `npm run dev:backend` / `npm run dev:frontend` or `make dev-backend` / `make dev-frontend`
+- **Build Binary**: `npm run build:backend` or `make build-backend`
+- **Build Frontend**: `npm run build:frontend` or `make build-frontend`
 
 **Note**: Always run format and lint commands before committing to ensure consistent code style. GitHub Actions will automatically run all quality checks on push and pull requests.
 

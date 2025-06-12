@@ -1,0 +1,20 @@
+{
+  "name": "claude-code-webui",
+  "private": true,
+  "scripts": {
+    "format": "npm run format:frontend && npm run format:backend",
+    "format:frontend": "cd frontend && npm run format",
+    "format:backend": "cd backend && deno task format",
+    "lint": "npm run lint:frontend && npm run lint:backend",
+    "lint:frontend": "cd frontend && npm run lint",
+    "lint:backend": "cd backend && deno task lint",
+    "typecheck": "npm run typecheck:frontend && npm run typecheck:backend",
+    "typecheck:frontend": "cd frontend && npm run typecheck",
+    "typecheck:backend": "cd backend && deno task check",
+    "test": "cd frontend && npm test",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && deno task build",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && deno task dev"
+  }
+}
