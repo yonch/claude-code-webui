@@ -1,7 +1,7 @@
 {
   "tasks": {
     "dev": "deno run --allow-net --allow-run --allow-read --watch main.ts",
-    "build": "deno compile --allow-net --allow-run --allow-read --include ../frontend/dist --output ../dist/claude-webui main.ts",
+    "build": "deno compile --allow-net --allow-run --allow-read --include ./VERSION --include ./dist --output ../dist/claude-code-webui main.ts",
     "format": "deno fmt",
     "lint": "deno lint",
     "check": "deno check main.ts"
