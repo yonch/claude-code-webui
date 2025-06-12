@@ -17,7 +17,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { processStreamLine } = useClaudeStreaming();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const [currentAssistantMessage, setCurrentAssistantMessage] =
     useState<ChatMessage | null>(null);
@@ -33,6 +33,16 @@ function App() {
       inputRef.current.focus();
     }
   }, [isLoading]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const textarea = inputRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const scrollHeight = Math.min(textarea.scrollHeight, 200);
+      textarea.style.height = `${scrollHeight}px`;
+    }
+  }, [input]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -109,6 +119,13 @@ function App() {
     sendMessage();
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
       <div className="max-w-6xl mx-auto p-6 h-screen flex flex-col">
@@ -158,13 +175,14 @@ function App() {
         {/* Input */}
         <div className="flex-shrink-0">
           <form onSubmit={handleSubmit} className="flex gap-3">
-            <input
+            <textarea
               ref={inputRef}
-              type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message..."
-              className="flex-1 px-4 py-3 bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm shadow-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
+              onKeyDown={handleKeyDown}
+              placeholder="Type your message... (Shift+Enter for new line)"
+              rows={1}
+              className="flex-1 px-4 py-3 bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm shadow-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none overflow-hidden min-h-[48px] max-h-[200px]"
               disabled={isLoading}
             />
             <button
