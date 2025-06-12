@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Pull request based development workflow
 - Changelog tracking for better release management
+- tagpr integration for automated release PR generation
+- Repository ruleset for branch protection
+- Dynamic version reading from VERSION file in --version command
+
+### Changed
+
+- Release process now uses PRs with automated version management
+- VERSION file moved to backend/ directory for better integration
 
 ## [0.1.3] - 2025-06-11
 
