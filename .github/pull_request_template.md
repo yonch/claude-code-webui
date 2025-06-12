@@ -7,7 +7,7 @@ Brief description of the changes in this PR.
 Please add the appropriate label(s) to this PR and check the relevant box(es):
 
 - [ ] 🐛 `bug` - Bug fix (non-breaking change which fixes an issue)
-- [ ] ✨ `feature` - New feature (non-breaking change which adds functionality)  
+- [ ] ✨ `feature` - New feature (non-breaking change which adds functionality)
 - [ ] 💥 `breaking` - Breaking change (fix or feature that would cause existing functionality to not work as expected)
 - [ ] 📚 `documentation` - Documentation update
 - [ ] ⚡ `performance` - Performance improvement
@@ -23,9 +23,11 @@ Please add the appropriate label(s) to this PR and check the relevant box(es):
 
 ## Testing
 
-- [ ] Tests pass locally (`npm test` for frontend, `deno task check` for backend)
-- [ ] Code is formatted (`npm run format` for frontend, `deno task format` for backend)
-- [ ] Code is linted (`npm run lint` for frontend, `deno task lint` for backend)
+- [ ] Tests pass locally (`make test`)
+- [ ] Code is formatted (`make format`)
+- [ ] Code is linted (`make lint`)
+- [ ] Type checking passes (`make typecheck`)
+- [ ] All quality checks pass (`make check`)
 - [ ] Manual testing performed (describe what was tested)
 
 ## Checklist
@@ -36,7 +38,6 @@ Please add the appropriate label(s) to this PR and check the relevant box(es):
 - [ ] I have made corresponding changes to the documentation
 - [ ] I have added/updated tests for my changes
 - [ ] All tests pass
-- [ ] I have updated the CHANGELOG.md file
 
 ## Screenshots (if applicable)
 
