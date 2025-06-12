@@ -1,6 +1,6 @@
 # Claude Code Web UI - Development Tasks
 
-.PHONY: format lint typecheck test build dev clean
+.PHONY: format format-check lint typecheck test build dev clean
 
 # Formatting
 format: format-frontend format-backend
@@ -8,6 +8,13 @@ format-frontend:
 	cd frontend && npm run format
 format-backend:
 	cd backend && deno task format
+
+# Format checking
+format-check: format-check-frontend format-check-backend
+format-check-frontend:
+	cd frontend && npm run format:check
+format-check-backend:
+	cd backend && deno fmt --check
 
 # Linting
 lint: lint-frontend lint-backend
@@ -44,7 +51,7 @@ dev-backend:
 	cd backend && deno task dev
 
 # Quality checks (run before commit)
-check: format lint typecheck test
+check: format-check lint typecheck test
 
 # Install dependencies
 install:

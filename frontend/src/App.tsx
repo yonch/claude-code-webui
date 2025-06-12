@@ -38,7 +38,7 @@ function App() {
   useEffect(() => {
     const textarea = inputRef.current;
     if (textarea) {
-      textarea.style.height = 'auto';
+      textarea.style.height = "auto";
       const computedStyle = getComputedStyle(textarea);
       const maxHeight = parseInt(computedStyle.maxHeight, 10) || 200;
       const scrollHeight = Math.min(textarea.scrollHeight, maxHeight);
@@ -122,7 +122,7 @@ function App() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }

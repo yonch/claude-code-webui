@@ -26,7 +26,9 @@ describe("App", () => {
   it("renders textarea and send button", () => {
     render(<App />);
     expect(
-      screen.getByPlaceholderText("Type your message... (Shift+Enter for new line)"),
+      screen.getByPlaceholderText(
+        "Type your message... (Shift+Enter for new line)",
+      ),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
   });
@@ -39,7 +41,9 @@ describe("App", () => {
 
   it("enables send button when textarea has text", () => {
     render(<App />);
-    const textarea = screen.getByPlaceholderText("Type your message... (Shift+Enter for new line)");
+    const textarea = screen.getByPlaceholderText(
+      "Type your message... (Shift+Enter for new line)",
+    );
     const sendButton = screen.getByRole("button", { name: "Send" });
 
     fireEvent.change(textarea, { target: { value: "Hello" } });
@@ -48,7 +52,9 @@ describe("App", () => {
 
   it("adds user message when form is submitted", async () => {
     render(<App />);
-    const textarea = screen.getByPlaceholderText("Type your message... (Shift+Enter for new line)");
+    const textarea = screen.getByPlaceholderText(
+      "Type your message... (Shift+Enter for new line)",
+    );
     const form = textarea.closest("form")!;
 
     fireEvent.change(textarea, { target: { value: "Test message" } });
