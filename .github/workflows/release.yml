@@ -51,6 +51,18 @@ jobs:
         run: npm run build
         working-directory: frontend
 
+      - name: Copy frontend dist to backend (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Remove-Item -Path backend/dist -Force -Recurse -ErrorAction SilentlyContinue
+          Copy-Item -Path frontend/dist -Destination backend/dist -Recurse
+
+      - name: Copy frontend dist to backend (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          rm -rf backend/dist
+          cp -r frontend/dist backend/dist
+
       - name: Build backend binary
         run: deno compile --allow-net --allow-run --allow-read --include ./VERSION --include ./dist --target ${{ matrix.target }} --output ../dist/${{ matrix.artifact_name }} main.ts
         working-directory: backend
