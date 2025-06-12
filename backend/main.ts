@@ -31,9 +31,8 @@ if (args.help) {
 
 if (args.version) {
   try {
-    const version = await Deno.readTextFile(
-      new URL("./VERSION", import.meta.url).pathname,
-    );
+    // Use import.meta.dirname to access embedded VERSION file
+    const version = await Deno.readTextFile(import.meta.dirname + "/VERSION");
     console.log(`Claude Code Web UI Backend ${version.trim()}`);
   } catch (error) {
     console.error(
@@ -198,8 +197,8 @@ app.post("/api/chat", async (c) => {
   });
 });
 
-// Static file serving
-app.use("/*", serveStatic({ root: "../frontend/dist" }));
+// Static file serving - use import.meta.dirname to access embedded dist directory
+app.use("/*", serveStatic({ root: import.meta.dirname + "/dist" }));
 
 if (import.meta.main) {
   console.log("Checking Claude CLI availability...");

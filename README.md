@@ -11,21 +11,21 @@ A web-based interface for the `claude` command line tool that provides streaming
 
 Download the latest pre-built binary for your platform from [Releases](https://github.com/sugyan/claude-code-webui/releases):
 
-- **Linux**: `claude-webui-linux-x64`, `claude-webui-linux-arm64`
-- **macOS**: `claude-webui-macos-x64`, `claude-webui-macos-arm64`
-- **Windows**: `claude-webui-windows-x64.exe`
+- **Linux**: `claude-code-webui-linux-x64`, `claude-code-webui-linux-arm64`
+- **macOS**: `claude-code-webui-macos-x64`, `claude-code-webui-macos-arm64`
+- **Windows**: `claude-code-webui-windows-x64.exe`
 
 ```bash
 # Example for macOS ARM64
-wget https://github.com/sugyan/claude-code-webui/releases/latest/download/claude-webui-macos-arm64
-chmod +x claude-webui-macos-arm64
-./claude-webui-macos-arm64
+curl -LO https://github.com/sugyan/claude-code-webui/releases/latest/download/claude-code-webui-macos-arm64
+chmod +x claude-code-webui-macos-arm64
+./claude-code-webui-macos-arm64
 
 # With custom port
-./claude-webui-macos-arm64 --port 9000
+./claude-code-webui-macos-arm64 --port 9000
 
 # Show help
-./claude-webui-macos-arm64 --help
+./claude-code-webui-macos-arm64 --help
 ```
 
 ### Development Setup

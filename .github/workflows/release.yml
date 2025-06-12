@@ -13,19 +13,19 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact_name: claude-webui-linux-x64
+            artifact_name: claude-code-webui-linux-x64
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            artifact_name: claude-webui-linux-arm64
+            artifact_name: claude-code-webui-linux-arm64
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact_name: claude-webui-macos-x64
+            artifact_name: claude-code-webui-macos-x64
           - os: macos-latest
             target: aarch64-apple-darwin
-            artifact_name: claude-webui-macos-arm64
+            artifact_name: claude-code-webui-macos-arm64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact_name: claude-webui-windows-x64.exe
+            artifact_name: claude-code-webui-windows-x64.exe
 
     steps:
       - name: Checkout code
@@ -52,7 +52,7 @@ jobs:
         working-directory: frontend
 
       - name: Build backend binary
-        run: deno compile --allow-net --allow-run --allow-read --include ../frontend/dist --target ${{ matrix.target }} --output ../dist/${{ matrix.artifact_name }} main.ts
+        run: deno compile --allow-net --allow-run --allow-read --include ./VERSION --include ./dist --target ${{ matrix.target }} --output ../dist/${{ matrix.artifact_name }} main.ts
         working-directory: backend
 
       - name: Upload artifact
