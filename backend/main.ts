@@ -32,7 +32,7 @@ if (args.help) {
 if (args.version) {
   try {
     const version = await Deno.readTextFile("./VERSION");
-    console.log(`Claude Code Web UI Backend v${version.trim()}`);
+    console.log(`Claude Code Web UI Backend ${version.trim()}`);
   } catch (error) {
     console.error(`Error reading VERSION file: ${error.message}`);
     Deno.exit(1);
