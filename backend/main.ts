@@ -31,7 +31,9 @@ if (args.help) {
 
 if (args.version) {
   try {
-    const version = await Deno.readTextFile("./VERSION");
+    const version = await Deno.readTextFile(
+      new URL("./VERSION", import.meta.url).pathname,
+    );
     console.log(`Claude Code Web UI Backend ${version.trim()}`);
   } catch (error) {
     console.error(
