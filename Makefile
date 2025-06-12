@@ -47,6 +47,13 @@ check: format lint typecheck test
 install:
 	cd frontend && npm ci
 
+# Format specific files (usage: make format-files FILES="file1 file2")
+format-files:
+	@for file in $(FILES); do \
+		echo "Formatting $$file"; \
+		cd $(PWD)/frontend && npx prettier --write "../$$file"; \
+	done
+
 # Clean
 clean:
 	cd frontend && rm -rf node_modules dist
