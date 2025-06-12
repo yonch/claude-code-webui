@@ -30,7 +30,19 @@ if (args.help) {
 }
 
 if (args.version) {
-  console.log("Claude Code Web UI Backend v1.0.0");
+  try {
+    const version = await Deno.readTextFile(
+      new URL("./VERSION", import.meta.url).pathname,
+    );
+    console.log(`Claude Code Web UI Backend ${version.trim()}`);
+  } catch (error) {
+    console.error(
+      `Error reading VERSION file: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+    Deno.exit(1);
+  }
   Deno.exit(0);
 }
 

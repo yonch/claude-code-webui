@@ -61,6 +61,21 @@ See [CLAUDE.md](./CLAUDE.md) for comprehensive documentation including:
 - Node.js (for frontend)
 - Claude CLI tool installed and configured
 
+## Development Setup
+
+### Repository Secrets (for maintainers)
+
+To enable automated releases via tagpr, add the following secret to the repository:
+
+1. Go to GitHub repository Settings → Secrets and variables → Actions
+2. Add a new repository secret named `GH_PAT`
+3. Use a Personal Access Token with the following permissions:
+   - `contents:write` - for creating releases and tags
+   - `actions:write` - for triggering the release workflow
+   - `pull-requests:write` - for creating release PRs
+
+Without this token, tagpr will still create release PRs but won't trigger the binary build workflow.
+
 ## License
 
 MIT
