@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serveStatic } from "hono/deno";
 import { parseArgs } from "@std/cli/parse-args";
+import { query } from "npm:@anthropic-ai/claude-code";
 import type { ChatRequest, StreamResponse } from "../shared/types.ts";
 
 const args = parseArgs(Deno.args, {
@@ -52,35 +53,6 @@ if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
   Deno.exit(1);
 }
 
-async function checkClaudeAvailability(): Promise<void> {
-  try {
-    const command = new Deno.Command("claude", {
-      args: ["--version"],
-      stdout: "piped",
-      stderr: "piped",
-    });
-
-    const process = command.spawn();
-    const status = await process.status;
-
-    if (!status.success) {
-      console.error("Error: Claude CLI is installed but not working properly");
-      console.error("Please check your Claude CLI installation");
-      Deno.exit(1);
-    }
-  } catch (error) {
-    console.error("Error: Claude CLI is not available");
-    console.error("Please install Claude CLI first:");
-    console.error("  npm install -g @anthropic-ai/claude-cli");
-    console.error("Or visit: https://github.com/anthropics/claude-cli");
-    console.error("");
-    console.error(
-      `Details: ${error instanceof Error ? error.message : String(error)}`,
-    );
-    Deno.exit(1);
-  }
-}
-
 const app = new Hono();
 
 async function* executeClaudeCommand(
@@ -94,56 +66,36 @@ async function* executeClaudeCommand(
       processedMessage = message.substring(1);
     }
 
-    const command = new Deno.Command("claude", {
-      args: [
-        "--output-format",
-        "stream-json",
-        "--verbose",
-        "-p",
-        processedMessage,
-      ],
-      stdout: "piped",
-      cwd: "../",
-    });
+    // Use the Claude Code SDK with system claude command
+    const abortController = new AbortController();
 
-    const process = command.spawn();
-    const reader = process.stdout.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
+    // For compiled binaries, use system claude command to avoid bundled cli.js issues
+    let claudePath: string;
     try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value);
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || ""; // Keep incomplete line
-
-        for (const line of lines) {
-          if (line.trim()) {
-            console.log(
-              `[${new Date().toISOString()}] Claude JSON:`,
-              line.trim(),
-            );
-            yield { type: "claude_json", data: line.trim() };
-          }
-        }
-      }
-
-      // Handle remaining buffer
-      if (buffer.trim()) {
-        console.log(
-          `[${new Date().toISOString()}] Claude JSON (final):`,
-          buffer.trim(),
-        );
-        yield { type: "claude_json", data: buffer.trim() };
-      }
-    } finally {
-      reader.releaseLock();
+      const whichResult = await new Deno.Command("which", {
+        args: ["claude"],
+        stdout: "piped",
+      }).output();
+      claudePath = new TextDecoder().decode(whichResult.stdout).trim();
+    } catch {
+      claudePath = "claude"; // fallback
     }
 
-    await process.status;
+    for await (
+      const sdkMessage of query({
+        prompt: processedMessage,
+        options: {
+          abortController,
+          pathToClaudeCodeExecutable: claudePath,
+        },
+      })
+    ) {
+      yield {
+        type: "claude_json",
+        data: JSON.stringify(sdkMessage),
+      };
+    }
+
     yield { type: "done" };
   } catch (error) {
     yield {
@@ -201,9 +153,6 @@ app.post("/api/chat", async (c) => {
 app.use("/*", serveStatic({ root: import.meta.dirname + "/dist" }));
 
 if (import.meta.main) {
-  console.log("Checking Claude CLI availability...");
-  await checkClaudeAvailability();
-  console.log("✅ Claude CLI is available");
   console.log(`🚀 Server starting on http://localhost:${PORT}`);
   Deno.serve({ port: PORT }, app.fetch);
 }
