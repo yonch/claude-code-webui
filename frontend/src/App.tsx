@@ -24,6 +24,9 @@ function App() {
   const [currentAssistantMessage, setCurrentAssistantMessage] =
     useState<ChatMessage | null>(null);
 
+  // Constants
+  const NEAR_BOTTOM_THRESHOLD_PX = 100;
+
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus();
@@ -61,7 +64,7 @@ function App() {
     if (!container) return true;
 
     const { scrollTop, scrollHeight, clientHeight } = container;
-    return scrollHeight - scrollTop - clientHeight < 100; // 100px threshold
+    return scrollHeight - scrollTop - clientHeight < NEAR_BOTTOM_THRESHOLD_PX;
   };
 
   // Auto-scroll when messages change
