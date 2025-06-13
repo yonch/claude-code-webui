@@ -18,9 +18,14 @@ function App() {
   const { theme, toggleTheme } = useTheme();
   const { processStreamLine } = useClaudeStreaming();
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const [currentAssistantMessage, setCurrentAssistantMessage] =
     useState<ChatMessage | null>(null);
+
+  // Constants
+  const NEAR_BOTTOM_THRESHOLD_PX = 100;
 
   useEffect(() => {
     if (inputRef.current) {
@@ -45,6 +50,34 @@ function App() {
       textarea.style.height = `${scrollHeight}px`;
     }
   }, [input]);
+
+  // Auto-scroll to bottom
+  const scrollToBottom = () => {
+    if (messagesEndRef.current && messagesEndRef.current.scrollIntoView) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  // Check if user is near bottom of messages
+  const isNearBottom = () => {
+    const container = messagesContainerRef.current;
+    if (!container) return true;
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    return scrollHeight - scrollTop - clientHeight < NEAR_BOTTOM_THRESHOLD_PX;
+  };
+
+  // Auto-scroll when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Auto-scroll during streaming (only if user is near bottom)
+  useEffect(() => {
+    if (currentAssistantMessage && isNearBottom()) {
+      scrollToBottom();
+    }
+  }, [currentAssistantMessage]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -150,7 +183,10 @@ function App() {
         </div>
 
         {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto bg-white/70 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60 p-6 mb-6 rounded-2xl shadow-sm backdrop-blur-sm">
+        <div
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto bg-white/70 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60 p-6 mb-6 rounded-2xl shadow-sm backdrop-blur-sm"
+        >
           {messages.length === 0 && (
             <div className="text-center text-slate-500 dark:text-slate-400 mt-12">
               <div className="text-6xl mb-6 opacity-60">💬</div>
@@ -172,6 +208,7 @@ function App() {
             }
           })}
           {isLoading && <LoadingComponent />}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Input */}
