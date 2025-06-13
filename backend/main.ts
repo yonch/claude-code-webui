@@ -53,111 +53,9 @@ if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
   Deno.exit(1);
 }
 
-async function checkClaudeAvailability(): Promise<void> {
-  try {
-    const command = new Deno.Command("claude", {
-      args: ["--version"],
-      stdout: "piped",
-      stderr: "piped",
-    });
-
-    const process = command.spawn();
-    const status = await process.status;
-
-    if (!status.success) {
-      console.error("Error: Claude CLI is installed but not working properly");
-      console.error("Please check your Claude CLI installation");
-      Deno.exit(1);
-    }
-  } catch (error) {
-    console.error("Error: Claude CLI is not available");
-    console.error("Please install Claude CLI first:");
-    console.error("  npm install -g @anthropic-ai/claude-cli");
-    console.error("Or visit: https://github.com/anthropics/claude-cli");
-    console.error("");
-    console.error(
-      `Details: ${error instanceof Error ? error.message : String(error)}`,
-    );
-    Deno.exit(1);
-  }
-}
-
 const app = new Hono();
 
-// Feature flag for SDK vs CLI approach
-const USE_SDK = Deno.env.get("CLAUDE_USE_SDK") !== "false"; // Default to SDK
-
 async function* executeClaudeCommand(
-  message: string,
-): AsyncGenerator<StreamResponse> {
-  try {
-    // Process commands that start with '/'
-    let processedMessage = message;
-    if (message.startsWith("/")) {
-      // Remove the '/' and send just the command
-      processedMessage = message.substring(1);
-    }
-
-    const command = new Deno.Command("claude", {
-      args: [
-        "--output-format",
-        "stream-json",
-        "--verbose",
-        "-p",
-        processedMessage,
-      ],
-      stdout: "piped",
-      cwd: "../",
-    });
-
-    const process = command.spawn();
-    const reader = process.stdout.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value);
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || ""; // Keep incomplete line
-
-        for (const line of lines) {
-          if (line.trim()) {
-            console.log(
-              `[${new Date().toISOString()}] Claude JSON:`,
-              line.trim(),
-            );
-            yield { type: "claude_json", data: line.trim() };
-          }
-        }
-      }
-
-      // Handle remaining buffer
-      if (buffer.trim()) {
-        console.log(
-          `[${new Date().toISOString()}] Claude JSON (final):`,
-          buffer.trim(),
-        );
-        yield { type: "claude_json", data: buffer.trim() };
-      }
-    } finally {
-      reader.releaseLock();
-    }
-
-    await process.status;
-    yield { type: "done" };
-  } catch (error) {
-    yield {
-      type: "error",
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
-}
-
-async function* executeClaudeSDK(
   message: string,
 ): AsyncGenerator<StreamResponse> {
   try {
@@ -180,13 +78,10 @@ async function* executeClaudeSDK(
         const sdkMessage of query({
           prompt: processedMessage,
           abortController,
-          options: {
-            maxTurns: 3,
-          },
         })
       ) {
         console.log(
-          `[${new Date().toISOString()}] Claude SDK:`,
+          `[${new Date().toISOString()}] Claude JSON:`,
           JSON.stringify(sdkMessage),
         );
         yield {
@@ -208,28 +103,6 @@ async function* executeClaudeSDK(
   }
 }
 
-async function* executeClaude(
-  message: string,
-): AsyncGenerator<StreamResponse> {
-  if (USE_SDK) {
-    console.log(`[${new Date().toISOString()}] Using Claude Code SDK`);
-    try {
-      yield* executeClaudeSDK(message);
-      return;
-    } catch (error) {
-      console.error(
-        `[${new Date().toISOString()}] SDK failed, falling back to CLI:`,
-        error,
-      );
-      // Fall back to CLI implementation
-      yield* executeClaudeCommand(message);
-    }
-  } else {
-    console.log(`[${new Date().toISOString()}] Using Claude CLI`);
-    yield* executeClaudeCommand(message);
-  }
-}
-
 // CORS middleware
 app.use(
   "*",
@@ -247,7 +120,7 @@ app.post("/api/chat", async (c) => {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const chunk of executeClaude(chatRequest.message)) {
+        for await (const chunk of executeClaudeCommand(chatRequest.message)) {
           const data = JSON.stringify(chunk) + "\n";
           controller.enqueue(new TextEncoder().encode(data));
         }
@@ -278,14 +151,6 @@ app.post("/api/chat", async (c) => {
 app.use("/*", serveStatic({ root: import.meta.dirname + "/dist" }));
 
 if (import.meta.main) {
-  console.log("Checking Claude CLI availability...");
-  await checkClaudeAvailability();
-  console.log("✅ Claude CLI is available");
-  console.log(
-    `🔧 Claude implementation: ${
-      USE_SDK ? "SDK (with CLI fallback)" : "CLI only"
-    }`,
-  );
   console.log(`🚀 Server starting on http://localhost:${PORT}`);
   Deno.serve({ port: PORT }, app.fetch);
 }
