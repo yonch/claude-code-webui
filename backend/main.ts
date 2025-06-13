@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serveStatic } from "hono/deno";
 import { parseArgs } from "@std/cli/parse-args";
+import { query } from "npm:@anthropic-ai/claude-code";
 import type { ChatRequest, StreamResponse } from "../shared/types.ts";
 
 const args = parseArgs(Deno.args, {
@@ -83,6 +84,9 @@ async function checkClaudeAvailability(): Promise<void> {
 
 const app = new Hono();
 
+// Feature flag for SDK vs CLI approach
+const USE_SDK = Deno.env.get("CLAUDE_USE_SDK") !== "false"; // Default to SDK
+
 async function* executeClaudeCommand(
   message: string,
 ): AsyncGenerator<StreamResponse> {
@@ -153,6 +157,79 @@ async function* executeClaudeCommand(
   }
 }
 
+async function* executeClaudeSDK(
+  message: string,
+): AsyncGenerator<StreamResponse> {
+  try {
+    // Process commands that start with '/'
+    let processedMessage = message;
+    if (message.startsWith("/")) {
+      // Remove the '/' and send just the command
+      processedMessage = message.substring(1);
+    }
+
+    // Use the Claude Code SDK with proper working directory
+    const abortController = new AbortController();
+
+    // Change to parent directory (same as CLI implementation)
+    const originalCwd = Deno.cwd();
+    Deno.chdir("../");
+
+    try {
+      for await (
+        const sdkMessage of query({
+          prompt: processedMessage,
+          abortController,
+          options: {
+            maxTurns: 3,
+          },
+        })
+      ) {
+        console.log(
+          `[${new Date().toISOString()}] Claude SDK:`,
+          JSON.stringify(sdkMessage),
+        );
+        yield {
+          type: "claude_json",
+          data: JSON.stringify(sdkMessage),
+        };
+      }
+    } finally {
+      // Restore original working directory
+      Deno.chdir(originalCwd);
+    }
+
+    yield { type: "done" };
+  } catch (error) {
+    yield {
+      type: "error",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+async function* executeClaude(
+  message: string,
+): AsyncGenerator<StreamResponse> {
+  if (USE_SDK) {
+    console.log(`[${new Date().toISOString()}] Using Claude Code SDK`);
+    try {
+      yield* executeClaudeSDK(message);
+      return;
+    } catch (error) {
+      console.error(
+        `[${new Date().toISOString()}] SDK failed, falling back to CLI:`,
+        error,
+      );
+      // Fall back to CLI implementation
+      yield* executeClaudeCommand(message);
+    }
+  } else {
+    console.log(`[${new Date().toISOString()}] Using Claude CLI`);
+    yield* executeClaudeCommand(message);
+  }
+}
+
 // CORS middleware
 app.use(
   "*",
@@ -170,7 +247,7 @@ app.post("/api/chat", async (c) => {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const chunk of executeClaudeCommand(chatRequest.message)) {
+        for await (const chunk of executeClaude(chatRequest.message)) {
           const data = JSON.stringify(chunk) + "\n";
           controller.enqueue(new TextEncoder().encode(data));
         }
@@ -204,6 +281,11 @@ if (import.meta.main) {
   console.log("Checking Claude CLI availability...");
   await checkClaudeAvailability();
   console.log("✅ Claude CLI is available");
+  console.log(
+    `🔧 Claude implementation: ${
+      USE_SDK ? "SDK (with CLI fallback)" : "CLI only"
+    }`,
+  );
   console.log(`🚀 Server starting on http://localhost:${PORT}`);
   Deno.serve({ port: PORT }, app.fetch);
 }
