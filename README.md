@@ -5,6 +5,31 @@
 
 A web-based interface for the `claude` command line tool that provides streaming responses in a chat interface.
 
+## ⚠️ Important Security Notice
+
+**This tool is designed for local development use only.** It executes the `claude` CLI command locally and provides a web interface to interact with it. 
+
+⚠️ **DO NOT expose this server to the internet or public networks.** Doing so would:
+- Give external users full access to your local environment through Claude CLI
+- Allow execution of arbitrary commands on your machine
+- Potentially expose sensitive files and credentials
+
+Always run this tool only on `localhost` (127.0.0.1) and never bind it to public IP addresses.
+
+## About This Tool
+
+This application serves as a **local web UI replacement** for the Claude CLI tool. Instead of interacting with Claude through the command line, you can:
+
+- Use a modern chat interface in your browser
+- View streaming responses in real-time
+- Access the same Claude functionality with better UX
+
+The tool works by:
+1. Running a local web server that accepts chat messages
+2. Executing `claude --output-format stream-json --verbose -p <message>` for each request
+3. Streaming the JSON responses back to the web interface
+4. Displaying the formatted responses in a chat UI
+
 ## Installation
 
 ### Binary Releases (Recommended)
@@ -57,9 +82,17 @@ See [CLAUDE.md](./CLAUDE.md) for comprehensive documentation including:
 
 ## Prerequisites
 
-- Deno (for backend)
-- Node.js (for frontend)
-- Claude CLI tool installed and configured
+### Required
+
+- **Claude CLI tool** - This application requires the official `claude` command line tool to be installed and properly configured with your API key
+  - Install from: https://github.com/anthropics/claude-code
+  - Must be accessible in your `$PATH`
+  - Must be authenticated (run `claude auth` first)
+
+### For Development
+
+- **Deno** (for backend development)
+- **Node.js** (for frontend development)
 
 ## Development Setup
 

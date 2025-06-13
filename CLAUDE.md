@@ -40,7 +40,7 @@ This project consists of three main components:
 - Real-time streaming response display
 - Parses different Claude JSON message types (system, assistant, result)
 - TailwindCSS utility-first styling for responsive design
-- Light theme with high contrast for readability
+- Light/dark theme toggle with system preference detection and localStorage persistence
 - Responsive chat interface
 - Comprehensive component testing with Vitest and Testing Library
 
@@ -51,10 +51,10 @@ This project consists of three main components:
 
 **Key Types**:
 
-- `ChatMessage` - User and assistant messages
 - `StreamResponse` - Backend streaming response format
-- `ClaudeAssistantMessage` - Claude assistant response structure
-- `ClaudeResultMessage` - Claude execution result structure
+- `ChatRequest` - Chat request structure for API communication
+
+**Note**: Claude-specific message types (`ClaudeAssistantMessage`, `ClaudeResultMessage`, etc.) are defined in `frontend/src/types.ts` for frontend-specific usage.
 
 ## Claude Command Integration
 
@@ -109,8 +109,7 @@ The command outputs three types of JSON messages:
 │   │   ├── App.tsx   # Main chat interface with TailwindCSS
 │   │   └── main.tsx  # Application entry point
 │   ├── package.json
-│   ├── tailwind.config.js  # TailwindCSS configuration
-│   └── vite.config.ts     # Vite config with TailwindCSS plugin
+│   └── vite.config.ts     # Vite config with @tailwindcss/vite plugin
 ├── shared/           # Shared TypeScript types
 │   └── types.ts
 └── CLAUDE.md        # This documentation
@@ -126,7 +125,7 @@ The command outputs three types of JSON messages:
 
 4. **TailwindCSS Styling**: Uses @tailwindcss/vite plugin for utility-first CSS without separate CSS files.
 
-5. **Light Theme**: Fixed light theme for better readability and contrast.
+5. **Theme System**: Light/dark theme toggle with automatic system preference detection and localStorage persistence.
 
 6. **Project Root Execution**: Claude commands execute from project root to have full access to project files.
 
