@@ -58,13 +58,13 @@ This project consists of three main components:
 
 ## Claude Command Integration
 
-The backend executes the claude command with these parameters:
+The backend uses the Claude Code SDK to execute claude commands. The SDK internally handles the claude command execution with appropriate parameters including:
 
 - `--output-format stream-json` - Returns streaming JSON responses
 - `--verbose` - Includes detailed execution information
 - `-p <message>` - Prompt mode with user message
 
-The command outputs three types of JSON messages:
+The SDK returns three types of JSON messages:
 
 1. **System messages** (`type: "system"`) - Initialization and setup information
 2. **Assistant messages** (`type: "assistant"`) - Actual response content
@@ -177,30 +177,19 @@ cd backend && deno task build
 3. Run all quality checks locally before pushing: `make check`
 4. Push your branch and create a pull request
 5. **Add appropriate labels** to categorize the changes (see Labels section below)
-6. **Check corresponding boxes** in the PR template that match the labels
+6. **Include essential PR information** as outlined in the Labels section
 7. Request review and address feedback
 8. Merge after approval and CI passes
 
-#### Creating Pull Requests with Template (2-Step Process)
+#### Creating Pull Requests
 
-**IMPORTANT**: Always follow this 2-step process when creating PRs:
+Create pull requests with appropriate labels and essential information:
 
-**Step 1**: Create PR with empty template
 ```bash
 gh pr create --title "Your PR Title" \
   --label "appropriate,labels" \
-  --body-file ".github/pull_request_template.md"
+  --body "Brief description"
 ```
-
-**Step 2**: Edit PR to fill in template content
-```bash
-gh pr edit [PR_NUMBER] --body "$(cat <<'EOF'
-[Fill in the template content here with proper checkboxes, descriptions, etc.]
-EOF
-)"
-```
-
-**Why 2 steps?** This ensures the template structure is preserved and all sections are properly filled out.
 
 **Note**: CHANGELOG.md is now automatically managed by tagpr - no manual updates needed!
 
@@ -217,11 +206,24 @@ The project uses the following labels for categorizing pull requests and issues:
 - 🧪 **`test`** - Adding or updating tests
 - 🔧 **`chore`** - Maintenance, dependencies, tooling updates
 
-**For Claude**: When creating PRs, always:
+**For Claude**: When creating PRs, always include:
 
-1. Check the appropriate boxes in the PR template
-2. Add the corresponding GitHub labels using `--label` flag: `gh pr create --label "feature,documentation"`
-3. Multiple labels can be applied if the PR covers multiple areas
+1. **Type of Change checkboxes**: Include the checkbox list from the template to categorize changes:
+   ```
+   - [ ] 🐛 `bug` - Bug fix (non-breaking change which fixes an issue)
+   - [ ] ✨ `feature` - New feature (non-breaking change which adds functionality)
+   - [ ] 💥 `breaking` - Breaking change
+   - [ ] 📚 `documentation` - Documentation update
+   - [ ] ⚡ `performance` - Performance improvement
+   - [ ] 🔨 `refactor` - Code refactoring
+   - [ ] 🧪 `test` - Adding or updating tests
+   - [ ] 🔧 `chore` - Maintenance, dependencies, tooling
+   ```
+2. **Description**: Brief summary of what changed and why
+3. **GitHub labels**: Add corresponding labels using `--label` flag: `gh pr create --label "feature,documentation"`
+4. **Test plan**: Include testing information if relevant
+
+Multiple labels can be applied if the PR covers multiple areas.
 
 ### Release Process (Automated with tagpr)
 

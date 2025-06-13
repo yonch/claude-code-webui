@@ -26,7 +26,7 @@ This application serves as a **local web UI replacement** for the Claude CLI too
 
 The tool works by:
 1. Running a local web server that accepts chat messages
-2. Executing `claude --output-format stream-json --verbose -p <message>` for each request
+2. Using the Claude Code SDK to execute claude commands for each request
 3. Streaming the JSON responses back to the web interface
 4. Displaying the formatted responses in a chat UI
 
