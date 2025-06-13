@@ -66,32 +66,34 @@ async function* executeClaudeCommand(
       processedMessage = message.substring(1);
     }
 
-    // Use the Claude Code SDK with proper working directory
+    // Use the Claude Code SDK with system claude command
     const abortController = new AbortController();
 
-    // Change to parent directory (same as CLI implementation)
-    const originalCwd = Deno.cwd();
-    Deno.chdir("../");
-
+    // For compiled binaries, use system claude command to avoid bundled cli.js issues
+    let claudePath: string;
     try {
-      for await (
-        const sdkMessage of query({
-          prompt: processedMessage,
+      const whichResult = await new Deno.Command("which", {
+        args: ["claude"],
+        stdout: "piped",
+      }).output();
+      claudePath = new TextDecoder().decode(whichResult.stdout).trim();
+    } catch {
+      claudePath = "claude"; // fallback
+    }
+
+    for await (
+      const sdkMessage of query({
+        prompt: processedMessage,
+        options: {
           abortController,
-        })
-      ) {
-        console.log(
-          `[${new Date().toISOString()}] Claude JSON:`,
-          JSON.stringify(sdkMessage),
-        );
-        yield {
-          type: "claude_json",
-          data: JSON.stringify(sdkMessage),
-        };
-      }
-    } finally {
-      // Restore original working directory
-      Deno.chdir(originalCwd);
+          pathToClaudeCodeExecutable: claudePath,
+        },
+      })
+    ) {
+      yield {
+        type: "claude_json",
+        data: JSON.stringify(sdkMessage),
+      };
     }
 
     yield { type: "done" };
