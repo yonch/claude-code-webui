@@ -58,13 +58,13 @@ This project consists of three main components:
 
 ## Claude Command Integration
 
-The backend executes the claude command with these parameters:
+The backend uses the Claude Code SDK to execute claude commands. The SDK internally handles the claude command execution with appropriate parameters including:
 
 - `--output-format stream-json` - Returns streaming JSON responses
 - `--verbose` - Includes detailed execution information
 - `-p <message>` - Prompt mode with user message
 
-The command outputs three types of JSON messages:
+The SDK returns three types of JSON messages:
 
 1. **System messages** (`type: "system"`) - Initialization and setup information
 2. **Assistant messages** (`type: "assistant"`) - Actual response content
