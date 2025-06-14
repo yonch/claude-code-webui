@@ -206,7 +206,8 @@ function App() {
           )}
           {messages.length > 0 && (
             <>
-              <div className="flex-1"></div>
+              {/* Spacer div to push messages to the bottom */}
+              <div className="flex-1" aria-hidden="true"></div>
               {messages.map((message, index) => {
                 if (isSystemMessage(message)) {
                   return (
