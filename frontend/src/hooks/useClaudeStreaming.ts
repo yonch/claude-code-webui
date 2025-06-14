@@ -5,8 +5,7 @@ import type {
   SystemMessage,
   ToolMessage,
   StreamResponse,
-  ClaudeAssistantMessage,
-  ClaudeResultMessage,
+  SDKMessage,
 } from "../types";
 
 interface StreamingContext {
@@ -16,60 +15,33 @@ interface StreamingContext {
   updateLastMessage: (content: string) => void;
 }
 
-// Type guard functions
-type ClaudeSystemData = {
-  type: "system";
-  subtype?: string;
-  model?: string;
-  session_id?: string;
-  tools?: unknown[];
-  message?: unknown;
-};
-
-function isClaudeSystemMessage(data: unknown): data is ClaudeSystemData {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "type" in data &&
-    data.type === "system"
-  );
+// Type guard functions for SDKMessage
+function isSystemMessage(
+  data: SDKMessage,
+): data is Extract<SDKMessage, { type: "system" }> {
+  return data.type === "system";
 }
 
-function isClaudeAssistantMessage(
-  data: unknown,
-): data is ClaudeAssistantMessage {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "type" in data &&
-    data.type === "assistant" &&
-    "message" in data &&
-    typeof data.message === "object" &&
-    data.message !== null &&
-    "content" in data.message
-  );
+function isAssistantMessage(
+  data: SDKMessage,
+): data is Extract<SDKMessage, { type: "assistant" }> {
+  return data.type === "assistant";
 }
 
-function isClaudeResultMessage(data: unknown): data is ClaudeResultMessage {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "type" in data &&
-    data.type === "result" &&
-    "subtype" in data &&
-    "cost_usd" in data &&
-    "duration_ms" in data
-  );
+function isResultMessage(
+  data: SDKMessage,
+): data is Extract<SDKMessage, { type: "result" }> {
+  return data.type === "result";
 }
 
 export function useClaudeStreaming() {
   const createSystemMessage = useCallback(
-    (claudeData: ClaudeSystemData): SystemMessage => {
+    (claudeData: Extract<SDKMessage, { type: "system" }>): SystemMessage => {
       let systemContent = "";
       if (claudeData.subtype === "init") {
         systemContent = `🔧 Claude Code initialized\nModel: ${claudeData.model || "Unknown"}\nSession: ${claudeData.session_id?.substring(0, 8) || "Unknown"}\nTools: ${claudeData.tools?.length || 0} available`;
       } else {
-        systemContent = `System: ${claudeData.message || JSON.stringify(claudeData)}`;
+        systemContent = `System: ${JSON.stringify(claudeData)}`;
       }
 
       return {
@@ -104,8 +76,8 @@ export function useClaudeStreaming() {
   );
 
   const createResultMessage = useCallback(
-    (claudeData: ClaudeResultMessage): SystemMessage => {
-      const resultContent = `✅ Task ${claudeData.subtype}\nDuration: ${claudeData.duration_ms}ms\nCost: $${claudeData.cost_usd?.toFixed(4) || "0.0000"}\nTokens: ${claudeData.usage?.input_tokens || 0} in, ${claudeData.usage?.output_tokens || 0} out`;
+    (claudeData: Extract<SDKMessage, { type: "result" }>): SystemMessage => {
+      const resultContent = `✅ Task ${claudeData.subtype}\nDuration: ${claudeData.duration_ms}ms\nCost: $${claudeData.total_cost_usd?.toFixed(4) || "0.0000"}\nTokens: ${claudeData.usage?.input_tokens || 0} in, ${claudeData.usage?.output_tokens || 0} out`;
 
       return {
         type: "system",
@@ -117,7 +89,10 @@ export function useClaudeStreaming() {
   );
 
   const handleSystemMessage = useCallback(
-    (claudeData: ClaudeSystemData, context: StreamingContext) => {
+    (
+      claudeData: Extract<SDKMessage, { type: "system" }>,
+      context: StreamingContext,
+    ) => {
       const systemMessage = createSystemMessage(claudeData);
       context.addMessage(systemMessage);
     },
@@ -168,7 +143,10 @@ export function useClaudeStreaming() {
   );
 
   const handleAssistantMessage = useCallback(
-    (claudeData: ClaudeAssistantMessage, context: StreamingContext) => {
+    (
+      claudeData: Extract<SDKMessage, { type: "assistant" }>,
+      context: StreamingContext,
+    ) => {
       for (const contentItem of claudeData.message.content) {
         if (contentItem.type === "text") {
           handleAssistantTextMessage(contentItem, context);
@@ -181,7 +159,10 @@ export function useClaudeStreaming() {
   );
 
   const handleResultMessage = useCallback(
-    (claudeData: ClaudeResultMessage, context: StreamingContext) => {
+    (
+      claudeData: Extract<SDKMessage, { type: "result" }>,
+      context: StreamingContext,
+    ) => {
       const resultMessage = createResultMessage(claudeData);
       context.addMessage(resultMessage);
       context.setCurrentAssistantMessage(null);
@@ -190,40 +171,35 @@ export function useClaudeStreaming() {
   );
 
   const processClaudeData = useCallback(
-    (claudeData: unknown, context: StreamingContext) => {
-      if (
-        typeof claudeData !== "object" ||
-        claudeData === null ||
-        !("type" in claudeData)
-      ) {
-        console.warn("Invalid Claude data:", claudeData);
-        return;
-      }
-
+    (claudeData: SDKMessage, context: StreamingContext) => {
       switch (claudeData.type) {
         case "system":
-          if (isClaudeSystemMessage(claudeData)) {
+          if (isSystemMessage(claudeData)) {
             handleSystemMessage(claudeData, context);
           } else {
             console.warn("Invalid system message:", claudeData);
           }
           break;
         case "assistant":
-          if (isClaudeAssistantMessage(claudeData)) {
+          if (isAssistantMessage(claudeData)) {
             handleAssistantMessage(claudeData, context);
           } else {
             console.warn("Invalid assistant message:", claudeData);
           }
           break;
         case "result":
-          if (isClaudeResultMessage(claudeData)) {
+          if (isResultMessage(claudeData)) {
             handleResultMessage(claudeData, context);
           } else {
             console.warn("Invalid result message:", claudeData);
           }
           break;
+        case "user":
+          // Handle user messages if needed
+          console.log("User message:", claudeData);
+          break;
         default:
-          console.log("Unknown Claude message type:", claudeData.type);
+          console.log("Unknown Claude message type:", claudeData);
       }
     },
     [handleSystemMessage, handleAssistantMessage, handleResultMessage],
@@ -235,12 +211,9 @@ export function useClaudeStreaming() {
         const data: StreamResponse = JSON.parse(line);
 
         if (data.type === "claude_json" && data.data) {
-          try {
-            const claudeData = JSON.parse(data.data);
-            processClaudeData(claudeData, context);
-          } catch (parseError) {
-            console.error("Failed to parse Claude JSON:", parseError);
-          }
+          // data.data is already an SDKMessage object, no need to parse
+          const claudeData = data.data as SDKMessage;
+          processClaudeData(claudeData, context);
         } else if (data.type === "error") {
           const errorMessage: SystemMessage = {
             type: "system",
