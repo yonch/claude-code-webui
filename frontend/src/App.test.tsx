@@ -65,4 +65,26 @@ describe("App", () => {
       expect(screen.getByText("Test message")).toBeInTheDocument();
     });
   });
+
+  it("sends requests without sessionId initially", async () => {
+    render(<App />);
+    const textarea = screen.getByPlaceholderText(
+      "Type your message... (Shift+Enter for new line)",
+    );
+    const form = textarea.closest("form")!;
+
+    fireEvent.change(textarea, { target: { value: "First message" } });
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://localhost:8080/api/chat",
+        expect.objectContaining({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: "First message" }),
+        }),
+      );
+    });
+  });
 });
