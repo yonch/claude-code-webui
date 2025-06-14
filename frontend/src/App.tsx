@@ -15,6 +15,7 @@ function App() {
   const [messages, setMessages] = useState<AllMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const { theme, toggleTheme } = useTheme();
   const { processStreamLine } = useClaudeStreaming();
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -98,7 +99,10 @@ function App() {
       const response = await fetch("http://localhost:8080/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input.trim() } as ChatRequest),
+        body: JSON.stringify({
+          message: input.trim(),
+          ...(currentSessionId && { sessionId: currentSessionId }),
+        } as ChatRequest),
       });
 
       if (!response.body) throw new Error("No response body");
@@ -120,6 +124,9 @@ function App() {
                 : msg,
             ),
           );
+        },
+        onSessionId: (sessionId: string) => {
+          setCurrentSessionId(sessionId);
         },
       };
 

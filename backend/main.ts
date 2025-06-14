@@ -32,6 +32,7 @@ const app = new Hono();
 
 async function* executeClaudeCommand(
   message: string,
+  sessionId?: string,
 ): AsyncGenerator<StreamResponse> {
   try {
     // Process commands that start with '/'
@@ -62,6 +63,7 @@ async function* executeClaudeCommand(
         options: {
           abortController,
           pathToClaudeCodeExecutable: claudePath,
+          ...(sessionId && { resume: sessionId }),
         },
       })
     ) {
@@ -104,7 +106,12 @@ app.post("/api/chat", async (c) => {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const chunk of executeClaudeCommand(chatRequest.message)) {
+        for await (
+          const chunk of executeClaudeCommand(
+            chatRequest.message,
+            chatRequest.sessionId,
+          )
+        ) {
           const data = JSON.stringify(chunk) + "\n";
           controller.enqueue(new TextEncoder().encode(data));
         }

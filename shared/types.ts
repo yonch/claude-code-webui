@@ -6,4 +6,5 @@ export interface StreamResponse {
 
 export interface ChatRequest {
   message: string;
+  sessionId?: string;
 }
