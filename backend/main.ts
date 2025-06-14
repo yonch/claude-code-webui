@@ -67,9 +67,9 @@ async function* executeClaudeCommand(
     ) {
       // Debug logging of raw SDK messages
       if (DEBUG_MODE) {
-        console.log("[DEBUG] Claude SDK Message:");
-        console.log(JSON.stringify(sdkMessage, null, 2));
-        console.log("---");
+        console.debug("[DEBUG] Claude SDK Message:");
+        console.debug(JSON.stringify(sdkMessage, null, 2));
+        console.debug("---");
       }
 
       yield {
