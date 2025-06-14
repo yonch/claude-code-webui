@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.1.10](https://github.com/sugyan/claude-code-webui/compare/v0.1.9...v0.1.10) - 2025-06-14
+- Fix streaming state bug and update backend dependencies by @sugyan in https://github.com/sugyan/claude-code-webui/pull/35
+- feat: replace custom Claude types with official SDK types and optimize serialization by @sugyan in https://github.com/sugyan/claude-code-webui/pull/37
+- feat: implement session continuity using Claude Code SDK resume functionality by @sugyan in https://github.com/sugyan/claude-code-webui/pull/39
+
 ## [v0.1.9](https://github.com/sugyan/claude-code-webui/compare/v0.1.8...v0.1.9) - 2025-06-14
 - Replace CLI subprocess approach with Claude Code SDK by @sugyan in https://github.com/sugyan/claude-code-webui/pull/19
 - Format config files with Prettier for consistency by @sugyan in https://github.com/sugyan/claude-code-webui/pull/22
