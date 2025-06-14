@@ -38,7 +38,6 @@ Download the latest pre-built binary for your platform from [Releases](https://g
 
 - **Linux**: `claude-code-webui-linux-x64`, `claude-code-webui-linux-arm64`
 - **macOS**: `claude-code-webui-macos-x64`, `claude-code-webui-macos-arm64`
-- **Windows**: `claude-code-webui-windows-x64.exe`
 
 ```bash
 # Example for macOS ARM64
