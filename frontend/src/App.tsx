@@ -190,7 +190,11 @@ function App() {
           {messages.length === 0 && (
             <div className="flex-1 flex items-center justify-center text-center text-slate-500 dark:text-slate-400">
               <div>
-                <div className="text-6xl mb-6 opacity-60">💬</div>
+                <div className="text-6xl mb-6 opacity-60">
+                  <span role="img" aria-label="chat icon">
+                    💬
+                  </span>
+                </div>
                 <p className="text-lg font-medium">
                   Start a conversation with Claude
                 </p>
