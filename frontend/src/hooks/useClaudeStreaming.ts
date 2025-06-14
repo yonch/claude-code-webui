@@ -36,7 +36,7 @@ function isClaudeSystemMessage(data: unknown): data is ClaudeSystemData {
 }
 
 function isClaudeAssistantMessage(
-  data: unknown,
+  data: unknown
 ): data is ClaudeAssistantMessage {
   return (
     typeof data === "object" &&
@@ -78,7 +78,7 @@ export function useClaudeStreaming() {
         timestamp: Date.now(),
       };
     },
-    [],
+    []
   );
 
   const createToolMessage = useCallback(
@@ -100,7 +100,7 @@ export function useClaudeStreaming() {
         timestamp: Date.now(),
       };
     },
-    [],
+    []
   );
 
   const createResultMessage = useCallback(
@@ -113,7 +113,7 @@ export function useClaudeStreaming() {
         timestamp: Date.now(),
       };
     },
-    [],
+    []
   );
 
   const handleSystemMessage = useCallback(
@@ -121,7 +121,7 @@ export function useClaudeStreaming() {
       const systemMessage = createSystemMessage(claudeData);
       context.addMessage(systemMessage);
     },
-    [createSystemMessage],
+    [createSystemMessage]
   );
 
   const handleAssistantTextMessage = useCallback(
@@ -150,7 +150,7 @@ export function useClaudeStreaming() {
       context.setCurrentAssistantMessage(updatedMessage);
       context.updateLastMessage(updatedContent);
     },
-    [],
+    []
   );
 
   const handleToolUseMessage = useCallback(
@@ -159,12 +159,12 @@ export function useClaudeStreaming() {
         name?: string;
         input?: { description?: string; command?: string };
       },
-      context: StreamingContext,
+      context: StreamingContext
     ) => {
       const toolMessage = createToolMessage(contentItem);
       context.addMessage(toolMessage);
     },
-    [createToolMessage],
+    [createToolMessage]
   );
 
   const handleAssistantMessage = useCallback(
@@ -177,7 +177,7 @@ export function useClaudeStreaming() {
         }
       }
     },
-    [handleAssistantTextMessage, handleToolUseMessage],
+    [handleAssistantTextMessage, handleToolUseMessage]
   );
 
   const handleResultMessage = useCallback(
@@ -186,7 +186,7 @@ export function useClaudeStreaming() {
       context.addMessage(resultMessage);
       context.setCurrentAssistantMessage(null);
     },
-    [createResultMessage],
+    [createResultMessage]
   );
 
   const processClaudeData = useCallback(
@@ -226,7 +226,7 @@ export function useClaudeStreaming() {
           console.log("Unknown Claude message type:", claudeData.type);
       }
     },
-    [handleSystemMessage, handleAssistantMessage, handleResultMessage],
+    [handleSystemMessage, handleAssistantMessage, handleResultMessage]
   );
 
   const processStreamLine = useCallback(
@@ -253,7 +253,7 @@ export function useClaudeStreaming() {
         console.error("Failed to parse stream line:", parseError);
       }
     },
-    [processClaudeData],
+    [processClaudeData]
   );
 
   return {
