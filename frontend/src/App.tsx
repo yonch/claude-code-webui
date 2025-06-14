@@ -185,30 +185,44 @@ function App() {
         {/* Chat Messages */}
         <div
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto bg-white/70 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60 p-6 mb-6 rounded-2xl shadow-sm backdrop-blur-sm"
+          className="flex-1 overflow-y-auto bg-white/70 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60 p-6 mb-6 rounded-2xl shadow-sm backdrop-blur-sm flex flex-col"
         >
           {messages.length === 0 && (
-            <div className="text-center text-slate-500 dark:text-slate-400 mt-12">
-              <div className="text-6xl mb-6 opacity-60">💬</div>
-              <p className="text-lg font-medium">
-                Start a conversation with Claude
-              </p>
-              <p className="text-sm mt-2 opacity-80">
-                Type your message below to begin
-              </p>
+            <div className="flex-1 flex items-center justify-center text-center text-slate-500 dark:text-slate-400">
+              <div>
+                <div className="text-6xl mb-6 opacity-60">
+                  <span role="img" aria-label="chat icon">
+                    💬
+                  </span>
+                </div>
+                <p className="text-lg font-medium">
+                  Start a conversation with Claude
+                </p>
+                <p className="text-sm mt-2 opacity-80">
+                  Type your message below to begin
+                </p>
+              </div>
             </div>
           )}
-          {messages.map((message, index) => {
-            if (isSystemMessage(message)) {
-              return <SystemMessageComponent key={index} message={message} />;
-            } else if (isToolMessage(message)) {
-              return <ToolMessageComponent key={index} message={message} />;
-            } else {
-              return <ChatMessageComponent key={index} message={message} />;
-            }
-          })}
-          {isLoading && <LoadingComponent />}
-          <div ref={messagesEndRef} />
+          {messages.length > 0 && (
+            <>
+              {/* Spacer div to push messages to the bottom */}
+              <div className="flex-1" aria-hidden="true"></div>
+              {messages.map((message, index) => {
+                if (isSystemMessage(message)) {
+                  return (
+                    <SystemMessageComponent key={index} message={message} />
+                  );
+                } else if (isToolMessage(message)) {
+                  return <ToolMessageComponent key={index} message={message} />;
+                } else {
+                  return <ChatMessageComponent key={index} message={message} />;
+                }
+              })}
+              {isLoading && <LoadingComponent />}
+              <div ref={messagesEndRef} />
+            </>
+          )}
         </div>
 
         {/* Input */}
