@@ -179,7 +179,7 @@ cd backend && deno task build
 ### Automated Releases
 
 - **Trigger**: Push git tags (e.g., `git tag v1.0.0 && git push origin v1.0.0`)
-- **Platforms**: Linux (x64/ARM64), macOS (x64/ARM64), Windows (x64)
+- **Platforms**: Linux (x64/ARM64), macOS (x64/ARM64)
 - **Output**: GitHub Releases with downloadable binaries
 - **Features**: Frontend is automatically bundled into each binary
 

@@ -23,9 +23,6 @@ jobs:
           - os: macos-latest
             target: aarch64-apple-darwin
             artifact_name: claude-code-webui-macos-arm64
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            artifact_name: claude-code-webui-windows-x64.exe
 
     steps:
       - name: Checkout code
@@ -51,14 +48,7 @@ jobs:
         run: npm run build
         working-directory: frontend
 
-      - name: Copy frontend dist to backend (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          Remove-Item -Path backend/dist -Force -Recurse -ErrorAction SilentlyContinue
-          Copy-Item -Path frontend/dist -Destination backend/dist -Recurse
-
-      - name: Copy frontend dist to backend (Unix)
-        if: runner.os != 'Windows'
+      - name: Copy frontend dist to backend
         run: |
           rm -rf backend/dist
           cp -r frontend/dist backend/dist
