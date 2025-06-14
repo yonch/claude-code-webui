@@ -211,12 +211,9 @@ export function useClaudeStreaming() {
         const data: StreamResponse = JSON.parse(line);
 
         if (data.type === "claude_json" && data.data) {
-          try {
-            const claudeData: SDKMessage = JSON.parse(data.data);
-            processClaudeData(claudeData, context);
-          } catch (parseError) {
-            console.error("Failed to parse Claude JSON:", parseError);
-          }
+          // data.data is already an SDKMessage object, no need to parse
+          const claudeData = data.data as SDKMessage;
+          processClaudeData(claudeData, context);
         } else if (data.type === "error") {
           const errorMessage: SystemMessage = {
             type: "system",

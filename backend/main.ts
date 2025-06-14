@@ -74,7 +74,7 @@ async function* executeClaudeCommand(
 
       yield {
         type: "claude_json",
-        data: JSON.stringify(sdkMessage),
+        data: sdkMessage,
       };
     }
 

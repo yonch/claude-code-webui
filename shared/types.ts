@@ -1,6 +1,6 @@
 export interface StreamResponse {
   type: "claude_json" | "error" | "done";
-  data?: string; // Raw JSON string content
+  data?: unknown; // SDKMessage object for claude_json type
   error?: string;
 }
 
