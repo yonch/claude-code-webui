@@ -77,7 +77,7 @@ export function useClaudeStreaming() {
 
   const createResultMessage = useCallback(
     (claudeData: Extract<SDKMessage, { type: "result" }>): SystemMessage => {
-      const resultContent = `✅ Task ${claudeData.subtype}\nDuration: ${claudeData.duration_ms}ms\nCost: $${claudeData.cost_usd?.toFixed(4) || "0.0000"}\nTokens: ${claudeData.usage?.input_tokens || 0} in, ${claudeData.usage?.output_tokens || 0} out`;
+      const resultContent = `✅ Task ${claudeData.subtype}\nDuration: ${claudeData.duration_ms}ms\nCost: $${claudeData.total_cost_usd?.toFixed(4) || "0.0000"}\nTokens: ${claudeData.usage?.input_tokens || 0} in, ${claudeData.usage?.output_tokens || 0} out`;
 
       return {
         type: "system",
