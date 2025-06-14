@@ -3,7 +3,7 @@
   "specifiers": {
     "jsr:@hono/hono@4": "4.7.11",
     "jsr:@std/cli@1": "1.0.19",
-    "npm:@anthropic-ai/claude-code@*": "1.0.22"
+    "npm:@anthropic-ai/claude-code@1.0.24": "1.0.24"
   },
   "jsr": {
     "@hono/hono@4.7.11": {
@@ -14,8 +14,8 @@
     }
   },
   "npm": {
-    "@anthropic-ai/claude-code@1.0.22": {
-      "integrity": "sha512-vqfDHq4KNtUzUiwdsls8+2aTrC1Rn96iH+yOyCrBjHjJwojzU6pt3MOAMkJHMeErKeGqve+I7HM6mFw0OgZgqw==",
+    "@anthropic-ai/claude-code@1.0.24": {
+      "integrity": "sha512-4S6ly2297ngNlto7IFZeEicS9u0yRDhocOzndWFovGBb+iUoEPKdZa/rhVk/tcyCADL6S+mMkiGQOlqFDrN3JQ==",
       "optionalDependencies": [
         "@img/sharp-darwin-arm64",
         "@img/sharp-darwin-x64",

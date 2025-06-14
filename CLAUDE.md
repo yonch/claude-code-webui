@@ -41,6 +41,9 @@ This project consists of three main components:
 - Parses different Claude JSON message types (system, assistant, result)
 - TailwindCSS utility-first styling for responsive design
 - Light/dark theme toggle with system preference detection and localStorage persistence
+- Bottom-to-top message flow layout (messages start at bottom like modern chat apps)
+- Auto-scroll to bottom with smart scroll detection (only auto-scrolls when user is near bottom)
+- Accessibility features with ARIA attributes for screen readers
 - Responsive chat interface
 - Comprehensive component testing with Vitest and Testing Library
 

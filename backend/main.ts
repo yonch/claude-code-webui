@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serveStatic } from "hono/deno";
-import { query } from "npm:@anthropic-ai/claude-code";
+import { query } from "npm:@anthropic-ai/claude-code@1.0.24";
 import type { ChatRequest, StreamResponse } from "../shared/types.ts";
 import {
   isDebugMode,

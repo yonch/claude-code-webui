@@ -92,6 +92,7 @@ function App() {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
+    setCurrentAssistantMessage(null);
 
     try {
       const response = await fetch("http://localhost:8080/api/chat", {
@@ -106,7 +107,7 @@ function App() {
       const decoder = new TextDecoder();
 
       const streamingContext = {
-        currentAssistantMessage,
+        currentAssistantMessage: null,
         setCurrentAssistantMessage,
         addMessage: (msg: AllMessage) => {
           setMessages((prev) => [...prev, msg]);
