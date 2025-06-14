@@ -22,10 +22,13 @@ This project consists of three main components:
 - Sets working directory to project root for claude command execution
 - Provides CORS headers for frontend communication
 - Single binary distribution support
+- Session continuity support using Claude Code SDK's resume functionality
 
 **API Endpoints**:
 
 - `POST /api/chat` - Accepts chat messages and returns streaming responses
+  - Request body: `{ message: string, sessionId?: string }`
+  - Optional `sessionId` enables conversation continuity within the same chat session
 - `/*` - Serves static frontend files (in single binary mode)
 
 ### Frontend (React)
@@ -46,6 +49,7 @@ This project consists of three main components:
 - Accessibility features with ARIA attributes for screen readers
 - Responsive chat interface
 - Comprehensive component testing with Vitest and Testing Library
+- Automatic session tracking for conversation continuity within the same chat instance
 
 ### Shared Types
 
@@ -56,6 +60,8 @@ This project consists of three main components:
 
 - `StreamResponse` - Backend streaming response format
 - `ChatRequest` - Chat request structure for API communication
+  - `message: string` - User's message content
+  - `sessionId?: string` - Optional session ID for conversation continuity
 
 **Note**: Claude-specific message types (`ClaudeAssistantMessage`, `ClaudeResultMessage`, etc.) are defined in `frontend/src/types.ts` for frontend-specific usage.
 
@@ -72,6 +78,31 @@ The SDK returns three types of JSON messages:
 1. **System messages** (`type: "system"`) - Initialization and setup information
 2. **Assistant messages** (`type: "assistant"`) - Actual response content
 3. **Result messages** (`type: "result"`) - Execution summary with costs and usage
+
+## Session Continuity
+
+The application supports conversation continuity within the same chat session using Claude Code SDK's built-in session management.
+
+### How It Works
+
+1. **Initial Message**: First message in a chat session starts a new Claude session
+2. **Session Tracking**: Frontend automatically extracts `session_id` from incoming SDK messages
+3. **Continuation**: Subsequent messages include the `session_id` to maintain conversation context
+4. **Backend Integration**: Backend passes `session_id` to Claude Code SDK via `options.resume` parameter
+
+### Technical Implementation
+
+- **Frontend**: Tracks `currentSessionId` state and includes it in API requests
+- **Backend**: Accepts optional `sessionId` in `ChatRequest` and uses it with SDK's `resume` option
+- **Streaming**: Session IDs are extracted from all SDK message types (`system`, `assistant`, `result`)
+- **Automatic**: No user intervention required - session continuity is handled transparently
+
+### Benefits
+
+- **Context Preservation**: Maintains conversation context across multiple messages
+- **Improved UX**: Users can reference previous messages and build on earlier discussions
+- **Efficient**: Leverages Claude Code SDK's native session management
+- **Seamless**: Works automatically without user configuration
 
 ## Development
 
@@ -266,5 +297,24 @@ gh api repos/owner/repo/issues/PARENT_ISSUE_NUMBER/sub_issues
 - Endpoint is `/sub_issues` (plural) for POST operations
 - Parent issue will show `sub_issues_summary` with total/completed counts
 - Sub-issues automatically link to parent in GitHub UI
+
+### Viewing Copilot Review Comments
+
+**For Claude**: Copilot inline review comments are not shown in regular `gh pr view` output. To see them:
+
+```bash
+# View all inline review comments from Copilot
+gh api repos/owner/repo/pulls/PR_NUMBER/comments
+
+# Example for this repository
+gh api repos/sugyan/claude-code-webui/pulls/39/comments
+```
+
+**Why this matters**:
+- Copilot provides valuable code improvement suggestions
+- These comments include security, performance, and code quality feedback
+- They appear as inline comments on specific lines of code
+- Missing these can lead to suboptimal code being merged
+- Always check for Copilot feedback when reviewing PRs
 
 **Important for Claude**: Always run commands from the project root directory. When using `cd` commands for backend/frontend, use full paths like `cd /path/to/project/backend` to avoid getting lost in subdirectories.

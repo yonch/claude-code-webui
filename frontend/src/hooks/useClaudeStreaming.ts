@@ -13,6 +13,7 @@ interface StreamingContext {
   setCurrentAssistantMessage: (msg: ChatMessage | null) => void;
   addMessage: (msg: AllMessage) => void;
   updateLastMessage: (content: string) => void;
+  onSessionId?: (sessionId: string) => void;
 }
 
 // Type guard functions for SDKMessage
@@ -172,6 +173,11 @@ export function useClaudeStreaming() {
 
   const processClaudeData = useCallback(
     (claudeData: SDKMessage, context: StreamingContext) => {
+      // Extract session_id from any message and notify context
+      if (claudeData.session_id && context.onSessionId) {
+        context.onSessionId(claudeData.session_id);
+      }
+
       switch (claudeData.type) {
         case "system":
           if (isSystemMessage(claudeData)) {
