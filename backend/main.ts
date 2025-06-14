@@ -63,7 +63,7 @@ async function* executeClaudeCommand(
         options: {
           abortController,
           pathToClaudeCodeExecutable: claudePath,
-          ...(sessionId && { resume: sessionId }),
+          ...(sessionId ? { resume: sessionId } : {}),
         },
       })
     ) {
