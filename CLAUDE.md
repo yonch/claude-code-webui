@@ -298,4 +298,23 @@ gh api repos/owner/repo/issues/PARENT_ISSUE_NUMBER/sub_issues
 - Parent issue will show `sub_issues_summary` with total/completed counts
 - Sub-issues automatically link to parent in GitHub UI
 
+### Viewing Copilot Review Comments
+
+**For Claude**: Copilot inline review comments are not shown in regular `gh pr view` output. To see them:
+
+```bash
+# View all inline review comments from Copilot
+gh api repos/owner/repo/pulls/PR_NUMBER/comments
+
+# Example for this repository
+gh api repos/sugyan/claude-code-webui/pulls/39/comments
+```
+
+**Why this matters**:
+- Copilot provides valuable code improvement suggestions
+- These comments include security, performance, and code quality feedback
+- They appear as inline comments on specific lines of code
+- Missing these can lead to suboptimal code being merged
+- Always check for Copilot feedback when reviewing PRs
+
 **Important for Claude**: Always run commands from the project root directory. When using `cd` commands for backend/frontend, use full paths like `cd /path/to/project/backend` to avoid getting lost in subdirectories.
