@@ -6,12 +6,13 @@ import { query } from "npm:@anthropic-ai/claude-code";
 import type { ChatRequest, StreamResponse } from "../shared/types.ts";
 
 const args = parseArgs(Deno.args, {
-  boolean: ["help", "version"],
+  boolean: ["help", "version", "debug"],
   string: ["port"],
   alias: {
     "help": "h",
     "version": "v",
     "port": "p",
+    "debug": "d",
   },
   default: {
     port: "8080",
@@ -25,6 +26,9 @@ if (args.help) {
   console.log("");
   console.log("Options:");
   console.log("  -p, --port <number>   Port to listen on (default: 8080)");
+  console.log(
+    "  -d, --debug          Enable debug mode (also via DEBUG=true env var)",
+  );
   console.log("  -h, --help           Show this help message");
   console.log("  -v, --version        Show version information");
   Deno.exit(0);
@@ -47,6 +51,9 @@ if (args.version) {
 }
 
 const PORT = parseInt(args.port as string, 10);
+
+// Debug mode enabled via CLI flag or environment variable
+const DEBUG_MODE = args.debug || Deno.env.get("DEBUG") === "true";
 
 if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
   console.error("Error: Port must be a valid number between 1 and 65535");
@@ -90,6 +97,13 @@ async function* executeClaudeCommand(
         },
       })
     ) {
+      // Debug logging of raw SDK messages
+      if (DEBUG_MODE) {
+        console.log("[DEBUG] Claude SDK Message:");
+        console.log(JSON.stringify(sdkMessage, null, 2));
+        console.log("---");
+      }
+
       yield {
         type: "claude_json",
         data: JSON.stringify(sdkMessage),
