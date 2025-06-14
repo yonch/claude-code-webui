@@ -1,10 +1,10 @@
 {
   "tasks": {
-    "dev": "deno run --allow-net --allow-run --allow-read --allow-env --watch main.ts",
+    "dev": "deno run --allow-net --allow-run --allow-read --allow-env --watch main.ts -- --debug",
     "build": "deno compile --allow-net --allow-run --allow-read --allow-env --include ./VERSION --include ./dist --output ../dist/claude-code-webui main.ts",
     "format": "deno fmt",
     "lint": "deno lint",
-    "check": "deno check main.ts"
+    "check": "deno check main.ts args.ts"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1",

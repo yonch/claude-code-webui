@@ -1,57 +1,32 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serveStatic } from "hono/deno";
-import { parseArgs } from "@std/cli/parse-args";
 import { query } from "npm:@anthropic-ai/claude-code";
 import type { ChatRequest, StreamResponse } from "../shared/types.ts";
+import {
+  isDebugMode,
+  parseCliArgs,
+  showHelp,
+  showVersion,
+  validatePort,
+} from "./args.ts";
 
-const args = parseArgs(Deno.args, {
-  boolean: ["help", "version"],
-  string: ["port"],
-  alias: {
-    "help": "h",
-    "version": "v",
-    "port": "p",
-  },
-  default: {
-    port: "8080",
-  },
-});
+const args = parseCliArgs();
 
 if (args.help) {
-  console.log("Claude Code Web UI Backend Server");
-  console.log("");
-  console.log("Usage: deno run main.ts [options]");
-  console.log("");
-  console.log("Options:");
-  console.log("  -p, --port <number>   Port to listen on (default: 8080)");
-  console.log("  -h, --help           Show this help message");
-  console.log("  -v, --version        Show version information");
+  showHelp();
   Deno.exit(0);
 }
 
 if (args.version) {
-  try {
-    // Use import.meta.dirname to access embedded VERSION file
-    const version = await Deno.readTextFile(import.meta.dirname + "/VERSION");
-    console.log(`Claude Code Web UI Backend ${version.trim()}`);
-  } catch (error) {
-    console.error(
-      `Error reading VERSION file: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-    );
-    Deno.exit(1);
-  }
+  await showVersion();
   Deno.exit(0);
 }
 
-const PORT = parseInt(args.port as string, 10);
+const PORT = validatePort(args.port);
 
-if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
-  console.error("Error: Port must be a valid number between 1 and 65535");
-  Deno.exit(1);
-}
+// Debug mode enabled via CLI flag or environment variable
+const DEBUG_MODE = isDebugMode(args);
 
 const app = new Hono();
 
@@ -90,6 +65,13 @@ async function* executeClaudeCommand(
         },
       })
     ) {
+      // Debug logging of raw SDK messages
+      if (DEBUG_MODE) {
+        console.debug("[DEBUG] Claude SDK Message:");
+        console.debug(JSON.stringify(sdkMessage, null, 2));
+        console.debug("---");
+      }
+
       yield {
         type: "claude_json",
         data: JSON.stringify(sdkMessage),
