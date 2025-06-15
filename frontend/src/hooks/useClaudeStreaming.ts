@@ -14,6 +14,8 @@ interface StreamingContext {
   addMessage: (msg: AllMessage) => void;
   updateLastMessage: (content: string) => void;
   onSessionId?: (sessionId: string) => void;
+  shouldShowInitMessage?: () => boolean;
+  onInitMessageShown?: () => void;
 }
 
 // Type guard functions for SDKMessage
@@ -94,8 +96,19 @@ export function useClaudeStreaming() {
       claudeData: Extract<SDKMessage, { type: "system" }>,
       context: StreamingContext,
     ) => {
-      const systemMessage = createSystemMessage(claudeData);
-      context.addMessage(systemMessage);
+      // Check if this is an init message and if we should show it
+      if (claudeData.subtype === "init") {
+        const shouldShow = context.shouldShowInitMessage?.() ?? true;
+        if (shouldShow) {
+          const systemMessage = createSystemMessage(claudeData);
+          context.addMessage(systemMessage);
+          context.onInitMessageShown?.();
+        }
+      } else {
+        // Always show non-init system messages
+        const systemMessage = createSystemMessage(claudeData);
+        context.addMessage(systemMessage);
+      }
     },
     [createSystemMessage],
   );
