@@ -14,14 +14,13 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.54.0",
+    "@anthropic-ai/claude-code": "^1.0.24",
     "@heroicons/react": "^2.2.0",
     "dayjs": "^1.11.13",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
-    "@anthropic-ai/claude-code": "^1.0.24",
     "@eslint/js": "^9.25.0",
     "@tailwindcss/vite": "^4.1.8",
     "@testing-library/jest-dom": "^6.6.3",
