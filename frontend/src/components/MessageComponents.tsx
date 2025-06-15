@@ -87,7 +87,10 @@ export function SystemMessageComponent({
         <div className="w-4 h-4 bg-blue-400 dark:bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
           ⚙
         </div>
-        <span>{message.summary}</span>
+        <span>System</span>
+        <span className="text-blue-600 dark:text-blue-400">
+          ({message.summary})
+        </span>
         {hasDetails && (
           <span className="ml-1 text-blue-600 dark:text-blue-400">
             {isExpanded ? "▼" : "▶"}
