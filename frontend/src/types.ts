@@ -7,7 +7,8 @@ export interface ChatMessage {
 
 export type SystemMessage = {
   type: "system";
-  content: string;
+  summary: string;
+  details?: string;
   timestamp: number;
 };
 

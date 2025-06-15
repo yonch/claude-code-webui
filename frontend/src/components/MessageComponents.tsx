@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import type { ChatMessage, SystemMessage, ToolMessage } from "../types";
 import { TimestampComponent } from "./TimestampComponent";
 
@@ -75,17 +75,30 @@ interface SystemMessageComponentProps {
 export function SystemMessageComponent({
   message,
 }: SystemMessageComponentProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const hasDetails = message.details && message.details.trim().length > 0;
+
   return (
     <div className="mb-3 p-3 rounded-lg bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-      <div className="text-blue-800 dark:text-blue-300 text-xs font-medium mb-1 flex items-center gap-2">
+      <div
+        className={`text-blue-800 dark:text-blue-300 text-xs font-medium mb-1 flex items-center gap-2 ${hasDetails ? "cursor-pointer hover:text-blue-600 dark:hover:text-blue-200" : ""}`}
+        onClick={hasDetails ? () => setIsExpanded(!isExpanded) : undefined}
+      >
         <div className="w-4 h-4 bg-blue-400 dark:bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
           ⚙
         </div>
-        System
+        <span>{message.summary}</span>
+        {hasDetails && (
+          <span className="ml-1 text-blue-600 dark:text-blue-400">
+            {isExpanded ? "▼" : "▶"}
+          </span>
+        )}
       </div>
-      <pre className="whitespace-pre-wrap text-blue-700 dark:text-blue-300 text-xs font-mono leading-relaxed">
-        {message.content}
-      </pre>
+      {hasDetails && isExpanded && (
+        <pre className="whitespace-pre-wrap text-blue-700 dark:text-blue-300 text-xs font-mono leading-relaxed mt-2 pl-6 border-l-2 border-blue-200 dark:border-blue-700">
+          {message.details}
+        </pre>
+      )}
     </div>
   );
 }

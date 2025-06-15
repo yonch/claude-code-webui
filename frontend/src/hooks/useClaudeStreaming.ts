@@ -40,16 +40,32 @@ function isResultMessage(
 export function useClaudeStreaming() {
   const createSystemMessage = useCallback(
     (claudeData: Extract<SDKMessage, { type: "system" }>): SystemMessage => {
-      let systemContent = "";
+      let summary = "";
+      let details = "";
+
       if (claudeData.subtype === "init") {
-        systemContent = `🔧 Claude Code initialized\nModel: ${claudeData.model || "Unknown"}\nSession: ${claudeData.session_id?.substring(0, 8) || "Unknown"}\nTools: ${claudeData.tools?.length || 0} available`;
+        summary = "init";
+        const detailsArray = [
+          `Model: ${claudeData.model || "Unknown"}`,
+          `Session: ${claudeData.session_id?.substring(0, 8) || "Unknown"}`,
+          `Tools: ${claudeData.tools?.length || 0} available`,
+        ];
+
+        // Add CWD if available in the data
+        if (claudeData.cwd) {
+          detailsArray.push(`CWD: ${claudeData.cwd}`);
+        }
+
+        details = detailsArray.join("\n");
       } else {
-        systemContent = `System: ${JSON.stringify(claudeData)}`;
+        summary = claudeData.subtype || "system";
+        details = JSON.stringify(claudeData, null, 2);
       }
 
       return {
         type: "system",
-        content: systemContent,
+        summary,
+        details,
         timestamp: Date.now(),
       };
     },
@@ -80,11 +96,17 @@ export function useClaudeStreaming() {
 
   const createResultMessage = useCallback(
     (claudeData: Extract<SDKMessage, { type: "result" }>): SystemMessage => {
-      const resultContent = `✅ Task ${claudeData.subtype}\nDuration: ${claudeData.duration_ms}ms\nCost: $${claudeData.total_cost_usd?.toFixed(4) || "0.0000"}\nTokens: ${claudeData.usage?.input_tokens || 0} in, ${claudeData.usage?.output_tokens || 0} out`;
+      const summary = claudeData.subtype || "result";
+      const details = [
+        `Duration: ${claudeData.duration_ms}ms`,
+        `Cost: $${claudeData.total_cost_usd?.toFixed(4) || "0.0000"}`,
+        `Tokens: ${claudeData.usage?.input_tokens || 0} in, ${claudeData.usage?.output_tokens || 0} out`,
+      ].join("\n");
 
       return {
         type: "system",
-        content: resultContent,
+        summary,
+        details,
         timestamp: Date.now(),
       };
     },
@@ -236,7 +258,8 @@ export function useClaudeStreaming() {
         } else if (data.type === "error") {
           const errorMessage: SystemMessage = {
             type: "system",
-            content: `❌ Error: ${data.error}`,
+            summary: "error",
+            details: data.error || "Unknown error",
             timestamp: Date.now(),
           };
           context.addMessage(errorMessage);
