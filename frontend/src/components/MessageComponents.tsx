@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import type { ChatMessage, SystemMessage, ToolMessage } from "../types";
 import { TimestampComponent } from "./TimestampComponent";
 
@@ -75,17 +75,83 @@ interface SystemMessageComponentProps {
 export function SystemMessageComponent({
   message,
 }: SystemMessageComponentProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Generate details based on message type and subtype
+  const getDetails = () => {
+    if (message.type === "system" && message.subtype === "init") {
+      return [
+        `Model: ${message.model}`,
+        `Session: ${message.session_id.substring(0, 8)}`,
+        `Tools: ${message.tools.length} available`,
+        `CWD: ${message.cwd}`,
+        `Permission Mode: ${message.permissionMode}`,
+        `API Key Source: ${message.apiKeySource}`,
+      ].join("\n");
+    } else if (message.type === "result") {
+      const details = [
+        `Duration: ${message.duration_ms}ms`,
+        `Cost: $${message.total_cost_usd.toFixed(4)}`,
+        `Tokens: ${message.usage.input_tokens} in, ${message.usage.output_tokens} out`,
+      ];
+      if ("result" in message) {
+        details.unshift(`Result: ${message.result}`);
+      }
+      return details.join("\n");
+    } else if (message.type === "error") {
+      return message.message;
+    }
+    return JSON.stringify(message, null, 2);
+  };
+
+  // Get label based on message type
+  const getLabel = () => {
+    if (message.type === "system") return "System";
+    if (message.type === "result") return "Result";
+    if (message.type === "error") return "Error";
+    return "Message";
+  };
+
+  const details = getDetails();
+  const hasDetails = details.trim().length > 0;
+
   return (
     <div className="mb-3 p-3 rounded-lg bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-      <div className="text-blue-800 dark:text-blue-300 text-xs font-medium mb-1 flex items-center gap-2">
+      <div
+        className={`text-blue-800 dark:text-blue-300 text-xs font-medium mb-1 flex items-center gap-2 ${hasDetails ? "cursor-pointer hover:text-blue-600 dark:hover:text-blue-200" : ""}`}
+        role={hasDetails ? "button" : undefined}
+        tabIndex={hasDetails ? 0 : undefined}
+        aria-expanded={hasDetails ? isExpanded : undefined}
+        onClick={hasDetails ? () => setIsExpanded(!isExpanded) : undefined}
+        onKeyDown={
+          hasDetails
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setIsExpanded(!isExpanded);
+                }
+              }
+            : undefined
+        }
+      >
         <div className="w-4 h-4 bg-blue-400 dark:bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
           ⚙
         </div>
-        System
+        <span>{getLabel()}</span>
+        <span className="text-blue-600 dark:text-blue-400">
+          ({message.subtype})
+        </span>
+        {hasDetails && (
+          <span className="ml-1 text-blue-600 dark:text-blue-400">
+            {isExpanded ? "▼" : "▶"}
+          </span>
+        )}
       </div>
-      <pre className="whitespace-pre-wrap text-blue-700 dark:text-blue-300 text-xs font-mono leading-relaxed">
-        {message.content}
-      </pre>
+      {hasDetails && isExpanded && (
+        <pre className="whitespace-pre-wrap text-blue-700 dark:text-blue-300 text-xs font-mono leading-relaxed mt-2 pl-6 border-l-2 border-blue-200 dark:border-blue-700">
+          {details}
+        </pre>
+      )}
     </div>
   );
 }

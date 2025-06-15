@@ -39,7 +39,9 @@ describe("useClaudeStreaming", () => {
     expect(mockContext.addMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "system",
-        content: expect.stringContaining("test-ses"), // Session ID is truncated to 8 chars
+        subtype: "init",
+        session_id: "test-session-123",
+        timestamp: expect.any(Number),
       }),
     );
   });

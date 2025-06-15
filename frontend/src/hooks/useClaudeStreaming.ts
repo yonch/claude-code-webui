@@ -40,16 +40,8 @@ function isResultMessage(
 export function useClaudeStreaming() {
   const createSystemMessage = useCallback(
     (claudeData: Extract<SDKMessage, { type: "system" }>): SystemMessage => {
-      let systemContent = "";
-      if (claudeData.subtype === "init") {
-        systemContent = `🔧 Claude Code initialized\nModel: ${claudeData.model || "Unknown"}\nSession: ${claudeData.session_id?.substring(0, 8) || "Unknown"}\nTools: ${claudeData.tools?.length || 0} available`;
-      } else {
-        systemContent = `System: ${JSON.stringify(claudeData)}`;
-      }
-
       return {
-        type: "system",
-        content: systemContent,
+        ...claudeData,
         timestamp: Date.now(),
       };
     },
@@ -80,11 +72,8 @@ export function useClaudeStreaming() {
 
   const createResultMessage = useCallback(
     (claudeData: Extract<SDKMessage, { type: "result" }>): SystemMessage => {
-      const resultContent = `✅ Task ${claudeData.subtype}\nDuration: ${claudeData.duration_ms}ms\nCost: $${claudeData.total_cost_usd?.toFixed(4) || "0.0000"}\nTokens: ${claudeData.usage?.input_tokens || 0} in, ${claudeData.usage?.output_tokens || 0} out`;
-
       return {
-        type: "system",
-        content: resultContent,
+        ...claudeData,
         timestamp: Date.now(),
       };
     },
@@ -235,8 +224,9 @@ export function useClaudeStreaming() {
           processClaudeData(claudeData, context);
         } else if (data.type === "error") {
           const errorMessage: SystemMessage = {
-            type: "system",
-            content: `❌ Error: ${data.error}`,
+            type: "error",
+            subtype: "stream_error",
+            message: data.error || "Unknown error",
             timestamp: Date.now(),
           };
           context.addMessage(errorMessage);

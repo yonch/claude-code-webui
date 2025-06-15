@@ -1,3 +1,9 @@
+import type {
+  SDKSystemMessage,
+  SDKResultMessage,
+} from "@anthropic-ai/claude-code";
+
+// Chat message for user/assistant interactions (not part of SDKMessage)
 export interface ChatMessage {
   type: "chat";
   role: "user" | "assistant";
@@ -5,12 +11,24 @@ export interface ChatMessage {
   timestamp: number;
 }
 
-export type SystemMessage = {
-  type: "system";
-  content: string;
+// Error message for streaming errors
+export type ErrorMessage = {
+  type: "error";
+  subtype: "stream_error";
+  message: string;
   timestamp: number;
 };
 
+// System message extending SDK types with timestamp
+export type SystemMessage = (
+  | SDKSystemMessage
+  | SDKResultMessage
+  | ErrorMessage
+) & {
+  timestamp: number;
+};
+
+// Tool message for tool usage display
 export type ToolMessage = {
   type: "tool";
   content: string;
@@ -25,7 +43,11 @@ export function isChatMessage(message: AllMessage): message is ChatMessage {
 }
 
 export function isSystemMessage(message: AllMessage): message is SystemMessage {
-  return message.type === "system";
+  return (
+    message.type === "system" ||
+    message.type === "result" ||
+    message.type === "error"
+  );
 }
 
 export function isToolMessage(message: AllMessage): message is ToolMessage {
@@ -35,5 +57,11 @@ export function isToolMessage(message: AllMessage): message is ToolMessage {
 // Re-export shared types
 export type { StreamResponse, ChatRequest } from "../../shared/types";
 
-// Import SDK types
-export type { SDKMessage } from "@anthropic-ai/claude-code";
+// Re-export SDK types
+export type {
+  SDKMessage,
+  SDKSystemMessage,
+  SDKResultMessage,
+  SDKAssistantMessage,
+  SDKUserMessage,
+} from "@anthropic-ai/claude-code";
