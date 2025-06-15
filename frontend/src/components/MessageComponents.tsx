@@ -1,5 +1,6 @@
 import React from "react";
 import type { ChatMessage, SystemMessage, ToolMessage } from "../types";
+import { TimestampComponent } from "./TimestampComponent";
 
 interface BubbleContainerProps {
   alignment: "left" | "right" | "center";
@@ -45,12 +46,20 @@ export function ChatMessageComponent({ message }: ChatMessageComponentProps) {
       alignment={isUser ? "right" : "left"}
       colorScheme={colorScheme}
     >
-      <div
-        className={`text-xs font-semibold mb-2 opacity-90 ${
-          isUser ? "text-blue-100" : "text-slate-600 dark:text-slate-400"
-        }`}
-      >
-        {isUser ? "You" : "Assistant"}
+      <div className="mb-2">
+        <div
+          className={`text-xs font-semibold opacity-90 ${
+            isUser ? "text-blue-100" : "text-slate-600 dark:text-slate-400"
+          }`}
+        >
+          {isUser ? "You" : "Assistant"}
+        </div>
+        <TimestampComponent
+          timestamp={message.timestamp}
+          className={`text-xs opacity-70 ${
+            isUser ? "text-blue-200" : "text-slate-500 dark:text-slate-500"
+          }`}
+        />
       </div>
       <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
         {message.content}
