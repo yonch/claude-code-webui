@@ -34,7 +34,14 @@ export function formatAbsoluteTime(timestamp: number): string {
  */
 export function formatRelativeTime(timestamp: number): string {
   const messageTime = dayjs(timestamp);
-  const diffInMinutes = dayjs().diff(messageTime, "minute");
+  const now = dayjs();
+
+  // If the timestamp is in the future, clamp to "just now"
+  if (messageTime.isAfter(now)) {
+    return "just now";
+  }
+
+  const diffInMinutes = now.diff(messageTime, "minute");
 
   // Show "just now" for very recent messages (< 1 minute)
   if (diffInMinutes < 1) {

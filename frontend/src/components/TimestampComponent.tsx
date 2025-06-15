@@ -27,11 +27,16 @@ export function TimestampComponent({
     updateTime();
 
     // For relative time, update every minute
+    // TODO: Consider using a shared timer/context for batch updates when many messages use relative mode
     if (mode === "relative") {
       const interval = setInterval(updateTime, 60000);
       return () => clearInterval(interval);
     }
   }, [timestamp, mode]);
 
-  return <span className={className}>{displayTime}</span>;
+  return (
+    <span className={className} aria-label={`Sent at ${displayTime}`}>
+      {displayTime}
+    </span>
+  );
 }
