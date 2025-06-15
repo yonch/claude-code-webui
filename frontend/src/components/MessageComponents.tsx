@@ -1,5 +1,6 @@
 import React from "react";
 import type { ChatMessage, SystemMessage, ToolMessage } from "../types";
+import { formatRelativeTime } from "../utils/time";
 
 interface BubbleContainerProps {
   alignment: "left" | "right" | "center";
@@ -45,12 +46,21 @@ export function ChatMessageComponent({ message }: ChatMessageComponentProps) {
       alignment={isUser ? "right" : "left"}
       colorScheme={colorScheme}
     >
-      <div
-        className={`text-xs font-semibold mb-2 opacity-90 ${
-          isUser ? "text-blue-100" : "text-slate-600 dark:text-slate-400"
-        }`}
-      >
-        {isUser ? "You" : "Assistant"}
+      <div className="mb-2">
+        <div
+          className={`text-xs font-semibold opacity-90 ${
+            isUser ? "text-blue-100" : "text-slate-600 dark:text-slate-400"
+          }`}
+        >
+          {isUser ? "You" : "Assistant"}
+        </div>
+        <div
+          className={`text-xs opacity-70 ${
+            isUser ? "text-blue-200" : "text-slate-500 dark:text-slate-500"
+          }`}
+        >
+          {formatRelativeTime(message.timestamp)}
+        </div>
       </div>
       <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
         {message.content}
@@ -68,11 +78,16 @@ export function SystemMessageComponent({
 }: SystemMessageComponentProps) {
   return (
     <div className="mb-3 p-3 rounded-lg bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-      <div className="text-blue-800 dark:text-blue-300 text-xs font-medium mb-1 flex items-center gap-2">
-        <div className="w-4 h-4 bg-blue-400 dark:bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
-          ⚙
+      <div className="text-blue-800 dark:text-blue-300 text-xs font-medium mb-1">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-blue-400 dark:bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
+            ⚙
+          </div>
+          System
         </div>
-        System
+        <div className="text-blue-600 dark:text-blue-400 opacity-70 mt-1">
+          {formatRelativeTime(message.timestamp)}
+        </div>
       </div>
       <pre className="whitespace-pre-wrap text-blue-700 dark:text-blue-300 text-xs font-mono leading-relaxed">
         {message.content}
@@ -91,11 +106,16 @@ export function ToolMessageComponent({ message }: ToolMessageComponentProps) {
       alignment="left"
       colorScheme="bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-100"
     >
-      <div className="text-xs font-semibold mb-2 opacity-90 text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
-        <div className="w-4 h-4 bg-emerald-500 dark:bg-emerald-600 rounded-full flex items-center justify-center text-white text-xs">
-          🔧
+      <div className="text-xs font-semibold mb-2 opacity-90 text-emerald-700 dark:text-emerald-300">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-emerald-500 dark:bg-emerald-600 rounded-full flex items-center justify-center text-white text-xs">
+            🔧
+          </div>
+          Tool
         </div>
-        Tool
+        <div className="text-emerald-600 dark:text-emerald-400 opacity-70 mt-1">
+          {formatRelativeTime(message.timestamp)}
+        </div>
       </div>
       <pre className="whitespace-pre-wrap text-xs font-mono leading-relaxed">
         {message.content}
