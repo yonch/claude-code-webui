@@ -254,9 +254,7 @@ export function useClaudeStreaming() {
         for (const contentItem of messageContent) {
           if (contentItem.type === "tool_result") {
             // This is a tool result - create a ToolResultMessage
-            const toolName = contentItem.tool_use_id
-              ? `Tool (${contentItem.tool_use_id.substring(0, 8)})`
-              : "Tool";
+            const toolName = "Tool result";
             const content =
               typeof contentItem.content === "string"
                 ? contentItem.content
