@@ -11,8 +11,20 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+// Error message for streaming errors
+export type ErrorMessage = {
+  type: "error";
+  subtype: "stream_error";
+  message: string;
+  timestamp: number;
+};
+
 // System message extending SDK types with timestamp
-export type SystemMessage = (SDKSystemMessage | SDKResultMessage) & {
+export type SystemMessage = (
+  | SDKSystemMessage
+  | SDKResultMessage
+  | ErrorMessage
+) & {
   timestamp: number;
 };
 
@@ -31,7 +43,11 @@ export function isChatMessage(message: AllMessage): message is ChatMessage {
 }
 
 export function isSystemMessage(message: AllMessage): message is SystemMessage {
-  return message.type === "system" || message.type === "result";
+  return (
+    message.type === "system" ||
+    message.type === "result" ||
+    message.type === "error"
+  );
 }
 
 export function isToolMessage(message: AllMessage): message is ToolMessage {

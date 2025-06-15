@@ -224,15 +224,9 @@ export function useClaudeStreaming() {
           processClaudeData(claudeData, context);
         } else if (data.type === "error") {
           const errorMessage: SystemMessage = {
-            type: "system",
-            subtype: "init", // Using init as fallback for error case
-            apiKeySource: "user" as const,
-            cwd: `Error: ${data.error || "Unknown error"}`,
-            session_id: "",
-            tools: [],
-            mcp_servers: [],
-            model: "",
-            permissionMode: "default" as const,
+            type: "error",
+            subtype: "stream_error",
+            message: data.error || "Unknown error",
             timestamp: Date.now(),
           };
           context.addMessage(errorMessage);

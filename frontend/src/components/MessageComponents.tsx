@@ -98,8 +98,18 @@ export function SystemMessageComponent({
         details.unshift(`Result: ${message.result}`);
       }
       return details.join("\n");
+    } else if (message.type === "error") {
+      return message.message;
     }
     return JSON.stringify(message, null, 2);
+  };
+
+  // Get label based on message type
+  const getLabel = () => {
+    if (message.type === "system") return "System";
+    if (message.type === "result") return "Result";
+    if (message.type === "error") return "Error";
+    return "Message";
   };
 
   const details = getDetails();
@@ -109,12 +119,25 @@ export function SystemMessageComponent({
     <div className="mb-3 p-3 rounded-lg bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
       <div
         className={`text-blue-800 dark:text-blue-300 text-xs font-medium mb-1 flex items-center gap-2 ${hasDetails ? "cursor-pointer hover:text-blue-600 dark:hover:text-blue-200" : ""}`}
+        role={hasDetails ? "button" : undefined}
+        tabIndex={hasDetails ? 0 : undefined}
+        aria-expanded={hasDetails ? isExpanded : undefined}
         onClick={hasDetails ? () => setIsExpanded(!isExpanded) : undefined}
+        onKeyDown={
+          hasDetails
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setIsExpanded(!isExpanded);
+                }
+              }
+            : undefined
+        }
       >
         <div className="w-4 h-4 bg-blue-400 dark:bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
           ⚙
         </div>
-        <span>System</span>
+        <span>{getLabel()}</span>
         <span className="text-blue-600 dark:text-blue-400">
           ({message.subtype})
         </span>
