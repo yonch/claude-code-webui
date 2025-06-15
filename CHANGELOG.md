@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.1.12](https://github.com/sugyan/claude-code-webui/compare/v0.1.11...v0.1.12) - 2025-06-15
+- feat: Show 'Claude Code initialized' message only once per session by @sugyan in https://github.com/sugyan/claude-code-webui/pull/42
+- feat: Add timestamps to chat messages by @sugyan in https://github.com/sugyan/claude-code-webui/pull/44
+- feat: simplify system messages with collapsible details by @sugyan in https://github.com/sugyan/claude-code-webui/pull/46
+- Improve tool message display: simplify tool_use and add tool_result support by @sugyan in https://github.com/sugyan/claude-code-webui/pull/48
+- chore: Update README.md by @sugyan in https://github.com/sugyan/claude-code-webui/pull/49
+
 ## [v0.1.11](https://github.com/sugyan/claude-code-webui/compare/v0.1.10...v0.1.11) - 2025-06-14
 - Remove Windows support since @anthropic-ai/claude-code doesn't support Windows by @sugyan in https://github.com/sugyan/claude-code-webui/pull/40
 
