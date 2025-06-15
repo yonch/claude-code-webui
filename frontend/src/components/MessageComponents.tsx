@@ -51,7 +51,7 @@ export function ChatMessageComponent({ message }: ChatMessageComponentProps) {
       alignment={isUser ? "right" : "left"}
       colorScheme={colorScheme}
     >
-      <div className="mb-2">
+      <div className="mb-2 flex items-center justify-between">
         <div
           className={`text-xs font-semibold opacity-90 ${
             isUser ? "text-blue-100" : "text-slate-600 dark:text-slate-400"
@@ -99,9 +99,6 @@ export function SystemMessageComponent({
         `Cost: $${message.total_cost_usd.toFixed(4)}`,
         `Tokens: ${message.usage.input_tokens} in, ${message.usage.output_tokens} out`,
       ];
-      if ("result" in message) {
-        details.unshift(`Result: ${message.result}`);
-      }
       return details.join("\n");
     } else if (message.type === "error") {
       return message.message;
