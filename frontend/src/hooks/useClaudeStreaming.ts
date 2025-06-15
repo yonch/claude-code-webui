@@ -4,6 +4,7 @@ import type {
   ChatMessage,
   SystemMessage,
   ToolMessage,
+  ToolResultMessage,
   StreamResponse,
   SDKMessage,
 } from "../types";
@@ -37,6 +38,12 @@ function isResultMessage(
   return data.type === "result";
 }
 
+function isUserMessage(
+  data: SDKMessage,
+): data is Extract<SDKMessage, { type: "user" }> {
+  return data.type === "user";
+}
+
 export function useClaudeStreaming() {
   const createSystemMessage = useCallback(
     (claudeData: Extract<SDKMessage, { type: "system" }>): SystemMessage => {
@@ -51,19 +58,43 @@ export function useClaudeStreaming() {
   const createToolMessage = useCallback(
     (contentItem: {
       name?: string;
-      input?: { description?: string; command?: string };
+      input?: Record<string, unknown>;
     }): ToolMessage => {
-      let toolContent = `🔧 Using tool: ${contentItem.name}`;
-      if (contentItem.input?.description) {
-        toolContent += `\n${contentItem.input.description}`;
-      }
-      if (contentItem.input?.command) {
-        toolContent += `\n$ ${contentItem.input.command}`;
+      const toolName = contentItem.name || "Unknown";
+
+      // Format arguments for display
+      let argsDisplay = "";
+      if (contentItem.input) {
+        const input = contentItem.input;
+        // Special handling for common tool arguments
+        if (input.path) {
+          argsDisplay = `(${input.path})`;
+        } else if (input.file_path) {
+          argsDisplay = `(${input.file_path})`;
+        } else if (input.command) {
+          argsDisplay = `(${input.command})`;
+        } else if (input.pattern) {
+          argsDisplay = `(${input.pattern})`;
+        } else if (input.url) {
+          argsDisplay = `(${input.url})`;
+        } else {
+          // For other tools, show key arguments
+          const keys = Object.keys(input);
+          if (keys.length > 0) {
+            const firstKey = keys[0];
+            const value = input[firstKey];
+            if (typeof value === "string" && value.length < 50) {
+              argsDisplay = `(${value})`;
+            } else {
+              argsDisplay = `(${keys.length} ${keys.length === 1 ? "arg" : "args"})`;
+            }
+          }
+        }
       }
 
       return {
         type: "tool",
-        content: toolContent,
+        content: `${toolName}${argsDisplay}`,
         timestamp: Date.now(),
       };
     },
@@ -74,6 +105,44 @@ export function useClaudeStreaming() {
     (claudeData: Extract<SDKMessage, { type: "result" }>): SystemMessage => {
       return {
         ...claudeData,
+        timestamp: Date.now(),
+      };
+    },
+    [],
+  );
+
+  const createToolResultMessage = useCallback(
+    (toolName: string, content: string): ToolResultMessage => {
+      // Generate a summary from the content
+      let summary = "";
+
+      // Try to extract meaningful summary from common tool results
+      if (content.includes("\n")) {
+        const lines = content.split("\n").filter((line) => line.trim());
+        if (lines.length > 0) {
+          summary = `${lines.length} ${lines.length === 1 ? "line" : "lines"}`;
+        }
+      } else if (content.includes("Found")) {
+        const match = content.match(/Found (\d+)/);
+        if (match) {
+          summary = `Found ${match[1]}`;
+        }
+      } else if (content.includes("files")) {
+        const match = content.match(/(\d+)\s+files?/);
+        if (match) {
+          summary = `${match[1]} files`;
+        }
+      } else if (content.length < 50) {
+        summary = content.trim();
+      } else {
+        summary = `${content.length} chars`;
+      }
+
+      return {
+        type: "tool_result",
+        toolName,
+        content,
+        summary,
         timestamp: Date.now(),
       };
     },
@@ -173,6 +242,36 @@ export function useClaudeStreaming() {
     [createResultMessage],
   );
 
+  const handleUserMessage = useCallback(
+    (
+      claudeData: Extract<SDKMessage, { type: "user" }>,
+      context: StreamingContext,
+    ) => {
+      // Check if this user message contains tool_result content
+      const messageContent = claudeData.message.content;
+
+      if (Array.isArray(messageContent)) {
+        for (const contentItem of messageContent) {
+          if (contentItem.type === "tool_result") {
+            // This is a tool result - create a ToolResultMessage
+            const toolName = "Tool result";
+            const content =
+              typeof contentItem.content === "string"
+                ? contentItem.content
+                : JSON.stringify(contentItem.content);
+            const toolResultMessage = createToolResultMessage(
+              toolName,
+              content,
+            );
+            context.addMessage(toolResultMessage);
+          }
+        }
+      }
+      // Note: We don't display regular user messages from the SDK as they represent Claude's internal tool results
+    },
+    [createToolResultMessage],
+  );
+
   const processClaudeData = useCallback(
     (claudeData: SDKMessage, context: StreamingContext) => {
       // Extract session_id from any message and notify context
@@ -203,14 +302,22 @@ export function useClaudeStreaming() {
           }
           break;
         case "user":
-          // Handle user messages if needed
-          console.log("User message:", claudeData);
+          if (isUserMessage(claudeData)) {
+            handleUserMessage(claudeData, context);
+          } else {
+            console.warn("Invalid user message:", claudeData);
+          }
           break;
         default:
           console.log("Unknown Claude message type:", claudeData);
       }
     },
-    [handleSystemMessage, handleAssistantMessage, handleResultMessage],
+    [
+      handleSystemMessage,
+      handleAssistantMessage,
+      handleResultMessage,
+      handleUserMessage,
+    ],
   );
 
   const processStreamLine = useCallback(

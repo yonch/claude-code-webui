@@ -1,6 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import type { ChatRequest, AllMessage, ChatMessage } from "./types";
-import { isChatMessage, isSystemMessage, isToolMessage } from "./types";
+import {
+  isChatMessage,
+  isSystemMessage,
+  isToolMessage,
+  isToolResultMessage,
+} from "./types";
 import { useTheme } from "./hooks/useTheme";
 import { useClaudeStreaming } from "./hooks/useClaudeStreaming";
 import { SunIcon, MoonIcon } from "@heroicons/react/24/outline";
@@ -8,6 +13,7 @@ import {
   ChatMessageComponent,
   SystemMessageComponent,
   ToolMessageComponent,
+  ToolResultMessageComponent,
   LoadingComponent,
 } from "./components/MessageComponents";
 
@@ -228,6 +234,10 @@ function App() {
                   );
                 } else if (isToolMessage(message)) {
                   return <ToolMessageComponent key={index} message={message} />;
+                } else if (isToolResultMessage(message)) {
+                  return (
+                    <ToolResultMessageComponent key={index} message={message} />
+                  );
                 } else {
                   return <ChatMessageComponent key={index} message={message} />;
                 }

@@ -152,4 +152,146 @@ describe("useClaudeStreaming", () => {
       result.current.processStreamLine(streamLine, mockContext);
     }).not.toThrow();
   });
+
+  it("handles tool_use messages with simplified format", () => {
+    const { result } = renderHook(() => useClaudeStreaming());
+
+    const mockContext = {
+      currentAssistantMessage: null,
+      setCurrentAssistantMessage: vi.fn(),
+      addMessage: vi.fn(),
+      updateLastMessage: vi.fn(),
+    };
+
+    const assistantMessage: SDKMessage = {
+      type: "assistant",
+      message: {
+        id: "msg_123",
+        type: "message",
+        role: "assistant",
+        content: [
+          {
+            type: "tool_use",
+            id: "tool_123",
+            name: "LS",
+            input: { path: "/home/user/documents" },
+          },
+        ],
+        model: "claude-3-sonnet",
+        stop_reason: "tool_use",
+        stop_sequence: null,
+        usage: { input_tokens: 10, output_tokens: 5 },
+      },
+      parent_tool_use_id: null,
+      session_id: "test-session-123",
+    };
+
+    const streamLine = JSON.stringify({
+      type: "claude_json",
+      data: assistantMessage,
+    });
+
+    result.current.processStreamLine(streamLine, mockContext);
+
+    expect(mockContext.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "tool",
+        content: "LS(/home/user/documents)",
+        timestamp: expect.any(Number),
+      }),
+    );
+  });
+
+  it("handles user messages with tool_result content", () => {
+    const { result } = renderHook(() => useClaudeStreaming());
+
+    const mockContext = {
+      currentAssistantMessage: null,
+      setCurrentAssistantMessage: vi.fn(),
+      addMessage: vi.fn(),
+      updateLastMessage: vi.fn(),
+    };
+
+    const userMessage: SDKMessage = {
+      type: "user",
+      message: {
+        role: "user",
+        content: [
+          {
+            type: "tool_result",
+            tool_use_id: "tool_123",
+            content: "file1.txt\nfile2.txt\nfile3.txt",
+          },
+        ],
+      },
+      parent_tool_use_id: null,
+      session_id: "test-session-123",
+    };
+
+    const streamLine = JSON.stringify({
+      type: "claude_json",
+      data: userMessage,
+    });
+
+    result.current.processStreamLine(streamLine, mockContext);
+
+    expect(mockContext.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "tool_result",
+        toolName: "Tool result",
+        content: "file1.txt\nfile2.txt\nfile3.txt",
+        summary: "3 lines",
+        timestamp: expect.any(Number),
+      }),
+    );
+  });
+
+  it("handles tool_use messages with different argument types", () => {
+    const { result } = renderHook(() => useClaudeStreaming());
+
+    const mockContext = {
+      currentAssistantMessage: null,
+      setCurrentAssistantMessage: vi.fn(),
+      addMessage: vi.fn(),
+      updateLastMessage: vi.fn(),
+    };
+
+    const assistantMessage: SDKMessage = {
+      type: "assistant",
+      message: {
+        id: "msg_123",
+        type: "message",
+        role: "assistant",
+        content: [
+          {
+            type: "tool_use",
+            id: "tool_123",
+            name: "Bash",
+            input: { command: "ls -la" },
+          },
+        ],
+        model: "claude-3-sonnet",
+        stop_reason: "tool_use",
+        stop_sequence: null,
+        usage: { input_tokens: 10, output_tokens: 5 },
+      },
+      parent_tool_use_id: null,
+      session_id: "test-session-123",
+    };
+
+    const streamLine = JSON.stringify({
+      type: "claude_json",
+      data: assistantMessage,
+    });
+
+    result.current.processStreamLine(streamLine, mockContext);
+
+    expect(mockContext.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "tool",
+        content: "Bash(ls -la)",
+        timestamp: expect.any(Number),
+      }),
+    );
+  });
 });
