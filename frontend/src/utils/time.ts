@@ -1,11 +1,15 @@
 import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+
+// Initialize the relative time plugin
+dayjs.extend(relativeTime);
 
 /**
- * Format a timestamp as a readable time string
+ * Format a timestamp as an absolute time string
  * @param timestamp - Unix timestamp in milliseconds
- * @returns Formatted time string (e.g., "14:30", "Dec 15, 14:30")
+ * @returns Formatted absolute time string (e.g., "14:30", "Dec 15, 14:30")
  */
-export function formatRelativeTime(timestamp: number): string {
+export function formatAbsoluteTime(timestamp: number): string {
   const messageTime = dayjs(timestamp);
   const now = dayjs();
 
@@ -21,4 +25,21 @@ export function formatRelativeTime(timestamp: number): string {
 
   // If it's from a different year, show full date and time
   return messageTime.format("MMM D, YYYY HH:mm");
+}
+
+/**
+ * Format a timestamp as a relative time string
+ * @param timestamp - Unix timestamp in milliseconds
+ * @returns Formatted relative time string (e.g., "2 minutes ago", "just now")
+ */
+export function formatRelativeTime(timestamp: number): string {
+  const messageTime = dayjs(timestamp);
+  const diffInMinutes = dayjs().diff(messageTime, "minute");
+
+  // Show "just now" for very recent messages (< 1 minute)
+  if (diffInMinutes < 1) {
+    return "just now";
+  }
+
+  return messageTime.fromNow();
 }
