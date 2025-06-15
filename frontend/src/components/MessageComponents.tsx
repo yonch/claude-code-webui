@@ -76,7 +76,34 @@ export function SystemMessageComponent({
   message,
 }: SystemMessageComponentProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const hasDetails = message.details && message.details.trim().length > 0;
+
+  // Generate details based on message type and subtype
+  const getDetails = () => {
+    if (message.type === "system" && message.subtype === "init") {
+      return [
+        `Model: ${message.model}`,
+        `Session: ${message.session_id.substring(0, 8)}`,
+        `Tools: ${message.tools.length} available`,
+        `CWD: ${message.cwd}`,
+        `Permission Mode: ${message.permissionMode}`,
+        `API Key Source: ${message.apiKeySource}`,
+      ].join("\n");
+    } else if (message.type === "result") {
+      const details = [
+        `Duration: ${message.duration_ms}ms`,
+        `Cost: $${message.total_cost_usd.toFixed(4)}`,
+        `Tokens: ${message.usage.input_tokens} in, ${message.usage.output_tokens} out`,
+      ];
+      if ("result" in message) {
+        details.unshift(`Result: ${message.result}`);
+      }
+      return details.join("\n");
+    }
+    return JSON.stringify(message, null, 2);
+  };
+
+  const details = getDetails();
+  const hasDetails = details.trim().length > 0;
 
   return (
     <div className="mb-3 p-3 rounded-lg bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
@@ -89,7 +116,7 @@ export function SystemMessageComponent({
         </div>
         <span>System</span>
         <span className="text-blue-600 dark:text-blue-400">
-          ({message.summary})
+          ({message.subtype})
         </span>
         {hasDetails && (
           <span className="ml-1 text-blue-600 dark:text-blue-400">
@@ -99,7 +126,7 @@ export function SystemMessageComponent({
       </div>
       {hasDetails && isExpanded && (
         <pre className="whitespace-pre-wrap text-blue-700 dark:text-blue-300 text-xs font-mono leading-relaxed mt-2 pl-6 border-l-2 border-blue-200 dark:border-blue-700">
-          {message.details}
+          {details}
         </pre>
       )}
     </div>
