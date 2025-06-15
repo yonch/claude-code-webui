@@ -35,7 +35,20 @@ export type ToolMessage = {
   timestamp: number;
 };
 
-export type AllMessage = ChatMessage | SystemMessage | ToolMessage;
+// Tool result message for tool result display
+export type ToolResultMessage = {
+  type: "tool_result";
+  toolName: string;
+  content: string;
+  summary: string;
+  timestamp: number;
+};
+
+export type AllMessage =
+  | ChatMessage
+  | SystemMessage
+  | ToolMessage
+  | ToolResultMessage;
 
 // Type guard functions
 export function isChatMessage(message: AllMessage): message is ChatMessage {
@@ -52,6 +65,12 @@ export function isSystemMessage(message: AllMessage): message is SystemMessage {
 
 export function isToolMessage(message: AllMessage): message is ToolMessage {
   return message.type === "tool";
+}
+
+export function isToolResultMessage(
+  message: AllMessage,
+): message is ToolResultMessage {
+  return message.type === "tool_result";
 }
 
 // Re-export shared types

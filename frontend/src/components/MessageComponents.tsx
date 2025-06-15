@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import type { ChatMessage, SystemMessage, ToolMessage } from "../types";
+import type {
+  ChatMessage,
+  SystemMessage,
+  ToolMessage,
+  ToolResultMessage,
+} from "../types";
 import { TimestampComponent } from "./TimestampComponent";
 
 interface BubbleContainerProps {
@@ -170,12 +175,61 @@ export function ToolMessageComponent({ message }: ToolMessageComponentProps) {
         <div className="w-4 h-4 bg-emerald-500 dark:bg-emerald-600 rounded-full flex items-center justify-center text-white text-xs">
           🔧
         </div>
-        Tool
-      </div>
-      <pre className="whitespace-pre-wrap text-xs font-mono leading-relaxed">
         {message.content}
-      </pre>
+      </div>
     </BubbleContainer>
+  );
+}
+
+interface ToolResultMessageComponentProps {
+  message: ToolResultMessage;
+}
+
+export function ToolResultMessageComponent({
+  message,
+}: ToolResultMessageComponentProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const hasDetails = message.content.trim().length > 0;
+
+  return (
+    <div className="mb-3 p-3 rounded-lg bg-emerald-50/80 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+      <div
+        className={`text-emerald-800 dark:text-emerald-300 text-xs font-medium mb-1 flex items-center gap-2 ${hasDetails ? "cursor-pointer hover:text-emerald-600 dark:hover:text-emerald-200" : ""}`}
+        role={hasDetails ? "button" : undefined}
+        tabIndex={hasDetails ? 0 : undefined}
+        aria-expanded={hasDetails ? isExpanded : undefined}
+        onClick={hasDetails ? () => setIsExpanded(!isExpanded) : undefined}
+        onKeyDown={
+          hasDetails
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setIsExpanded(!isExpanded);
+                }
+              }
+            : undefined
+        }
+      >
+        <div className="w-4 h-4 bg-emerald-400 dark:bg-emerald-500 rounded-full flex items-center justify-center text-white text-xs">
+          ✓
+        </div>
+        <span>{message.toolName}</span>
+        <span className="text-emerald-600 dark:text-emerald-400">
+          {message.summary}
+        </span>
+        {hasDetails && (
+          <span className="ml-1 text-emerald-600 dark:text-emerald-400">
+            {isExpanded ? "▼" : "▶"}
+          </span>
+        )}
+      </div>
+      {hasDetails && isExpanded && (
+        <pre className="whitespace-pre-wrap text-emerald-700 dark:text-emerald-300 text-xs font-mono leading-relaxed mt-2 pl-6 border-l-2 border-emerald-200 dark:border-emerald-700">
+          {message.content}
+        </pre>
+      )}
+    </div>
   );
 }
 
