@@ -16,6 +16,7 @@ function App() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [hasShownInitMessage, setHasShownInitMessage] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { processStreamLine } = useClaudeStreaming();
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -127,6 +128,10 @@ function App() {
         },
         onSessionId: (sessionId: string) => {
           setCurrentSessionId(sessionId);
+        },
+        shouldShowInitMessage: () => !hasShownInitMessage,
+        onInitMessageShown: () => {
+          setHasShownInitMessage(true);
         },
       };
 
