@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import type { ChatRequest, AllMessage, ChatMessage } from "./types";
 import {
   isChatMessage,
@@ -9,6 +9,7 @@ import {
 import { useTheme } from "./hooks/useTheme";
 import { useClaudeStreaming } from "./hooks/useClaudeStreaming";
 import { SunIcon, MoonIcon } from "@heroicons/react/24/outline";
+import { StopIcon } from "@heroicons/react/24/solid";
 import {
   ChatMessageComponent,
   SystemMessageComponent,
@@ -22,7 +23,9 @@ function App() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
   const [hasShownInitMessage, setHasShownInitMessage] = useState(false);
+  const [, setHasReceivedInit] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { processStreamLine } = useClaudeStreaming();
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -90,6 +93,10 @@ function App() {
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
+    // Generate unique request ID for this request
+    const requestId = crypto.randomUUID();
+    setCurrentRequestId(requestId);
+
     const userMessage: ChatMessage = {
       type: "chat",
       role: "user",
@@ -108,6 +115,7 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: input.trim(),
+          requestId,
           ...(currentSessionId ? { sessionId: currentSessionId } : {}),
         } as ChatRequest),
       });
@@ -116,6 +124,12 @@ function App() {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+
+      // Reset init state for new request
+      setHasReceivedInit(false);
+
+      // Local state for this streaming session
+      let localHasReceivedInit = false;
 
       const streamingContext = {
         currentAssistantMessage: null,
@@ -138,6 +152,13 @@ function App() {
         shouldShowInitMessage: () => !hasShownInitMessage,
         onInitMessageShown: () => {
           setHasShownInitMessage(true);
+        },
+        get hasReceivedInit() {
+          return localHasReceivedInit;
+        },
+        setHasReceivedInit: (received: boolean) => {
+          localHasReceivedInit = received;
+          setHasReceivedInit(received);
         },
       };
 
@@ -165,6 +186,7 @@ function App() {
       ]);
     } finally {
       setIsLoading(false);
+      setCurrentRequestId(null);
     }
   };
 
@@ -179,6 +201,43 @@ function App() {
       sendMessage();
     }
   };
+
+  // Abort current request
+  const abortRequest = useCallback(async () => {
+    if (!currentRequestId || !isLoading) return;
+
+    try {
+      await fetch(`http://localhost:8080/api/abort/${currentRequestId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      // Clean up state after successful abort
+      setIsLoading(false);
+      setCurrentRequestId(null);
+      setCurrentAssistantMessage(null);
+    } catch (error) {
+      console.error("Failed to abort request:", error);
+      // Still clean up on error
+      setIsLoading(false);
+      setCurrentRequestId(null);
+      setCurrentAssistantMessage(null);
+    }
+  }, [currentRequestId, isLoading]);
+
+  // Handle global keyboard shortcuts
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // ESC key to abort (configurable in future)
+      if (e.key === "Escape" && isLoading && currentRequestId) {
+        e.preventDefault();
+        abortRequest();
+      }
+    };
+
+    document.addEventListener("keydown", handleGlobalKeyDown);
+    return () => document.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [isLoading, currentRequestId, abortRequest]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
@@ -256,18 +315,34 @@ function App() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type your message... (Shift+Enter for new line)"
+              placeholder={
+                isLoading && currentRequestId
+                  ? "Processing... (Press ESC to stop)"
+                  : "Type your message... (Shift+Enter for new line)"
+              }
               rows={1}
-              className="w-full px-4 py-3 pr-20 bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm shadow-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none overflow-hidden min-h-[48px] max-h-[200px]"
+              className="w-full px-4 py-3 pr-32 bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm shadow-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none overflow-hidden min-h-[48px] max-h-[200px]"
               disabled={isLoading}
             />
-            <button
-              type="submit"
-              disabled={!input.trim() || isLoading}
-              className="absolute right-2 bottom-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 text-sm"
-            >
-              {isLoading ? "..." : "Send"}
-            </button>
+            <div className="absolute right-2 bottom-3 flex gap-2">
+              {isLoading && currentRequestId && (
+                <button
+                  type="button"
+                  onClick={abortRequest}
+                  className="p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                  title="Stop (ESC)"
+                >
+                  <StopIcon className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                type="submit"
+                disabled={!input.trim() || isLoading}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 text-sm"
+              >
+                {isLoading ? "..." : "Send"}
+              </button>
+            </div>
           </form>
         </div>
       </div>

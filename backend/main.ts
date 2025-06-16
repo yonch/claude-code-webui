@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serveStatic } from "hono/deno";
-import { query } from "npm:@anthropic-ai/claude-code@1.0.24";
+import { AbortError, query } from "npm:@anthropic-ai/claude-code@1.0.24";
 import type { ChatRequest, StreamResponse } from "../shared/types.ts";
 import {
   isDebugMode,
@@ -30,10 +30,16 @@ const DEBUG_MODE = isDebugMode(args);
 
 const app = new Hono();
 
+// Store AbortControllers for each request
+const requestAbortControllers = new Map<string, AbortController>();
+
 async function* executeClaudeCommand(
   message: string,
+  requestId: string,
   sessionId?: string,
 ): AsyncGenerator<StreamResponse> {
+  let abortController: AbortController;
+
   try {
     // Process commands that start with '/'
     let processedMessage = message;
@@ -42,8 +48,9 @@ async function* executeClaudeCommand(
       processedMessage = message.substring(1);
     }
 
-    // Use the Claude Code SDK with system claude command
-    const abortController = new AbortController();
+    // Create and store AbortController for this request
+    abortController = new AbortController();
+    requestAbortControllers.set(requestId, abortController);
 
     // For compiled binaries, use system claude command to avoid bundled cli.js issues
     let claudePath: string;
@@ -82,10 +89,20 @@ async function* executeClaudeCommand(
 
     yield { type: "done" };
   } catch (error) {
-    yield {
-      type: "error",
-      error: error instanceof Error ? error.message : String(error),
-    };
+    // Check if error is due to abort
+    if (error instanceof AbortError) {
+      yield { type: "aborted" };
+    } else {
+      yield {
+        type: "error",
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  } finally {
+    // Clean up AbortController from map
+    if (requestAbortControllers.has(requestId)) {
+      requestAbortControllers.delete(requestId);
+    }
   }
 }
 
@@ -100,8 +117,44 @@ app.use(
 );
 
 // API routes
+app.post("/api/abort/:requestId", (c) => {
+  const requestId = c.req.param("requestId");
+
+  if (!requestId) {
+    return c.json({ error: "Request ID is required" }, 400);
+  }
+
+  if (DEBUG_MODE) {
+    console.debug(`[DEBUG] Abort attempt for request: ${requestId}`);
+    console.debug(
+      `[DEBUG] Active requests: ${Array.from(requestAbortControllers.keys())}`,
+    );
+  }
+
+  const abortController = requestAbortControllers.get(requestId);
+  if (abortController) {
+    abortController.abort();
+    requestAbortControllers.delete(requestId);
+
+    if (DEBUG_MODE) {
+      console.debug(`[DEBUG] Aborted request: ${requestId}`);
+    }
+
+    return c.json({ success: true, message: "Request aborted" });
+  } else {
+    return c.json({ error: "Request not found or already completed" }, 404);
+  }
+});
+
 app.post("/api/chat", async (c) => {
   const chatRequest: ChatRequest = await c.req.json();
+
+  if (DEBUG_MODE) {
+    console.debug(
+      "[DEBUG] Received chat request:",
+      JSON.stringify(chatRequest, null, 2),
+    );
+  }
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -109,6 +162,7 @@ app.post("/api/chat", async (c) => {
         for await (
           const chunk of executeClaudeCommand(
             chatRequest.message,
+            chatRequest.requestId,
             chatRequest.sessionId,
           )
         ) {
@@ -133,7 +187,7 @@ app.post("/api/chat", async (c) => {
     headers: {
       "Content-Type": "application/x-ndjson",
       "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
+      Connection: "keep-alive",
     },
   });
 });

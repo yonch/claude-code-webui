@@ -7,6 +7,7 @@ import type {
   ToolResultMessage,
   StreamResponse,
   SDKMessage,
+  AbortMessage,
 } from "../types";
 
 interface StreamingContext {
@@ -17,6 +18,8 @@ interface StreamingContext {
   onSessionId?: (sessionId: string) => void;
   shouldShowInitMessage?: () => boolean;
   onInitMessageShown?: () => void;
+  hasReceivedInit?: boolean;
+  setHasReceivedInit?: (received: boolean) => void;
 }
 
 // Type guard functions for SDKMessage
@@ -156,6 +159,9 @@ export function useClaudeStreaming() {
     ) => {
       // Check if this is an init message and if we should show it
       if (claudeData.subtype === "init") {
+        // Mark that we've received init
+        context.setHasReceivedInit?.(true);
+
         const shouldShow = context.shouldShowInitMessage?.() ?? true;
         if (shouldShow) {
           const systemMessage = createSystemMessage(claudeData);
@@ -274,8 +280,13 @@ export function useClaudeStreaming() {
 
   const processClaudeData = useCallback(
     (claudeData: SDKMessage, context: StreamingContext) => {
-      // Extract session_id from any message and notify context
-      if (claudeData.session_id && context.onSessionId) {
+      // Update sessionId only for the first assistant message after init
+      if (
+        claudeData.type === "assistant" &&
+        context.hasReceivedInit &&
+        claudeData.session_id &&
+        context.onSessionId
+      ) {
         context.onSessionId(claudeData.session_id);
       }
 
@@ -337,6 +348,15 @@ export function useClaudeStreaming() {
             timestamp: Date.now(),
           };
           context.addMessage(errorMessage);
+        } else if (data.type === "aborted") {
+          const abortedMessage: AbortMessage = {
+            type: "system",
+            subtype: "abort",
+            message: "Operation was aborted by user",
+            timestamp: Date.now(),
+          };
+          context.addMessage(abortedMessage);
+          context.setCurrentAssistantMessage(null);
         }
       } catch (parseError) {
         console.error("Failed to parse stream line:", parseError);
