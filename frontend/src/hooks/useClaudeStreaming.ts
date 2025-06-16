@@ -95,6 +95,11 @@ function extractToolInfo(
     command = "*";
   }
 
+  // Ensure command is never empty for non-Bash tools
+  if (extractedToolName !== "Bash" && (!command || command === "")) {
+    command = "*";
+  }
+
   return { toolName: extractedToolName, command };
 }
 

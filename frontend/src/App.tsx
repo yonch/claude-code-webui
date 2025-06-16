@@ -293,7 +293,10 @@ function App() {
 
   // Permission dialog handlers
   const handlePermissionAllow = useCallback(() => {
-    const pattern = `${permissionDialog.toolName}(${permissionDialog.command}:*)`;
+    const pattern =
+      !permissionDialog.command || permissionDialog.command === "*"
+        ? `${permissionDialog.toolName}(*)`
+        : `${permissionDialog.toolName}(${permissionDialog.command}:*)`;
     // Add to allowed tools temporarily (for this request only)
     setAllowedTools((prev) => [...prev, pattern]);
 
@@ -307,7 +310,10 @@ function App() {
   }, [permissionDialog, currentSessionId, sendMessage]);
 
   const handlePermissionAllowPermanent = useCallback(() => {
-    const pattern = `${permissionDialog.toolName}(${permissionDialog.command}:*)`;
+    const pattern =
+      !permissionDialog.command || permissionDialog.command === "*"
+        ? `${permissionDialog.toolName}(*)`
+        : `${permissionDialog.toolName}(${permissionDialog.command}:*)`;
     // Add to allowed tools permanently (for entire session)
     setAllowedTools((prev) => [...prev, pattern]);
 
