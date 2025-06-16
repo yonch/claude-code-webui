@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import type { ChatRequest, AllMessage, ChatMessage } from "./types";
 import {
   isChatMessage,
@@ -8,7 +8,7 @@ import {
 } from "./types";
 import { useTheme } from "./hooks/useTheme";
 import { useClaudeStreaming } from "./hooks/useClaudeStreaming";
-import { SunIcon, MoonIcon } from "@heroicons/react/24/outline";
+import { SunIcon, MoonIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import {
   ChatMessageComponent,
   SystemMessageComponent,
@@ -180,6 +180,34 @@ function App() {
     }
   };
 
+  // Abort current request
+  const abortRequest = useCallback(async () => {
+    if (!currentSessionId || !isLoading) return;
+
+    try {
+      await fetch(`http://localhost:8080/api/abort/${currentSessionId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      console.error("Failed to abort request:", error);
+    }
+  }, [currentSessionId, isLoading]);
+
+  // Handle global keyboard shortcuts
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // ESC key to abort (configurable in future)
+      if (e.key === "Escape" && isLoading && currentSessionId) {
+        e.preventDefault();
+        abortRequest();
+      }
+    };
+
+    document.addEventListener("keydown", handleGlobalKeyDown);
+    return () => document.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [isLoading, currentSessionId, abortRequest]);
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
       <div className="max-w-6xl mx-auto p-6 h-screen flex flex-col">
@@ -256,18 +284,35 @@ function App() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type your message... (Shift+Enter for new line)"
+              placeholder={
+                isLoading && currentSessionId
+                  ? "Processing... (Press ESC to abort)"
+                  : "Type your message... (Shift+Enter for new line)"
+              }
               rows={1}
-              className="w-full px-4 py-3 pr-20 bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm shadow-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none overflow-hidden min-h-[48px] max-h-[200px]"
+              className="w-full px-4 py-3 pr-32 bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm shadow-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none overflow-hidden min-h-[48px] max-h-[200px]"
               disabled={isLoading}
             />
-            <button
-              type="submit"
-              disabled={!input.trim() || isLoading}
-              className="absolute right-2 bottom-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 text-sm"
-            >
-              {isLoading ? "..." : "Send"}
-            </button>
+            <div className="absolute right-2 bottom-3 flex gap-2">
+              {isLoading && currentSessionId && (
+                <button
+                  type="button"
+                  onClick={abortRequest}
+                  className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md text-sm flex items-center gap-1"
+                  title="Abort (ESC)"
+                >
+                  <XMarkIcon className="w-4 h-4" />
+                  Abort
+                </button>
+              )}
+              <button
+                type="submit"
+                disabled={!input.trim() || isLoading}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 text-sm"
+              >
+                {isLoading ? "..." : "Send"}
+              </button>
+            </div>
           </form>
         </div>
       </div>

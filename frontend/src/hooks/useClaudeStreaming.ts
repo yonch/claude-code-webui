@@ -337,6 +337,15 @@ export function useClaudeStreaming() {
             timestamp: Date.now(),
           };
           context.addMessage(errorMessage);
+        } else if (data.type === "aborted") {
+          const abortedMessage: SystemMessage = {
+            type: "system",
+            subtype: "abort",
+            message: "Operation was aborted by user",
+            timestamp: Date.now(),
+          };
+          context.addMessage(abortedMessage);
+          context.setCurrentAssistantMessage(null);
         }
       } catch (parseError) {
         console.error("Failed to parse stream line:", parseError);

@@ -30,10 +30,15 @@ const DEBUG_MODE = isDebugMode(args);
 
 const app = new Hono();
 
+// Store AbortControllers for each session
+const sessionAbortControllers = new Map<string, AbortController>();
+
 async function* executeClaudeCommand(
   message: string,
   sessionId?: string,
 ): AsyncGenerator<StreamResponse> {
+  let abortController: AbortController;
+
   try {
     // Process commands that start with '/'
     let processedMessage = message;
@@ -42,8 +47,11 @@ async function* executeClaudeCommand(
       processedMessage = message.substring(1);
     }
 
-    // Use the Claude Code SDK with system claude command
-    const abortController = new AbortController();
+    // Create and store AbortController for this session
+    abortController = new AbortController();
+    if (sessionId) {
+      sessionAbortControllers.set(sessionId, abortController);
+    }
 
     // For compiled binaries, use system claude command to avoid bundled cli.js issues
     let claudePath: string;
@@ -82,10 +90,20 @@ async function* executeClaudeCommand(
 
     yield { type: "done" };
   } catch (error) {
-    yield {
-      type: "error",
-      error: error instanceof Error ? error.message : String(error),
-    };
+    // Check if error is due to abort
+    if (error instanceof Error && error.name === "AbortError") {
+      yield { type: "aborted" };
+    } else {
+      yield {
+        type: "error",
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  } finally {
+    // Clean up AbortController from map
+    if (sessionId && sessionAbortControllers.has(sessionId)) {
+      sessionAbortControllers.delete(sessionId);
+    }
   }
 }
 
@@ -100,6 +118,28 @@ app.use(
 );
 
 // API routes
+app.post("/api/abort/:sessionId", (c) => {
+  const sessionId = c.req.param("sessionId");
+
+  if (!sessionId) {
+    return c.json({ error: "Session ID is required" }, 400);
+  }
+
+  const abortController = sessionAbortControllers.get(sessionId);
+  if (abortController) {
+    abortController.abort();
+    sessionAbortControllers.delete(sessionId);
+
+    if (DEBUG_MODE) {
+      console.debug(`[DEBUG] Aborted session: ${sessionId}`);
+    }
+
+    return c.json({ success: true, message: "Session aborted" });
+  } else {
+    return c.json({ error: "Session not found or already completed" }, 404);
+  }
+});
+
 app.post("/api/chat", async (c) => {
   const chatRequest: ChatRequest = await c.req.json();
 
