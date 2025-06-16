@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   XMarkIcon,
   ExclamationTriangleIcon,
@@ -10,7 +9,7 @@ interface PermissionDialogProps {
   command: string;
   onAllow: () => void;
   onAllowPermanent: () => void;
-  onDeny: (feedback?: string) => void;
+  onDeny: () => void;
   onClose: () => void;
 }
 
@@ -23,27 +22,12 @@ export function PermissionDialog({
   onDeny,
   onClose,
 }: PermissionDialogProps) {
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [feedback, setFeedback] = useState("");
-
   if (!isOpen) return null;
 
   const toolPattern = `${toolName}(${command}:*)`;
 
   const handleDeny = () => {
-    setShowFeedback(true);
-  };
-
-  const handleSubmitFeedback = () => {
-    onDeny(feedback.trim() || undefined);
-    setFeedback("");
-    setShowFeedback(false);
-  };
-
-  const handleCancel = () => {
-    setFeedback("");
-    setShowFeedback(false);
-    onClose();
+    onDeny();
   };
 
   return (
@@ -60,7 +44,7 @@ export function PermissionDialog({
             </h2>
           </div>
           <button
-            onClick={handleCancel}
+            onClick={onClose}
             className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
             aria-label="Close dialog"
           >
@@ -70,70 +54,38 @@ export function PermissionDialog({
 
         {/* Content */}
         <div className="p-6">
-          {!showFeedback ? (
-            <>
-              <p className="text-slate-600 dark:text-slate-300 mb-4">
-                Claude wants to use the{" "}
-                <span className="font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-sm">
-                  {toolPattern}
-                </span>{" "}
-                tool.
-              </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-                Do you want to proceed?
-              </p>
+          <p className="text-slate-600 dark:text-slate-300 mb-4">
+            Claude wants to use the{" "}
+            <span className="font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-sm">
+              {toolPattern}
+            </span>{" "}
+            tool.
+          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+            Do you want to proceed?
+          </p>
 
-              {/* Action buttons */}
-              <div className="space-y-3">
-                <button
-                  onClick={onAllow}
-                  className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow-md"
-                >
-                  Yes
-                </button>
-                <button
-                  onClick={onAllowPermanent}
-                  className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow-md"
-                >
-                  Yes, and don't ask again for {toolName}
-                </button>
-                <button
-                  onClick={handleDeny}
-                  className="w-full px-4 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg font-medium transition-colors"
-                >
-                  No, and tell Claude what to do differently
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-slate-600 dark:text-slate-300 mb-4">
-                Please provide alternative instructions for Claude:
-              </p>
-              <textarea
-                value={feedback}
-                onChange={(e) => setFeedback(e.target.value)}
-                placeholder="e.g., 'Please use a different approach that doesn't require shell access'"
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                rows={4}
-                autoFocus
-              />
-              <div className="flex gap-3 mt-4">
-                <button
-                  onClick={handleSubmitFeedback}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                >
-                  Send Feedback
-                </button>
-                <button
-                  onClick={() => setShowFeedback(false)}
-                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg font-medium transition-colors"
-                >
-                  Back
-                </button>
-              </div>
-            </>
-          )}
+          {/* Action buttons */}
+          <div className="space-y-3">
+            <button
+              onClick={onAllow}
+              className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow-md"
+            >
+              Yes
+            </button>
+            <button
+              onClick={onAllowPermanent}
+              className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow-md"
+            >
+              Yes, and don't ask again for {toolName}
+            </button>
+            <button
+              onClick={handleDeny}
+              className="w-full px-4 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg font-medium transition-colors"
+            >
+              No
+            </button>
+          </div>
         </div>
       </div>
     </div>

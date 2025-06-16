@@ -65,9 +65,26 @@ function extractToolInfo(
   // Extract command from input for pattern matching
   let command = "";
   if (input?.command && typeof input.command === "string") {
-    // For Bash tool, extract the base command
+    // For Bash tool, extract the base command with subcommands
     const cmdParts = input.command.split(/\s+/);
-    command = cmdParts[0] || "";
+    // Find the first option (starts with -)
+    const optionIndex = cmdParts.findIndex((part) => part.startsWith("-"));
+
+    if (optionIndex > 0) {
+      // Take everything before the first option
+      command = cmdParts.slice(0, optionIndex).join(" ");
+    } else {
+      // No options found, take the first part(s)
+      // Handle common patterns like "cargo run", "git log", etc.
+      if (
+        cmdParts.length >= 2 &&
+        ["cargo", "git", "npm", "yarn", "docker"].includes(cmdParts[0])
+      ) {
+        command = cmdParts.slice(0, 2).join(" ");
+      } else {
+        command = cmdParts[0] || "";
+      }
+    }
   } else if (input?.path || input?.file_path) {
     // For file-based tools, use wildcard
     command = "*";

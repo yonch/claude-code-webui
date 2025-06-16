@@ -192,6 +192,7 @@ function App() {
 
         // Local state for this streaming session
         let localHasReceivedInit = false;
+        let shouldAbort = false;
 
         const streamingContext = {
           currentAssistantMessage: null,
@@ -223,19 +224,25 @@ function App() {
             setHasReceivedInit(received);
           },
           onPermissionError: handlePermissionError,
-          onAbortRequest: abortRequest,
+          onAbortRequest: () => {
+            shouldAbort = true;
+            abortRequest();
+          },
         };
 
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done || shouldAbort) break;
 
           const chunk = decoder.decode(value);
           const lines = chunk.split("\n").filter((line) => line.trim());
 
           for (const line of lines) {
+            if (shouldAbort) break;
             processStreamLine(line, streamingContext);
           }
+
+          if (shouldAbort) break;
         }
       } catch (error) {
         console.error("Failed to send message:", error);
@@ -306,18 +313,10 @@ function App() {
     }
   }, [permissionDialog, currentSessionId, sendMessage]);
 
-  const handlePermissionDeny = useCallback(
-    (feedback?: string) => {
-      // Close dialog
-      setPermissionDialog((prev) => ({ ...prev, isOpen: false }));
-
-      // Send feedback message if provided
-      if (feedback && currentSessionId) {
-        sendMessage(feedback);
-      }
-    },
-    [currentSessionId, sendMessage],
-  );
+  const handlePermissionDeny = useCallback(() => {
+    // Close dialog and stop execution
+    setPermissionDialog((prev) => ({ ...prev, isOpen: false }));
+  }, []);
 
   const handlePermissionDialogClose = useCallback(() => {
     setPermissionDialog((prev) => ({ ...prev, isOpen: false }));
