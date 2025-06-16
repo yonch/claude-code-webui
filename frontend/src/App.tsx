@@ -8,7 +8,7 @@ import {
 } from "./types";
 import { useTheme } from "./hooks/useTheme";
 import { useClaudeStreaming } from "./hooks/useClaudeStreaming";
-import { SunIcon, MoonIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { SunIcon, MoonIcon, StopIcon } from "@heroicons/react/24/outline";
 import {
   ChatMessageComponent,
   SystemMessageComponent,
@@ -316,7 +316,7 @@ function App() {
               onKeyDown={handleKeyDown}
               placeholder={
                 isLoading && currentRequestId
-                  ? "Processing... (Press ESC to abort)"
+                  ? "Processing... (Press ESC to stop)"
                   : "Type your message... (Shift+Enter for new line)"
               }
               rows={1}
@@ -328,11 +328,10 @@ function App() {
                 <button
                   type="button"
                   onClick={abortRequest}
-                  className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md text-sm flex items-center gap-1"
-                  title="Abort (ESC)"
+                  className="p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                  title="Stop (ESC)"
                 >
-                  <XMarkIcon className="w-4 h-4" />
-                  Abort
+                  <StopIcon className="w-4 h-4" />
                 </button>
               )}
               <button
