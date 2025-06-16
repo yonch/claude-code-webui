@@ -30,11 +30,12 @@ const DEBUG_MODE = isDebugMode(args);
 
 const app = new Hono();
 
-// Store AbortControllers for each session
-const sessionAbortControllers = new Map<string, AbortController>();
+// Store AbortControllers for each request
+const requestAbortControllers = new Map<string, AbortController>();
 
 async function* executeClaudeCommand(
   message: string,
+  requestId: string,
   sessionId?: string,
 ): AsyncGenerator<StreamResponse> {
   let abortController: AbortController;
@@ -47,11 +48,9 @@ async function* executeClaudeCommand(
       processedMessage = message.substring(1);
     }
 
-    // Create and store AbortController for this session
+    // Create and store AbortController for this request
     abortController = new AbortController();
-    if (sessionId) {
-      sessionAbortControllers.set(sessionId, abortController);
-    }
+    requestAbortControllers.set(requestId, abortController);
 
     // For compiled binaries, use system claude command to avoid bundled cli.js issues
     let claudePath: string;
@@ -101,8 +100,8 @@ async function* executeClaudeCommand(
     }
   } finally {
     // Clean up AbortController from map
-    if (sessionId && sessionAbortControllers.has(sessionId)) {
-      sessionAbortControllers.delete(sessionId);
+    if (requestAbortControllers.has(requestId)) {
+      requestAbortControllers.delete(requestId);
     }
   }
 }
@@ -118,25 +117,32 @@ app.use(
 );
 
 // API routes
-app.post("/api/abort/:sessionId", (c) => {
-  const sessionId = c.req.param("sessionId");
+app.post("/api/abort/:requestId", (c) => {
+  const requestId = c.req.param("requestId");
 
-  if (!sessionId) {
-    return c.json({ error: "Session ID is required" }, 400);
+  if (!requestId) {
+    return c.json({ error: "Request ID is required" }, 400);
   }
 
-  const abortController = sessionAbortControllers.get(sessionId);
+  if (DEBUG_MODE) {
+    console.debug(`[DEBUG] Abort attempt for request: ${requestId}`);
+    console.debug(
+      `[DEBUG] Active requests: ${Array.from(requestAbortControllers.keys())}`,
+    );
+  }
+
+  const abortController = requestAbortControllers.get(requestId);
   if (abortController) {
     abortController.abort();
-    sessionAbortControllers.delete(sessionId);
+    requestAbortControllers.delete(requestId);
 
     if (DEBUG_MODE) {
-      console.debug(`[DEBUG] Aborted session: ${sessionId}`);
+      console.debug(`[DEBUG] Aborted request: ${requestId}`);
     }
 
-    return c.json({ success: true, message: "Session aborted" });
+    return c.json({ success: true, message: "Request aborted" });
   } else {
-    return c.json({ error: "Session not found or already completed" }, 404);
+    return c.json({ error: "Request not found or already completed" }, 404);
   }
 });
 
@@ -149,6 +155,7 @@ app.post("/api/chat", async (c) => {
         for await (
           const chunk of executeClaudeCommand(
             chatRequest.message,
+            chatRequest.requestId,
             chatRequest.sessionId,
           )
         ) {
@@ -173,7 +180,7 @@ app.post("/api/chat", async (c) => {
     headers: {
       "Content-Type": "application/x-ndjson",
       "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
+      Connection: "keep-alive",
     },
   });
 });

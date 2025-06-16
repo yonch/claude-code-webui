@@ -22,6 +22,7 @@ function App() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
   const [hasShownInitMessage, setHasShownInitMessage] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { processStreamLine } = useClaudeStreaming();
@@ -90,6 +91,10 @@ function App() {
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
+    // Generate unique request ID for this request
+    const requestId = crypto.randomUUID();
+    setCurrentRequestId(requestId);
+
     const userMessage: ChatMessage = {
       type: "chat",
       role: "user",
@@ -108,6 +113,7 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: input.trim(),
+          requestId,
           ...(currentSessionId ? { sessionId: currentSessionId } : {}),
         } as ChatRequest),
       });
@@ -165,6 +171,7 @@ function App() {
       ]);
     } finally {
       setIsLoading(false);
+      setCurrentRequestId(null);
     }
   };
 
@@ -182,23 +189,23 @@ function App() {
 
   // Abort current request
   const abortRequest = useCallback(async () => {
-    if (!currentSessionId || !isLoading) return;
+    if (!currentRequestId || !isLoading) return;
 
     try {
-      await fetch(`http://localhost:8080/api/abort/${currentSessionId}`, {
+      await fetch(`http://localhost:8080/api/abort/${currentRequestId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
     } catch (error) {
       console.error("Failed to abort request:", error);
     }
-  }, [currentSessionId, isLoading]);
+  }, [currentRequestId, isLoading]);
 
   // Handle global keyboard shortcuts
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       // ESC key to abort (configurable in future)
-      if (e.key === "Escape" && isLoading && currentSessionId) {
+      if (e.key === "Escape" && isLoading && currentRequestId) {
         e.preventDefault();
         abortRequest();
       }
@@ -206,7 +213,7 @@ function App() {
 
     document.addEventListener("keydown", handleGlobalKeyDown);
     return () => document.removeEventListener("keydown", handleGlobalKeyDown);
-  }, [isLoading, currentSessionId, abortRequest]);
+  }, [isLoading, currentRequestId, abortRequest]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
@@ -285,7 +292,7 @@ function App() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={
-                isLoading && currentSessionId
+                isLoading && currentRequestId
                   ? "Processing... (Press ESC to abort)"
                   : "Type your message... (Shift+Enter for new line)"
               }
@@ -294,7 +301,7 @@ function App() {
               disabled={isLoading}
             />
             <div className="absolute right-2 bottom-3 flex gap-2">
-              {isLoading && currentSessionId && (
+              {isLoading && currentRequestId && (
                 <button
                   type="button"
                   onClick={abortRequest}

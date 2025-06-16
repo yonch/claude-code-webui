@@ -7,8 +7,9 @@ export interface StreamResponse {
 export interface ChatRequest {
   message: string;
   sessionId?: string;
+  requestId: string;
 }
 
 export interface AbortRequest {
-  sessionId: string;
+  requestId: string;
 }
