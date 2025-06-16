@@ -64,8 +64,13 @@ function extractToolInfo(
 
   // Extract command from input for pattern matching
   let command = "";
-  if (input?.command && typeof input.command === "string") {
-    // For Bash tool, extract the base command with subcommands
+
+  // For Bash tool, parse command details
+  if (
+    extractedToolName === "Bash" &&
+    input?.command &&
+    typeof input.command === "string"
+  ) {
     const cmdParts = input.command.split(/\s+/);
     // Find the first option (starts with -)
     const optionIndex = cmdParts.findIndex((part) => part.startsWith("-"));
@@ -85,11 +90,8 @@ function extractToolInfo(
         command = cmdParts[0] || "";
       }
     }
-  } else if (input?.path || input?.file_path) {
-    // For file-based tools, use wildcard
-    command = "*";
   } else {
-    // For other tools, use wildcard
+    // For all non-Bash tools (Write, Edit, Read, etc.), use wildcard
     command = "*";
   }
 

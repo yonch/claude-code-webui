@@ -224,9 +224,17 @@ function App() {
             setHasReceivedInit(received);
           },
           onPermissionError: handlePermissionError,
-          onAbortRequest: () => {
+          onAbortRequest: async () => {
             shouldAbort = true;
-            abortRequest();
+            // Immediately call abort API with current request ID
+            try {
+              await fetch(`http://localhost:8080/api/abort/${requestId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+              });
+            } catch (error) {
+              console.error("Failed to abort request:", error);
+            }
           },
         };
 
@@ -268,7 +276,6 @@ function App() {
       hasShownInitMessage,
       processStreamLine,
       handlePermissionError,
-      abortRequest,
     ],
   );
 
