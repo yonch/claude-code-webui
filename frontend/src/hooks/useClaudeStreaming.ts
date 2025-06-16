@@ -7,6 +7,7 @@ import type {
   ToolResultMessage,
   StreamResponse,
   SDKMessage,
+  AbortMessage,
 } from "../types";
 
 interface StreamingContext {
@@ -348,7 +349,7 @@ export function useClaudeStreaming() {
           };
           context.addMessage(errorMessage);
         } else if (data.type === "aborted") {
-          const abortedMessage: SystemMessage = {
+          const abortedMessage: AbortMessage = {
             type: "system",
             subtype: "abort",
             message: "Operation was aborted by user",

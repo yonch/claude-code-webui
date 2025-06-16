@@ -19,11 +19,20 @@ export type ErrorMessage = {
   timestamp: number;
 };
 
+// Abort message for aborted operations
+export type AbortMessage = {
+  type: "system";
+  subtype: "abort";
+  message: string;
+  timestamp: number;
+};
+
 // System message extending SDK types with timestamp
 export type SystemMessage = (
   | SDKSystemMessage
   | SDKResultMessage
   | ErrorMessage
+  | AbortMessage
 ) & {
   timestamp: number;
 };
