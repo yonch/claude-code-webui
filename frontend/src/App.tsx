@@ -41,14 +41,9 @@ function App() {
   const [permissionDialog, setPermissionDialog] = useState<{
     isOpen: boolean;
     toolName: string;
-    command: string;
+    pattern: string;
     toolUseId: string;
-  }>({
-    isOpen: false,
-    toolName: "",
-    command: "",
-    toolUseId: "",
-  });
+  } | null>(null);
 
   // Constants
   const NEAR_BOTTOM_THRESHOLD_PX = 100;
@@ -130,12 +125,12 @@ function App() {
 
   // Handle permission errors
   const handlePermissionError = useCallback(
-    async (toolName: string, command: string, toolUseId: string) => {
+    async (toolName: string, pattern: string, toolUseId: string) => {
       // Show permission dialog (abort is already handled in streaming)
       setPermissionDialog({
         isOpen: true,
         toolName,
-        command,
+        pattern,
         toolUseId,
       });
     },
@@ -293,15 +288,14 @@ function App() {
 
   // Permission dialog handlers
   const handlePermissionAllow = useCallback(() => {
-    const pattern =
-      !permissionDialog.command || permissionDialog.command === "*"
-        ? `${permissionDialog.toolName}(*)`
-        : `${permissionDialog.toolName}(${permissionDialog.command}:*)`;
+    if (!permissionDialog) return;
+
+    const pattern = permissionDialog.pattern;
     // Add to allowed tools temporarily (for this request only)
     setAllowedTools((prev) => [...prev, pattern]);
 
     // Close dialog and send continue message
-    setPermissionDialog((prev) => ({ ...prev, isOpen: false }));
+    setPermissionDialog(null);
 
     // Send a continue message with current session (hidden from chat)
     if (currentSessionId) {
@@ -310,15 +304,14 @@ function App() {
   }, [permissionDialog, currentSessionId, sendMessage]);
 
   const handlePermissionAllowPermanent = useCallback(() => {
-    const pattern =
-      !permissionDialog.command || permissionDialog.command === "*"
-        ? `${permissionDialog.toolName}(*)`
-        : `${permissionDialog.toolName}(${permissionDialog.command}:*)`;
+    if (!permissionDialog) return;
+
+    const pattern = permissionDialog.pattern;
     // Add to allowed tools permanently (for entire session)
     setAllowedTools((prev) => [...prev, pattern]);
 
     // Close dialog and send continue message
-    setPermissionDialog((prev) => ({ ...prev, isOpen: false }));
+    setPermissionDialog(null);
 
     // Send a continue message with current session (hidden from chat)
     if (currentSessionId) {
@@ -328,11 +321,11 @@ function App() {
 
   const handlePermissionDeny = useCallback(() => {
     // Close dialog and stop execution
-    setPermissionDialog((prev) => ({ ...prev, isOpen: false }));
+    setPermissionDialog(null);
   }, []);
 
   const handlePermissionDialogClose = useCallback(() => {
-    setPermissionDialog((prev) => ({ ...prev, isOpen: false }));
+    setPermissionDialog(null);
   }, []);
 
   // Handle global keyboard shortcuts
@@ -458,15 +451,17 @@ function App() {
       </div>
 
       {/* Permission Dialog */}
-      <PermissionDialog
-        isOpen={permissionDialog.isOpen}
-        toolName={permissionDialog.toolName}
-        command={permissionDialog.command}
-        onAllow={handlePermissionAllow}
-        onAllowPermanent={handlePermissionAllowPermanent}
-        onDeny={handlePermissionDeny}
-        onClose={handlePermissionDialogClose}
-      />
+      {permissionDialog && (
+        <PermissionDialog
+          isOpen={permissionDialog.isOpen}
+          toolName={permissionDialog.toolName}
+          pattern={permissionDialog.pattern}
+          onAllow={handlePermissionAllow}
+          onAllowPermanent={handlePermissionAllowPermanent}
+          onDeny={handlePermissionDeny}
+          onClose={handlePermissionDialogClose}
+        />
+      )}
     </div>
   );
 }

@@ -22,7 +22,7 @@ interface StreamingContext {
   setHasReceivedInit?: (received: boolean) => void;
   onPermissionError?: (
     toolName: string,
-    command: string,
+    pattern: string,
     toolUseId: string,
   ) => void;
   onAbortRequest?: () => void;
@@ -370,9 +370,15 @@ export function useClaudeStreaming() {
                 cachedToolInfo?.input,
               );
 
+              // Compute pattern based on tool type
+              const pattern =
+                toolName === "Bash" && command !== "*"
+                  ? `${toolName}(${command}:*)`
+                  : `${toolName}(*)`;
+
               // Notify parent component about permission error
               if (context.onPermissionError) {
-                context.onPermissionError(toolName, command, toolUseId);
+                context.onPermissionError(toolName, pattern, toolUseId);
               }
 
               // Don't add the error message to the chat - we'll handle it with the dialog

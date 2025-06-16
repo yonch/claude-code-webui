@@ -6,7 +6,7 @@ import {
 interface PermissionDialogProps {
   isOpen: boolean;
   toolName: string;
-  command: string;
+  pattern: string;
   onAllow: () => void;
   onAllowPermanent: () => void;
   onDeny: () => void;
@@ -16,15 +16,13 @@ interface PermissionDialogProps {
 export function PermissionDialog({
   isOpen,
   toolName,
-  command,
+  pattern,
   onAllow,
   onAllowPermanent,
   onDeny,
   onClose,
 }: PermissionDialogProps) {
   if (!isOpen) return null;
-
-  const toolPattern = `${toolName}(${command}:*)`;
 
   const handleDeny = () => {
     onDeny();
@@ -57,7 +55,7 @@ export function PermissionDialog({
           <p className="text-slate-600 dark:text-slate-300 mb-4">
             Claude wants to use the{" "}
             <span className="font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-sm">
-              {toolPattern}
+              {pattern}
             </span>{" "}
             tool.
           </p>
