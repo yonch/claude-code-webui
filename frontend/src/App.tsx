@@ -105,26 +105,33 @@ function App() {
     }
   }, [currentAssistantMessage]);
 
+  // Abort current request
+  const abortRequest = useCallback(async () => {
+    if (!currentRequestId || !isLoading) return;
+
+    try {
+      await fetch(`http://localhost:8080/api/abort/${currentRequestId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      // Clean up state after successful abort
+      setIsLoading(false);
+      setCurrentRequestId(null);
+      setCurrentAssistantMessage(null);
+    } catch (error) {
+      console.error("Failed to abort request:", error);
+      // Still clean up on error
+      setIsLoading(false);
+      setCurrentRequestId(null);
+      setCurrentAssistantMessage(null);
+    }
+  }, [currentRequestId, isLoading]);
+
   // Handle permission errors
   const handlePermissionError = useCallback(
     async (toolName: string, command: string, toolUseId: string) => {
-      // Auto-abort the current request
-      if (currentRequestId && isLoading) {
-        try {
-          await fetch(`http://localhost:8080/api/abort/${currentRequestId}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-          });
-        } catch (error) {
-          console.error("Failed to abort request:", error);
-        }
-
-        setIsLoading(false);
-        setCurrentRequestId(null);
-        setCurrentAssistantMessage(null);
-      }
-
-      // Show permission dialog
+      // Show permission dialog (abort is already handled in streaming)
       setPermissionDialog({
         isOpen: true,
         toolName,
@@ -132,11 +139,15 @@ function App() {
         toolUseId,
       });
     },
-    [currentRequestId, isLoading],
+    [],
   );
 
   const sendMessage = useCallback(
-    async (messageContent?: string, tools?: string[]) => {
+    async (
+      messageContent?: string,
+      tools?: string[],
+      hideUserMessage = false,
+    ) => {
       const content = messageContent || input.trim();
       if (!content || isLoading) return;
 
@@ -144,14 +155,17 @@ function App() {
       const requestId = crypto.randomUUID();
       setCurrentRequestId(requestId);
 
-      const userMessage: ChatMessage = {
-        type: "chat",
-        role: "user",
-        content: content,
-        timestamp: Date.now(),
-      };
+      // Only add user message to chat if not hidden
+      if (!hideUserMessage) {
+        const userMessage: ChatMessage = {
+          type: "chat",
+          role: "user",
+          content: content,
+          timestamp: Date.now(),
+        };
+        setMessages((prev) => [...prev, userMessage]);
+      }
 
-      setMessages((prev) => [...prev, userMessage]);
       if (!messageContent) setInput(""); // Only clear input if it's from the input field
       setIsLoading(true);
       setCurrentAssistantMessage(null);
@@ -209,6 +223,7 @@ function App() {
             setHasReceivedInit(received);
           },
           onPermissionError: handlePermissionError,
+          onAbortRequest: abortRequest,
         };
 
         while (true) {
@@ -246,6 +261,7 @@ function App() {
       hasShownInitMessage,
       processStreamLine,
       handlePermissionError,
+      abortRequest,
     ],
   );
 
@@ -270,9 +286,9 @@ function App() {
     // Close dialog and send continue message
     setPermissionDialog((prev) => ({ ...prev, isOpen: false }));
 
-    // Send a continue message with current session
+    // Send a continue message with current session (hidden from chat)
     if (currentSessionId) {
-      sendMessage("continue", [pattern]);
+      sendMessage("continue", [pattern], true);
     }
   }, [permissionDialog, currentSessionId, sendMessage]);
 
@@ -284,9 +300,9 @@ function App() {
     // Close dialog and send continue message
     setPermissionDialog((prev) => ({ ...prev, isOpen: false }));
 
-    // Send a continue message with current session
+    // Send a continue message with current session (hidden from chat)
     if (currentSessionId) {
-      sendMessage("continue", [pattern]);
+      sendMessage("continue", [pattern], true);
     }
   }, [permissionDialog, currentSessionId, sendMessage]);
 
@@ -306,29 +322,6 @@ function App() {
   const handlePermissionDialogClose = useCallback(() => {
     setPermissionDialog((prev) => ({ ...prev, isOpen: false }));
   }, []);
-
-  // Abort current request
-  const abortRequest = useCallback(async () => {
-    if (!currentRequestId || !isLoading) return;
-
-    try {
-      await fetch(`http://localhost:8080/api/abort/${currentRequestId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      // Clean up state after successful abort
-      setIsLoading(false);
-      setCurrentRequestId(null);
-      setCurrentAssistantMessage(null);
-    } catch (error) {
-      console.error("Failed to abort request:", error);
-      // Still clean up on error
-      setIsLoading(false);
-      setCurrentRequestId(null);
-      setCurrentAssistantMessage(null);
-    }
-  }, [currentRequestId, isLoading]);
 
   // Handle global keyboard shortcuts
   useEffect(() => {

@@ -25,6 +25,7 @@ interface StreamingContext {
     command: string,
     toolUseId: string,
   ) => void;
+  onAbortRequest?: () => void;
 }
 
 // Type guard functions for SDKMessage
@@ -329,6 +330,11 @@ export function useClaudeStreaming() {
 
             // Check for permission errors
             if (contentItem.is_error && isPermissionError(content)) {
+              // Immediately abort the current request
+              if (context.onAbortRequest) {
+                context.onAbortRequest();
+              }
+
               // Get cached tool_use information
               const toolUseId = contentItem.tool_use_id || "";
               const cachedToolInfo = toolUseCache.get(toolUseId);
