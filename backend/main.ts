@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serveStatic } from "hono/deno";
-import { query } from "npm:@anthropic-ai/claude-code@1.0.24";
+import { AbortError, query } from "npm:@anthropic-ai/claude-code@1.0.24";
 import type { ChatRequest, StreamResponse } from "../shared/types.ts";
 import {
   isDebugMode,
@@ -90,7 +90,7 @@ async function* executeClaudeCommand(
     yield { type: "done" };
   } catch (error) {
     // Check if error is due to abort
-    if (error instanceof Error && error.message.includes("aborted by user")) {
+    if (error instanceof AbortError) {
       yield { type: "aborted" };
     } else {
       yield {
