@@ -20,6 +20,11 @@ interface StreamingContext {
   onInitMessageShown?: () => void;
   hasReceivedInit?: boolean;
   setHasReceivedInit?: (received: boolean) => void;
+  onPermissionError?: (
+    toolName: string,
+    command: string,
+    toolUseId: string,
+  ) => void;
 }
 
 // Type guard functions for SDKMessage
@@ -47,7 +52,55 @@ function isUserMessage(
   return data.type === "user";
 }
 
+// Extract tool name and command from tool_use_id and previous context
+function extractToolInfo(
+  _toolUseId: string,
+  toolName?: string,
+  input?: Record<string, unknown>,
+): { toolName: string; command: string } {
+  // Default tool name if not provided
+  const extractedToolName = toolName || "Unknown";
+
+  // Extract command from input for pattern matching
+  let command = "";
+  if (input?.command && typeof input.command === "string") {
+    // For Bash tool, extract the base command
+    const cmdParts = input.command.split(/\s+/);
+    command = cmdParts[0] || "";
+  } else if (input?.path || input?.file_path) {
+    // For file-based tools, use wildcard
+    command = "*";
+  } else {
+    // For other tools, use wildcard
+    command = "*";
+  }
+
+  return { toolName: extractedToolName, command };
+}
+
+// Check if tool_result contains permission error
+function isPermissionError(content: string): boolean {
+  return (
+    content.includes("requested permissions") ||
+    content.includes("haven't granted it yet") ||
+    content.includes("permission denied")
+  );
+}
+
 export function useClaudeStreaming() {
+  // Store tool_use information for later matching with tool_result
+  const toolUseCache = useCallback(() => {
+    const cache = new Map<
+      string,
+      { name: string; input: Record<string, unknown> }
+    >();
+    return {
+      set: (id: string, name: string, input: Record<string, unknown>) =>
+        cache.set(id, { name, input }),
+      get: (id: string) => cache.get(id),
+      clear: () => cache.clear(),
+    };
+  }, [])();
   const createSystemMessage = useCallback(
     (claudeData: Extract<SDKMessage, { type: "system" }>): SystemMessage => {
       return {
@@ -209,15 +262,25 @@ export function useClaudeStreaming() {
   const handleToolUseMessage = useCallback(
     (
       contentItem: {
+        id?: string;
         name?: string;
-        input?: { description?: string; command?: string };
+        input?: Record<string, unknown>;
       },
       context: StreamingContext,
     ) => {
+      // Cache tool_use information for later permission error handling
+      if (contentItem.id && contentItem.name) {
+        toolUseCache.set(
+          contentItem.id,
+          contentItem.name,
+          contentItem.input || {},
+        );
+      }
+
       const toolMessage = createToolMessage(contentItem);
       context.addMessage(toolMessage);
     },
-    [createToolMessage],
+    [createToolMessage, toolUseCache],
   );
 
   const handleAssistantMessage = useCallback(
@@ -259,12 +322,35 @@ export function useClaudeStreaming() {
       if (Array.isArray(messageContent)) {
         for (const contentItem of messageContent) {
           if (contentItem.type === "tool_result") {
-            // This is a tool result - create a ToolResultMessage
-            const toolName = "Tool result";
             const content =
               typeof contentItem.content === "string"
                 ? contentItem.content
                 : JSON.stringify(contentItem.content);
+
+            // Check for permission errors
+            if (contentItem.is_error && isPermissionError(content)) {
+              // Get cached tool_use information
+              const toolUseId = contentItem.tool_use_id || "";
+              const cachedToolInfo = toolUseCache.get(toolUseId);
+
+              // Extract tool information for permission handling
+              const { toolName, command } = extractToolInfo(
+                toolUseId,
+                cachedToolInfo?.name,
+                cachedToolInfo?.input,
+              );
+
+              // Notify parent component about permission error
+              if (context.onPermissionError) {
+                context.onPermissionError(toolName, command, toolUseId);
+              }
+
+              // Don't add the error message to the chat - we'll handle it with the dialog
+              return;
+            }
+
+            // This is a regular tool result - create a ToolResultMessage
+            const toolName = "Tool result";
             const toolResultMessage = createToolResultMessage(
               toolName,
               content,
@@ -275,7 +361,7 @@ export function useClaudeStreaming() {
       }
       // Note: We don't display regular user messages from the SDK as they represent Claude's internal tool results
     },
-    [createToolResultMessage],
+    [createToolResultMessage, toolUseCache],
   );
 
   const processClaudeData = useCallback(

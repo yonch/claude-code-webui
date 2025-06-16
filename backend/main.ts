@@ -37,6 +37,7 @@ async function* executeClaudeCommand(
   message: string,
   requestId: string,
   sessionId?: string,
+  allowedTools?: string[],
 ): AsyncGenerator<StreamResponse> {
   let abortController: AbortController;
 
@@ -71,6 +72,7 @@ async function* executeClaudeCommand(
           abortController,
           pathToClaudeCodeExecutable: claudePath,
           ...(sessionId ? { resume: sessionId } : {}),
+          ...(allowedTools ? { allowedTools } : {}),
         },
       })
     ) {
@@ -164,6 +166,7 @@ app.post("/api/chat", async (c) => {
             chatRequest.message,
             chatRequest.requestId,
             chatRequest.sessionId,
+            chatRequest.allowedTools,
           )
         ) {
           const data = JSON.stringify(chunk) + "\n";
