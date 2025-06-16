@@ -8,7 +8,8 @@ import {
 } from "./types";
 import { useTheme } from "./hooks/useTheme";
 import { useClaudeStreaming } from "./hooks/useClaudeStreaming";
-import { SunIcon, MoonIcon, StopIcon } from "@heroicons/react/24/outline";
+import { SunIcon, MoonIcon } from "@heroicons/react/24/outline";
+import { StopIcon } from "@heroicons/react/24/solid";
 import {
   ChatMessageComponent,
   SystemMessageComponent,
