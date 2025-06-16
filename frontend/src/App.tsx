@@ -24,6 +24,7 @@ function App() {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
   const [hasShownInitMessage, setHasShownInitMessage] = useState(false);
+  const [, setHasReceivedInit] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { processStreamLine } = useClaudeStreaming();
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -123,6 +124,12 @@ function App() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
 
+      // Reset init state for new request
+      setHasReceivedInit(false);
+
+      // Local state for this streaming session
+      let localHasReceivedInit = false;
+
       const streamingContext = {
         currentAssistantMessage: null,
         setCurrentAssistantMessage,
@@ -144,6 +151,13 @@ function App() {
         shouldShowInitMessage: () => !hasShownInitMessage,
         onInitMessageShown: () => {
           setHasShownInitMessage(true);
+        },
+        get hasReceivedInit() {
+          return localHasReceivedInit;
+        },
+        setHasReceivedInit: (received: boolean) => {
+          localHasReceivedInit = received;
+          setHasReceivedInit(received);
         },
       };
 
@@ -196,8 +210,17 @@ function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
+
+      // Clean up state after successful abort
+      setIsLoading(false);
+      setCurrentRequestId(null);
+      setCurrentAssistantMessage(null);
     } catch (error) {
       console.error("Failed to abort request:", error);
+      // Still clean up on error
+      setIsLoading(false);
+      setCurrentRequestId(null);
+      setCurrentAssistantMessage(null);
     }
   }, [currentRequestId, isLoading]);
 

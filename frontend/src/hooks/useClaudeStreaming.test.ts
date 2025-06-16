@@ -4,7 +4,7 @@ import { useClaudeStreaming } from "./useClaudeStreaming";
 import type { SDKMessage } from "../types";
 
 describe("useClaudeStreaming", () => {
-  it("extracts session_id from system messages", () => {
+  it("does not extract session_id from system messages", () => {
     const { result } = renderHook(() => useClaudeStreaming());
     const onSessionId = vi.fn();
 
@@ -14,6 +14,8 @@ describe("useClaudeStreaming", () => {
       addMessage: vi.fn(),
       updateLastMessage: vi.fn(),
       onSessionId,
+      hasReceivedInit: false,
+      setHasReceivedInit: vi.fn(),
     };
 
     const systemMessage: SDKMessage = {
@@ -35,7 +37,8 @@ describe("useClaudeStreaming", () => {
 
     result.current.processStreamLine(streamLine, mockContext);
 
-    expect(onSessionId).toHaveBeenCalledWith("test-session-123");
+    // sessionId should NOT be extracted from system messages
+    expect(onSessionId).not.toHaveBeenCalled();
     expect(mockContext.addMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "system",
@@ -44,9 +47,11 @@ describe("useClaudeStreaming", () => {
         timestamp: expect.any(Number),
       }),
     );
+    // But hasReceivedInit should be set to true for init messages
+    expect(mockContext.setHasReceivedInit).toHaveBeenCalledWith(true);
   });
 
-  it("extracts session_id from assistant messages", () => {
+  it("extracts session_id from assistant messages when hasReceivedInit is true", () => {
     const { result } = renderHook(() => useClaudeStreaming());
     const onSessionId = vi.fn();
 
@@ -56,6 +61,7 @@ describe("useClaudeStreaming", () => {
       addMessage: vi.fn(),
       updateLastMessage: vi.fn(),
       onSessionId,
+      hasReceivedInit: true, // This is key - init has been received
     };
 
     const assistantMessage: SDKMessage = {
@@ -84,7 +90,47 @@ describe("useClaudeStreaming", () => {
     expect(onSessionId).toHaveBeenCalledWith("test-session-456");
   });
 
-  it("extracts session_id from result messages", () => {
+  it("does not extract session_id from assistant messages when hasReceivedInit is false", () => {
+    const { result } = renderHook(() => useClaudeStreaming());
+    const onSessionId = vi.fn();
+
+    const mockContext = {
+      currentAssistantMessage: null,
+      setCurrentAssistantMessage: vi.fn(),
+      addMessage: vi.fn(),
+      updateLastMessage: vi.fn(),
+      onSessionId,
+      hasReceivedInit: false, // Init has NOT been received
+    };
+
+    const assistantMessage: SDKMessage = {
+      type: "assistant",
+      message: {
+        id: "msg_123",
+        type: "message",
+        role: "assistant",
+        content: [{ type: "text", text: "Hello world" }],
+        model: "claude-3-sonnet",
+        stop_reason: "end_turn",
+        stop_sequence: null,
+        usage: { input_tokens: 10, output_tokens: 5 },
+      },
+      parent_tool_use_id: null,
+      session_id: "test-session-456",
+    };
+
+    const streamLine = JSON.stringify({
+      type: "claude_json",
+      data: assistantMessage,
+    });
+
+    result.current.processStreamLine(streamLine, mockContext);
+
+    // sessionId should NOT be extracted when hasReceivedInit is false
+    expect(onSessionId).not.toHaveBeenCalled();
+  });
+
+  it("does not extract session_id from result messages", () => {
     const { result } = renderHook(() => useClaudeStreaming());
     const onSessionId = vi.fn();
 
@@ -116,7 +162,8 @@ describe("useClaudeStreaming", () => {
 
     result.current.processStreamLine(streamLine, mockContext);
 
-    expect(onSessionId).toHaveBeenCalledWith("test-session-789");
+    // sessionId should NOT be extracted from result messages
+    expect(onSessionId).not.toHaveBeenCalled();
   });
 
   it("handles missing onSessionId callback gracefully", () => {
@@ -127,6 +174,8 @@ describe("useClaudeStreaming", () => {
       setCurrentAssistantMessage: vi.fn(),
       addMessage: vi.fn(),
       updateLastMessage: vi.fn(),
+      hasReceivedInit: false,
+      setHasReceivedInit: vi.fn(),
       // onSessionId is missing
     };
 

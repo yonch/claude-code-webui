@@ -82,7 +82,9 @@ describe("App", () => {
         expect.objectContaining({
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: expect.stringMatching(/"message":"First message".*"requestId":"[a-f0-9-]{36}"/),
+          body: expect.stringMatching(
+            /"message":"First message".*"requestId":"[a-f0-9-]{36}"/,
+          ),
         }),
       );
     });

@@ -90,7 +90,7 @@ async function* executeClaudeCommand(
     yield { type: "done" };
   } catch (error) {
     // Check if error is due to abort
-    if (error instanceof Error && error.name === "AbortError") {
+    if (error instanceof Error && error.message.includes("aborted by user")) {
       yield { type: "aborted" };
     } else {
       yield {
@@ -148,6 +148,13 @@ app.post("/api/abort/:requestId", (c) => {
 
 app.post("/api/chat", async (c) => {
   const chatRequest: ChatRequest = await c.req.json();
+
+  if (DEBUG_MODE) {
+    console.debug(
+      "[DEBUG] Received chat request:",
+      JSON.stringify(chatRequest, null, 2),
+    );
+  }
 
   const stream = new ReadableStream({
     async start(controller) {
