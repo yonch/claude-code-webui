@@ -1,92 +1,60 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import App from "./App";
+import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { ProjectSelector } from "./components/ProjectSelector";
+import { ChatPage } from "./components/ChatPage";
 
 // Mock fetch globally
 global.fetch = vi.fn();
 
-describe("App", () => {
+describe("App Routing", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock successful fetch response
+    // Mock projects API response
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      body: {
-        getReader: () => ({
-          read: () => Promise.resolve({ done: true, value: undefined }),
-        }),
-      },
+      json: () => Promise.resolve({ projects: [] }),
     });
   });
-  it("renders the title", () => {
-    render(<App />);
+
+  it("renders project selection page at root path", async () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route path="/" element={<ProjectSelector />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Select a Project")).toBeInTheDocument();
+    });
+  });
+
+  it("renders chat page when navigating to projects path", () => {
+    render(
+      <MemoryRouter initialEntries={["/projects/test-path"]}>
+        <Routes>
+          <Route path="/projects/*" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
     expect(screen.getByText("Claude Code Web UI")).toBeInTheDocument();
+    expect(screen.getByText("/test-path")).toBeInTheDocument();
   });
 
-  it("renders textarea and send button", () => {
-    render(<App />);
-    expect(
-      screen.getByPlaceholderText(
-        "Type your message... (Shift+Enter for new line)",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
-  });
-
-  it("disables send button when input is empty", () => {
-    render(<App />);
-    const sendButton = screen.getByRole("button", { name: "Send" });
-    expect(sendButton).toBeDisabled();
-  });
-
-  it("enables send button when textarea has text", () => {
-    render(<App />);
-    const textarea = screen.getByPlaceholderText(
-      "Type your message... (Shift+Enter for new line)",
+  it("shows new directory selection button", async () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route path="/" element={<ProjectSelector />} />
+        </Routes>
+      </MemoryRouter>
     );
-    const sendButton = screen.getByRole("button", { name: "Send" });
-
-    fireEvent.change(textarea, { target: { value: "Hello" } });
-    expect(sendButton).not.toBeDisabled();
-  });
-
-  it("adds user message when form is submitted", async () => {
-    render(<App />);
-    const textarea = screen.getByPlaceholderText(
-      "Type your message... (Shift+Enter for new line)",
-    );
-    const form = textarea.closest("form")!;
-
-    fireEvent.change(textarea, { target: { value: "Test message" } });
-    fireEvent.submit(form);
 
     await waitFor(() => {
-      expect(screen.getByText("You")).toBeInTheDocument();
-      expect(screen.getByText("Test message")).toBeInTheDocument();
-    });
-  });
-
-  it("sends requests without sessionId initially", async () => {
-    render(<App />);
-    const textarea = screen.getByPlaceholderText(
-      "Type your message... (Shift+Enter for new line)",
-    );
-    const form = textarea.closest("form")!;
-
-    fireEvent.change(textarea, { target: { value: "First message" } });
-    fireEvent.submit(form);
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        "http://localhost:8080/api/chat",
-        expect.objectContaining({
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: expect.stringMatching(
-            /"message":"First message".*"requestId":"[a-f0-9-]{36}"/,
-          ),
-        }),
-      );
+      expect(screen.getByText("Select New Directory")).toBeInTheDocument();
     });
   });
 });
