@@ -22,15 +22,18 @@ Always run this tool only on `localhost` (127.0.0.1) and never bind it to public
 
 This application serves as a **local web UI replacement** for the Claude CLI tool. Instead of interacting with Claude through the command line, you can:
 
+- **Select project directories** to work with specific codebases
 - Use a modern chat interface in your browser
 - View streaming responses in real-time
 - Access the same Claude functionality with better UX
+- Switch between different projects seamlessly
 
 The tool works by:
-1. Running a local web server that accepts chat messages
-2. Using the Claude Code SDK to execute claude commands for each request
-3. Streaming the JSON responses back to the web interface
-4. Displaying the formatted responses in a chat UI
+1. Selecting a project directory from configured projects or browsing for new ones
+2. Running a local web server that accepts chat messages
+3. Using the Claude Code SDK to execute claude commands in the selected project directory
+4. Streaming the JSON responses back to the web interface
+5. Displaying the formatted responses in a chat UI
 
 ## Installation
 
@@ -71,6 +74,8 @@ chmod +x claude-code-webui-macos-arm64
    ```
 
 3. **Access Application**: http://localhost:3000
+   - First, select a project directory from the list or choose a new one
+   - Then interact with Claude in the context of that project
 
 ## Documentation
 
