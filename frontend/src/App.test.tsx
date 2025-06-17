@@ -23,7 +23,7 @@ describe("App Routing", () => {
         <Routes>
           <Route path="/" element={<ProjectSelector />} />
         </Routes>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
@@ -37,7 +37,7 @@ describe("App Routing", () => {
         <Routes>
           <Route path="/projects/*" element={<ChatPage />} />
         </Routes>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText("Claude Code Web UI")).toBeInTheDocument();
@@ -50,7 +50,7 @@ describe("App Routing", () => {
         <Routes>
           <Route path="/" element={<ProjectSelector />} />
         </Routes>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
