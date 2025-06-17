@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { extractToolInfo, generateToolPattern } from "../../utils/toolUtils";
 import { isPermissionError } from "../../utils/messageTypes";
 import type { StreamingContext } from "./useMessageProcessor";
+import type { ToolResultMessage } from "../../types";
 
 interface ToolCache {
   name: string;
@@ -60,7 +61,7 @@ export function useToolHandling() {
         is_error?: boolean;
       },
       context: StreamingContext,
-      createToolResultMessage: (toolName: string, content: string) => any,
+      createToolResultMessage: (toolName: string, content: string) => ToolResultMessage,
     ) => {
       const content =
         typeof contentItem.content === "string"
