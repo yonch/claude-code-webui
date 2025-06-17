@@ -374,7 +374,7 @@ export function useClaudeStreaming() {
               const pattern =
                 toolName === "Bash" && command !== "*"
                   ? `${toolName}(${command}:*)`
-                  : `${toolName}(*)`;
+                  : toolName;
 
               // Notify parent component about permission error
               if (context.onPermissionError) {
