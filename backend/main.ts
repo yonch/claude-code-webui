@@ -38,6 +38,7 @@ async function* executeClaudeCommand(
   requestId: string,
   sessionId?: string,
   allowedTools?: string[],
+  workingDirectory?: string,
 ): AsyncGenerator<StreamResponse> {
   let abortController: AbortController;
 
@@ -73,6 +74,7 @@ async function* executeClaudeCommand(
           pathToClaudeCodeExecutable: claudePath,
           ...(sessionId ? { resume: sessionId } : {}),
           ...(allowedTools ? { allowedTools } : {}),
+          ...(workingDirectory ? { cwd: workingDirectory } : {}),
         },
       })
     ) {
@@ -119,6 +121,37 @@ app.use(
 );
 
 // API routes
+app.get("/api/projects", async (c) => {
+  try {
+    const homeDir = Deno.env.get("HOME");
+    if (!homeDir) {
+      return c.json({ error: "HOME environment variable not found" }, 500);
+    }
+
+    const claudeConfigPath = `${homeDir}/.claude.json`;
+
+    try {
+      const configContent = await Deno.readTextFile(claudeConfigPath);
+      const config = JSON.parse(configContent);
+
+      if (config.projects && typeof config.projects === "object") {
+        const projects = Object.keys(config.projects);
+        return c.json({ projects });
+      } else {
+        return c.json({ projects: [] });
+      }
+    } catch (error) {
+      if (error instanceof Deno.errors.NotFound) {
+        return c.json({ projects: [] });
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error reading projects:", error);
+    return c.json({ error: "Failed to read projects" }, 500);
+  }
+});
+
 app.post("/api/abort/:requestId", (c) => {
   const requestId = c.req.param("requestId");
 
@@ -167,6 +200,7 @@ app.post("/api/chat", async (c) => {
             chatRequest.requestId,
             chatRequest.sessionId,
             chatRequest.allowedTools,
+            chatRequest.workingDirectory,
           )
         ) {
           const data = JSON.stringify(chunk) + "\n";

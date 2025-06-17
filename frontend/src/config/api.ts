@@ -4,6 +4,7 @@ export const API_CONFIG = {
   ENDPOINTS: {
     CHAT: "/api/chat",
     ABORT: "/api/abort",
+    PROJECTS: "/api/projects",
   },
 } as const;
 
@@ -20,4 +21,9 @@ export const getAbortUrl = (requestId: string) => {
 // Helper function to get chat URL
 export const getChatUrl = () => {
   return `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CHAT}`;
+};
+
+// Helper function to get projects URL
+export const getProjectsUrl = () => {
+  return `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PROJECTS}`;
 };

@@ -9,8 +9,13 @@ export interface ChatRequest {
   sessionId?: string;
   requestId: string;
   allowedTools?: string[];
+  workingDirectory?: string;
 }
 
 export interface AbortRequest {
   requestId: string;
+}
+
+export interface ProjectsResponse {
+  projects: string[];
 }
