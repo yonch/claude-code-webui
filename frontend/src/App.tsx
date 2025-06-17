@@ -17,6 +17,7 @@ import {
   ToolResultMessageComponent,
   LoadingComponent,
 } from "./components/MessageComponents";
+import { PermissionDialog } from "./components/PermissionDialog";
 
 function App() {
   const [messages, setMessages] = useState<AllMessage[]>([]);
@@ -34,6 +35,15 @@ function App() {
 
   const [currentAssistantMessage, setCurrentAssistantMessage] =
     useState<ChatMessage | null>(null);
+
+  // Permission management state
+  const [allowedTools, setAllowedTools] = useState<string[]>([]);
+  const [permissionDialog, setPermissionDialog] = useState<{
+    isOpen: boolean;
+    toolName: string;
+    pattern: string;
+    toolUseId: string;
+  } | null>(null);
 
   // Constants
   const NEAR_BOTTOM_THRESHOLD_PX = 100;
@@ -90,118 +100,6 @@ function App() {
     }
   }, [currentAssistantMessage]);
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
-
-    // Generate unique request ID for this request
-    const requestId = crypto.randomUUID();
-    setCurrentRequestId(requestId);
-
-    const userMessage: ChatMessage = {
-      type: "chat",
-      role: "user",
-      content: input.trim(),
-      timestamp: Date.now(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setIsLoading(true);
-    setCurrentAssistantMessage(null);
-
-    try {
-      const response = await fetch("http://localhost:8080/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: input.trim(),
-          requestId,
-          ...(currentSessionId ? { sessionId: currentSessionId } : {}),
-        } as ChatRequest),
-      });
-
-      if (!response.body) throw new Error("No response body");
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-
-      // Reset init state for new request
-      setHasReceivedInit(false);
-
-      // Local state for this streaming session
-      let localHasReceivedInit = false;
-
-      const streamingContext = {
-        currentAssistantMessage: null,
-        setCurrentAssistantMessage,
-        addMessage: (msg: AllMessage) => {
-          setMessages((prev) => [...prev, msg]);
-        },
-        updateLastMessage: (content: string) => {
-          setMessages((prev) =>
-            prev.map((msg, index) =>
-              index === prev.length - 1 && isChatMessage(msg)
-                ? { ...msg, content }
-                : msg,
-            ),
-          );
-        },
-        onSessionId: (sessionId: string) => {
-          setCurrentSessionId(sessionId);
-        },
-        shouldShowInitMessage: () => !hasShownInitMessage,
-        onInitMessageShown: () => {
-          setHasShownInitMessage(true);
-        },
-        get hasReceivedInit() {
-          return localHasReceivedInit;
-        },
-        setHasReceivedInit: (received: boolean) => {
-          localHasReceivedInit = received;
-          setHasReceivedInit(received);
-        },
-      };
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split("\n").filter((line) => line.trim());
-
-        for (const line of lines) {
-          processStreamLine(line, streamingContext);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to send message:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          type: "chat",
-          role: "assistant",
-          content: "Error: Failed to get response",
-          timestamp: Date.now(),
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
-      setCurrentRequestId(null);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    sendMessage();
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
   // Abort current request
   const abortRequest = useCallback(async () => {
     if (!currentRequestId || !isLoading) return;
@@ -224,6 +122,209 @@ function App() {
       setCurrentAssistantMessage(null);
     }
   }, [currentRequestId, isLoading]);
+
+  // Handle permission errors
+  const handlePermissionError = useCallback(
+    async (toolName: string, pattern: string, toolUseId: string) => {
+      // Show permission dialog (abort is already handled in streaming)
+      setPermissionDialog({
+        isOpen: true,
+        toolName,
+        pattern,
+        toolUseId,
+      });
+    },
+    [],
+  );
+
+  const sendMessage = useCallback(
+    async (
+      messageContent?: string,
+      tools?: string[],
+      hideUserMessage = false,
+    ) => {
+      const content = messageContent || input.trim();
+      if (!content || isLoading) return;
+
+      // Generate unique request ID for this request
+      const requestId = crypto.randomUUID();
+      setCurrentRequestId(requestId);
+
+      // Only add user message to chat if not hidden
+      if (!hideUserMessage) {
+        const userMessage: ChatMessage = {
+          type: "chat",
+          role: "user",
+          content: content,
+          timestamp: Date.now(),
+        };
+        setMessages((prev) => [...prev, userMessage]);
+      }
+
+      if (!messageContent) setInput(""); // Only clear input if it's from the input field
+      setIsLoading(true);
+      setCurrentAssistantMessage(null);
+
+      try {
+        const response = await fetch("http://localhost:8080/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: content,
+            requestId,
+            ...(currentSessionId ? { sessionId: currentSessionId } : {}),
+            allowedTools: tools || allowedTools,
+          } as ChatRequest),
+        });
+
+        if (!response.body) throw new Error("No response body");
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        // Reset init state for new request
+        setHasReceivedInit(false);
+
+        // Local state for this streaming session
+        let localHasReceivedInit = false;
+        let shouldAbort = false;
+
+        const streamingContext = {
+          currentAssistantMessage: null,
+          setCurrentAssistantMessage,
+          addMessage: (msg: AllMessage) => {
+            setMessages((prev) => [...prev, msg]);
+          },
+          updateLastMessage: (content: string) => {
+            setMessages((prev) =>
+              prev.map((msg, index) =>
+                index === prev.length - 1 && isChatMessage(msg)
+                  ? { ...msg, content }
+                  : msg,
+              ),
+            );
+          },
+          onSessionId: (sessionId: string) => {
+            setCurrentSessionId(sessionId);
+          },
+          shouldShowInitMessage: () => !hasShownInitMessage,
+          onInitMessageShown: () => {
+            setHasShownInitMessage(true);
+          },
+          get hasReceivedInit() {
+            return localHasReceivedInit;
+          },
+          setHasReceivedInit: (received: boolean) => {
+            localHasReceivedInit = received;
+            setHasReceivedInit(received);
+          },
+          onPermissionError: handlePermissionError,
+          onAbortRequest: async () => {
+            shouldAbort = true;
+            // Immediately call abort API with current request ID
+            try {
+              await fetch(`http://localhost:8080/api/abort/${requestId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+              });
+            } catch (error) {
+              console.error("Failed to abort request:", error);
+            }
+          },
+        };
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done || shouldAbort) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split("\n").filter((line) => line.trim());
+
+          for (const line of lines) {
+            if (shouldAbort) break;
+            processStreamLine(line, streamingContext);
+          }
+
+          if (shouldAbort) break;
+        }
+      } catch (error) {
+        console.error("Failed to send message:", error);
+        setMessages((prev) => [
+          ...prev,
+          {
+            type: "chat",
+            role: "assistant",
+            content: "Error: Failed to get response",
+            timestamp: Date.now(),
+          },
+        ]);
+      } finally {
+        setIsLoading(false);
+        setCurrentRequestId(null);
+      }
+    },
+    [
+      input,
+      isLoading,
+      currentSessionId,
+      allowedTools,
+      hasShownInitMessage,
+      processStreamLine,
+      handlePermissionError,
+    ],
+  );
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendMessage();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  // Permission dialog handlers
+  const handlePermissionAllow = useCallback(() => {
+    if (!permissionDialog) return;
+
+    const pattern = permissionDialog.pattern;
+    // Close dialog and send continue message
+    setPermissionDialog(null);
+
+    // Send a continue message with session permissions + temporary permission (hidden from chat)
+    if (currentSessionId) {
+      sendMessage("continue", [...allowedTools, pattern], true);
+    }
+  }, [permissionDialog, currentSessionId, sendMessage, allowedTools]);
+
+  const handlePermissionAllowPermanent = useCallback(() => {
+    if (!permissionDialog) return;
+
+    const pattern = permissionDialog.pattern;
+    // Add to allowed tools permanently (for entire session)
+    const updatedAllowedTools = [...allowedTools, pattern];
+    setAllowedTools(updatedAllowedTools);
+
+    // Close dialog and send continue message
+    setPermissionDialog(null);
+
+    // Send a continue message with updated session permissions (hidden from chat)
+    if (currentSessionId) {
+      sendMessage("continue", updatedAllowedTools, true);
+    }
+  }, [permissionDialog, currentSessionId, sendMessage, allowedTools]);
+
+  const handlePermissionDeny = useCallback(() => {
+    // Close dialog and stop execution
+    setPermissionDialog(null);
+  }, []);
+
+  const handlePermissionDialogClose = useCallback(() => {
+    setPermissionDialog(null);
+  }, []);
 
   // Handle global keyboard shortcuts
   useEffect(() => {
@@ -346,6 +447,19 @@ function App() {
           </form>
         </div>
       </div>
+
+      {/* Permission Dialog */}
+      {permissionDialog && (
+        <PermissionDialog
+          isOpen={permissionDialog.isOpen}
+          toolName={permissionDialog.toolName}
+          pattern={permissionDialog.pattern}
+          onAllow={handlePermissionAllow}
+          onAllowPermanent={handlePermissionAllowPermanent}
+          onDeny={handlePermissionDeny}
+          onClose={handlePermissionDialogClose}
+        />
+      )}
     </div>
   );
 }

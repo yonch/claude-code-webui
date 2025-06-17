@@ -8,6 +8,7 @@ export interface ChatRequest {
   message: string;
   sessionId?: string;
   requestId: string;
+  allowedTools?: string[];
 }
 
 export interface AbortRequest {
