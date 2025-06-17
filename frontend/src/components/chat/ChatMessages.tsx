@@ -51,7 +51,7 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
   const renderMessage = (message: AllMessage, index: number) => {
     // Use timestamp as key for stable rendering, fallback to index if needed
     const key = `${message.timestamp}-${index}`;
-    
+
     if (isSystemMessage(message)) {
       return <SystemMessageComponent key={key} message={message} />;
     } else if (isToolMessage(message)) {
