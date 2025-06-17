@@ -47,7 +47,7 @@ function extractBashCommand(commandString: string): string {
     // Handle common patterns like "cargo run", "git log", etc.
     if (
       cmdParts.length >= 2 &&
-      TOOL_CONSTANTS.MULTI_WORD_COMMANDS.includes(cmdParts[0])
+      TOOL_CONSTANTS.MULTI_WORD_COMMANDS.includes(cmdParts[0] as typeof TOOL_CONSTANTS.MULTI_WORD_COMMANDS[number])
     ) {
       return cmdParts.slice(0, 2).join(" ");
     } else {

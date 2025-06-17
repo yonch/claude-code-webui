@@ -60,7 +60,7 @@ export function useToolHandling() {
         is_error?: boolean;
       },
       context: StreamingContext,
-      createToolResultMessage: (toolName: string, content: string) => unknown,
+      createToolResultMessage: (toolName: string, content: string) => any,
     ) => {
       const content =
         typeof contentItem.content === "string"
