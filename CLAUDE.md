@@ -43,19 +43,21 @@ This project consists of three main components:
 
 **Key Features**:
 
-- Real-time streaming response display
+- Real-time streaming response display with modular message processing
 - Parses different Claude JSON message types (system, assistant, result, tool messages)
 - TailwindCSS utility-first styling for responsive design
 - Light/dark theme toggle with system preference detection and localStorage persistence
 - Bottom-to-top message flow layout (messages start at bottom like modern chat apps)
 - Auto-scroll to bottom with smart scroll detection (only auto-scrolls when user is near bottom)
 - Accessibility features with ARIA attributes for screen readers
-- Responsive chat interface
+- Responsive chat interface with component-based architecture
 - Comprehensive component testing with Vitest and Testing Library
 - Automatic session tracking for conversation continuity within the same chat instance
 - Request abort functionality with real-time cancellation
 - Permission dialog handling for Claude tool permissions
 - Enhanced error handling and user feedback
+- Modular hook architecture for state management and business logic separation
+- Reusable UI components with consistent design patterns
 
 ### Shared Types
 
@@ -151,20 +153,40 @@ The application supports conversation continuity within the same chat session us
 │   └── args.ts       # CLI argument parsing
 ├── frontend/         # React frontend application
 │   ├── src/
-│   │   ├── App.tsx   # Main chat interface with TailwindCSS
+│   │   ├── App.tsx   # Main application component (refactored)
 │   │   ├── main.tsx  # Application entry point
 │   │   ├── types.ts  # Frontend-specific type definitions
-│   │   ├── components/
-│   │   │   ├── MessageComponents.tsx  # Message display components
-│   │   │   ├── PermissionDialog.tsx   # Permission handling dialog
-│   │   │   └── TimestampComponent.tsx # Timestamp display
+│   │   ├── config/
+│   │   │   └── api.ts                 # API configuration and URLs
+│   │   ├── utils/
+│   │   │   ├── constants.ts           # UI and application constants
+│   │   │   ├── messageTypes.ts        # Type guard functions for messages
+│   │   │   ├── toolUtils.ts           # Tool-related utility functions
+│   │   │   └── time.ts                # Time utilities
 │   │   ├── hooks/
-│   │   │   ├── useClaudeStreaming.ts  # Streaming logic hook
-│   │   │   └── useTheme.ts            # Theme management hook
-│   │   └── utils/
-│   │       └── time.ts                # Time utilities
-│   ├── package.json
-│   └── vite.config.ts     # Vite config with @tailwindcss/vite plugin
+│   │   │   ├── useClaudeStreaming.ts  # Simplified streaming interface
+│   │   │   ├── useTheme.ts            # Theme management hook
+│   │   │   ├── chat/
+│   │   │   │   ├── useChatState.ts    # Chat state management
+│   │   │   │   ├── usePermissions.ts  # Permission handling logic
+│   │   │   │   └── useAbortController.ts # Request abortion logic
+│   │   │   └── streaming/
+│   │   │       ├── useMessageProcessor.ts # Message creation and processing
+│   │   │       ├── useToolHandling.ts     # Tool-specific message handling
+│   │   │       └── useStreamParser.ts     # Stream parsing and routing
+│   │   ├── components/
+│   │   │   ├── MessageComponents.tsx  # Message display components (refactored)
+│   │   │   ├── PermissionDialog.tsx   # Permission handling dialog
+│   │   │   ├── TimestampComponent.tsx # Timestamp display
+│   │   │   ├── chat/
+│   │   │   │   ├── ThemeToggle.tsx    # Theme toggle button
+│   │   │   │   ├── ChatInput.tsx      # Chat input component
+│   │   │   │   └── ChatMessages.tsx   # Chat messages container
+│   │   │   └── messages/
+│   │   │       ├── MessageContainer.tsx   # Reusable message wrapper
+│   │   │       └── CollapsibleDetails.tsx # Collapsible content component
+│   │   ├── package.json
+│   │   └── vite.config.ts     # Vite config with @tailwindcss/vite plugin
 ├── shared/           # Shared TypeScript types
 │   └── types.ts
 └── CLAUDE.md        # This documentation
@@ -189,6 +211,45 @@ The application supports conversation continuity within the same chat session us
 8. **Tool Permission Handling**: Frontend permission dialog allows users to grant/deny tool access with proper state management.
 
 9. **Comprehensive Error Handling**: Enhanced error states and user feedback for better debugging and user experience.
+
+10. **Modular Architecture**: Frontend code is organized into specialized hooks and components for better maintainability and testability.
+
+11. **Separation of Concerns**: Business logic, UI components, and utilities are clearly separated into different modules.
+
+12. **Configuration Management**: Centralized configuration for API endpoints and application constants.
+
+13. **Reusable Components**: Common UI patterns are extracted into reusable components to reduce duplication.
+
+14. **Hook Composition**: Complex functionality is built by composing smaller, focused hooks that each handle a specific concern.
+
+## Frontend Architecture Benefits
+
+The modular frontend architecture provides several key benefits:
+
+### Code Organization
+- **Reduced File Size**: Main App.tsx reduced from 467 to 262 lines (44% reduction)
+- **Focused Responsibilities**: Each file has a single, clear purpose
+- **Logical Grouping**: Related functionality is organized into coherent modules
+
+### Maintainability
+- **Easier Debugging**: Issues can be isolated to specific modules
+- **Simplified Testing**: Individual components and hooks can be tested in isolation
+- **Clear Dependencies**: Import structure clearly shows component relationships
+
+### Reusability
+- **Shared Components**: `MessageContainer` and `CollapsibleDetails` reduce UI duplication
+- **Utility Functions**: Common operations are centralized and reusable
+- **Configuration**: API endpoints and constants are easily configurable
+
+### Developer Experience
+- **Type Safety**: Enhanced TypeScript coverage with stricter type definitions
+- **IntelliSense**: Better IDE support with smaller, focused modules
+- **Hot Reload**: Faster development cycles with smaller change surfaces
+
+### Performance
+- **Bundle Optimization**: Tree-shaking is more effective with modular code
+- **Code Splitting**: Easier to implement lazy loading for large features
+- **Memory Efficiency**: Reduced memory footprint with focused hooks
 
 ## Single Binary Distribution
 
