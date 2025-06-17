@@ -291,33 +291,31 @@ function App() {
     if (!permissionDialog) return;
 
     const pattern = permissionDialog.pattern;
-    // Add to allowed tools temporarily (for this request only)
-    setAllowedTools((prev) => [...prev, pattern]);
-
     // Close dialog and send continue message
     setPermissionDialog(null);
 
-    // Send a continue message with current session (hidden from chat)
+    // Send a continue message with session permissions + temporary permission (hidden from chat)
     if (currentSessionId) {
-      sendMessage("continue", [pattern], true);
+      sendMessage("continue", [...allowedTools, pattern], true);
     }
-  }, [permissionDialog, currentSessionId, sendMessage]);
+  }, [permissionDialog, currentSessionId, sendMessage, allowedTools]);
 
   const handlePermissionAllowPermanent = useCallback(() => {
     if (!permissionDialog) return;
 
     const pattern = permissionDialog.pattern;
     // Add to allowed tools permanently (for entire session)
-    setAllowedTools((prev) => [...prev, pattern]);
+    const updatedAllowedTools = [...allowedTools, pattern];
+    setAllowedTools(updatedAllowedTools);
 
     // Close dialog and send continue message
     setPermissionDialog(null);
 
-    // Send a continue message with current session (hidden from chat)
+    // Send a continue message with updated session permissions (hidden from chat)
     if (currentSessionId) {
-      sendMessage("continue", [pattern], true);
+      sendMessage("continue", updatedAllowedTools, true);
     }
-  }, [permissionDialog, currentSessionId, sendMessage]);
+  }, [permissionDialog, currentSessionId, sendMessage, allowedTools]);
 
   const handlePermissionDeny = useCallback(() => {
     // Close dialog and stop execution
