@@ -27,8 +27,11 @@ This project consists of three main components:
 **API Endpoints**:
 
 - `POST /api/chat` - Accepts chat messages and returns streaming responses
-  - Request body: `{ message: string, sessionId?: string }`
+  - Request body: `{ message: string, sessionId?: string, requestId: string, allowedTools?: string[] }`
+  - `requestId` is required for request tracking and abort functionality
   - Optional `sessionId` enables conversation continuity within the same chat session
+  - Optional `allowedTools` array restricts which tools Claude can use
+- `POST /api/abort/:requestId` - Aborts an ongoing request by request ID
 - `/*` - Serves static frontend files (in single binary mode)
 
 ### Frontend (React)
@@ -40,16 +43,21 @@ This project consists of three main components:
 
 **Key Features**:
 
-- Real-time streaming response display
-- Parses different Claude JSON message types (system, assistant, result)
+- Real-time streaming response display with modular message processing
+- Parses different Claude JSON message types (system, assistant, result, tool messages)
 - TailwindCSS utility-first styling for responsive design
 - Light/dark theme toggle with system preference detection and localStorage persistence
 - Bottom-to-top message flow layout (messages start at bottom like modern chat apps)
 - Auto-scroll to bottom with smart scroll detection (only auto-scrolls when user is near bottom)
 - Accessibility features with ARIA attributes for screen readers
-- Responsive chat interface
+- Responsive chat interface with component-based architecture
 - Comprehensive component testing with Vitest and Testing Library
 - Automatic session tracking for conversation continuity within the same chat instance
+- Request abort functionality with real-time cancellation
+- Permission dialog handling for Claude tool permissions
+- Enhanced error handling and user feedback
+- Modular hook architecture for state management and business logic separation
+- Reusable UI components with consistent design patterns
 
 ### Shared Types
 
@@ -58,12 +66,16 @@ This project consists of three main components:
 
 **Key Types**:
 
-- `StreamResponse` - Backend streaming response format
+- `StreamResponse` - Backend streaming response format with support for claude_json, error, done, and aborted types
 - `ChatRequest` - Chat request structure for API communication
   - `message: string` - User's message content
   - `sessionId?: string` - Optional session ID for conversation continuity
+  - `requestId: string` - Required unique identifier for request tracking and abort functionality
+  - `allowedTools?: string[]` - Optional array to restrict which tools Claude can use
+- `AbortRequest` - Request structure for aborting ongoing operations
+  - `requestId: string` - ID of the request to abort
 
-**Note**: Claude-specific message types (`ClaudeAssistantMessage`, `ClaudeResultMessage`, etc.) are defined in `frontend/src/types.ts` for frontend-specific usage.
+**Note**: Enhanced message types (`ChatMessage`, `SystemMessage`, `ToolMessage`, `ToolResultMessage`, etc.) are defined in `frontend/src/types.ts` for comprehensive frontend message handling.
 
 ## Claude Command Integration
 
@@ -137,13 +149,44 @@ The application supports conversation continuity within the same chat session us
 ```
 ├── backend/           # Deno backend server
 │   ├── deno.json     # Deno configuration with permissions
-│   └── main.ts       # Main server implementation
+│   ├── main.ts       # Main server implementation
+│   └── args.ts       # CLI argument parsing
 ├── frontend/         # React frontend application
 │   ├── src/
-│   │   ├── App.tsx   # Main chat interface with TailwindCSS
-│   │   └── main.tsx  # Application entry point
-│   ├── package.json
-│   └── vite.config.ts     # Vite config with @tailwindcss/vite plugin
+│   │   ├── App.tsx   # Main application component (refactored)
+│   │   ├── main.tsx  # Application entry point
+│   │   ├── types.ts  # Frontend-specific type definitions
+│   │   ├── config/
+│   │   │   └── api.ts                 # API configuration and URLs
+│   │   ├── utils/
+│   │   │   ├── constants.ts           # UI and application constants
+│   │   │   ├── messageTypes.ts        # Type guard functions for messages
+│   │   │   ├── toolUtils.ts           # Tool-related utility functions
+│   │   │   └── time.ts                # Time utilities
+│   │   ├── hooks/
+│   │   │   ├── useClaudeStreaming.ts  # Simplified streaming interface
+│   │   │   ├── useTheme.ts            # Theme management hook
+│   │   │   ├── chat/
+│   │   │   │   ├── useChatState.ts    # Chat state management
+│   │   │   │   ├── usePermissions.ts  # Permission handling logic
+│   │   │   │   └── useAbortController.ts # Request abortion logic
+│   │   │   └── streaming/
+│   │   │       ├── useMessageProcessor.ts # Message creation and processing
+│   │   │       ├── useToolHandling.ts     # Tool-specific message handling
+│   │   │       └── useStreamParser.ts     # Stream parsing and routing
+│   │   ├── components/
+│   │   │   ├── MessageComponents.tsx  # Message display components (refactored)
+│   │   │   ├── PermissionDialog.tsx   # Permission handling dialog
+│   │   │   ├── TimestampComponent.tsx # Timestamp display
+│   │   │   ├── chat/
+│   │   │   │   ├── ThemeToggle.tsx    # Theme toggle button
+│   │   │   │   ├── ChatInput.tsx      # Chat input component
+│   │   │   │   └── ChatMessages.tsx   # Chat messages container
+│   │   │   └── messages/
+│   │   │       ├── MessageContainer.tsx   # Reusable message wrapper
+│   │   │       └── CollapsibleDetails.tsx # Collapsible content component
+│   │   ├── package.json
+│   │   └── vite.config.ts     # Vite config with @tailwindcss/vite plugin
 ├── shared/           # Shared TypeScript types
 │   └── types.ts
 └── CLAUDE.md        # This documentation
@@ -162,6 +205,51 @@ The application supports conversation continuity within the same chat session us
 5. **Theme System**: Light/dark theme toggle with automatic system preference detection and localStorage persistence.
 
 6. **Project Root Execution**: Claude commands execute from project root to have full access to project files.
+
+7. **Request Management**: Unique request IDs enable request tracking and abort functionality for better user control.
+
+8. **Tool Permission Handling**: Frontend permission dialog allows users to grant/deny tool access with proper state management.
+
+9. **Comprehensive Error Handling**: Enhanced error states and user feedback for better debugging and user experience.
+
+10. **Modular Architecture**: Frontend code is organized into specialized hooks and components for better maintainability and testability.
+
+11. **Separation of Concerns**: Business logic, UI components, and utilities are clearly separated into different modules.
+
+12. **Configuration Management**: Centralized configuration for API endpoints and application constants.
+
+13. **Reusable Components**: Common UI patterns are extracted into reusable components to reduce duplication.
+
+14. **Hook Composition**: Complex functionality is built by composing smaller, focused hooks that each handle a specific concern.
+
+## Frontend Architecture Benefits
+
+The modular frontend architecture provides several key benefits:
+
+### Code Organization
+- **Reduced File Size**: Main App.tsx reduced from 467 to 262 lines (44% reduction)
+- **Focused Responsibilities**: Each file has a single, clear purpose
+- **Logical Grouping**: Related functionality is organized into coherent modules
+
+### Maintainability
+- **Easier Debugging**: Issues can be isolated to specific modules
+- **Simplified Testing**: Individual components and hooks can be tested in isolation
+- **Clear Dependencies**: Import structure clearly shows component relationships
+
+### Reusability
+- **Shared Components**: `MessageContainer` and `CollapsibleDetails` reduce UI duplication
+- **Utility Functions**: Common operations are centralized and reusable
+- **Configuration**: API endpoints and constants are easily configurable
+
+### Developer Experience
+- **Type Safety**: Enhanced TypeScript coverage with stricter type definitions
+- **IntelliSense**: Better IDE support with smaller, focused modules
+- **Hot Reload**: Faster development cycles with smaller change surfaces
+
+### Performance
+- **Bundle Optimization**: Tree-shaking is more effective with modular code
+- **Code Splitting**: Easier to implement lazy loading for large features
+- **Memory Efficiency**: Reduced memory footprint with focused hooks
 
 ## Single Binary Distribution
 

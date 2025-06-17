@@ -1,140 +1,58 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import type { ChatRequest, AllMessage, ChatMessage } from "./types";
-import {
-  isChatMessage,
-  isSystemMessage,
-  isToolMessage,
-  isToolResultMessage,
-} from "./types";
+import { useEffect, useCallback } from "react";
+import type { ChatRequest, ChatMessage } from "./types";
 import { useTheme } from "./hooks/useTheme";
 import { useClaudeStreaming } from "./hooks/useClaudeStreaming";
-import { SunIcon, MoonIcon } from "@heroicons/react/24/outline";
-import { StopIcon } from "@heroicons/react/24/solid";
-import {
-  ChatMessageComponent,
-  SystemMessageComponent,
-  ToolMessageComponent,
-  ToolResultMessageComponent,
-  LoadingComponent,
-} from "./components/MessageComponents";
+import { useChatState } from "./hooks/chat/useChatState";
+import { usePermissions } from "./hooks/chat/usePermissions";
+import { useAbortController } from "./hooks/chat/useAbortController";
+import { ThemeToggle } from "./components/chat/ThemeToggle";
+import { ChatInput } from "./components/chat/ChatInput";
+import { ChatMessages } from "./components/chat/ChatMessages";
 import { PermissionDialog } from "./components/PermissionDialog";
+import { getChatUrl } from "./config/api";
+import { KEYBOARD_SHORTCUTS } from "./utils/constants";
+import type { StreamingContext } from "./hooks/streaming/useMessageProcessor";
 
 function App() {
-  const [messages, setMessages] = useState<AllMessage[]>([]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
-  const [hasShownInitMessage, setHasShownInitMessage] = useState(false);
-  const [, setHasReceivedInit] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { processStreamLine } = useClaudeStreaming();
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const { abortRequest, createAbortHandler } = useAbortController();
 
-  const [currentAssistantMessage, setCurrentAssistantMessage] =
-    useState<ChatMessage | null>(null);
+  const {
+    messages,
+    input,
+    isLoading,
+    currentSessionId,
+    currentRequestId,
+    hasShownInitMessage,
+    currentAssistantMessage,
+    setInput,
+    setCurrentSessionId,
+    setHasShownInitMessage,
+    setHasReceivedInit,
+    setCurrentAssistantMessage,
+    addMessage,
+    updateLastMessage,
+    clearInput,
+    generateRequestId,
+    resetRequestState,
+    startRequest,
+  } = useChatState();
 
-  // Permission management state
-  const [allowedTools, setAllowedTools] = useState<string[]>([]);
-  const [permissionDialog, setPermissionDialog] = useState<{
-    isOpen: boolean;
-    toolName: string;
-    pattern: string;
-    toolUseId: string;
-  } | null>(null);
+  const {
+    allowedTools,
+    permissionDialog,
+    showPermissionDialog,
+    closePermissionDialog,
+    allowToolTemporary,
+    allowToolPermanent,
+  } = usePermissions();
 
-  // Constants
-  const NEAR_BOTTOM_THRESHOLD_PX = 100;
-
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isLoading && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isLoading]);
-
-  // Auto-resize textarea
-  useEffect(() => {
-    const textarea = inputRef.current;
-    if (textarea) {
-      textarea.style.height = "auto";
-      const computedStyle = getComputedStyle(textarea);
-      const maxHeight = parseInt(computedStyle.maxHeight, 10) || 200;
-      const scrollHeight = Math.min(textarea.scrollHeight, maxHeight);
-      textarea.style.height = `${scrollHeight}px`;
-    }
-  }, [input]);
-
-  // Auto-scroll to bottom
-  const scrollToBottom = () => {
-    if (messagesEndRef.current && messagesEndRef.current.scrollIntoView) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  };
-
-  // Check if user is near bottom of messages
-  const isNearBottom = () => {
-    const container = messagesContainerRef.current;
-    if (!container) return true;
-
-    const { scrollTop, scrollHeight, clientHeight } = container;
-    return scrollHeight - scrollTop - clientHeight < NEAR_BOTTOM_THRESHOLD_PX;
-  };
-
-  // Auto-scroll when messages change
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  // Auto-scroll during streaming (only if user is near bottom)
-  useEffect(() => {
-    if (currentAssistantMessage && isNearBottom()) {
-      scrollToBottom();
-    }
-  }, [currentAssistantMessage]);
-
-  // Abort current request
-  const abortRequest = useCallback(async () => {
-    if (!currentRequestId || !isLoading) return;
-
-    try {
-      await fetch(`http://localhost:8080/api/abort/${currentRequestId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      // Clean up state after successful abort
-      setIsLoading(false);
-      setCurrentRequestId(null);
-      setCurrentAssistantMessage(null);
-    } catch (error) {
-      console.error("Failed to abort request:", error);
-      // Still clean up on error
-      setIsLoading(false);
-      setCurrentRequestId(null);
-      setCurrentAssistantMessage(null);
-    }
-  }, [currentRequestId, isLoading]);
-
-  // Handle permission errors
   const handlePermissionError = useCallback(
-    async (toolName: string, pattern: string, toolUseId: string) => {
-      // Show permission dialog (abort is already handled in streaming)
-      setPermissionDialog({
-        isOpen: true,
-        toolName,
-        pattern,
-        toolUseId,
-      });
+    (toolName: string, pattern: string, toolUseId: string) => {
+      showPermissionDialog(toolName, pattern, toolUseId);
     },
-    [],
+    [showPermissionDialog],
   );
 
   const sendMessage = useCallback(
@@ -146,9 +64,7 @@ function App() {
       const content = messageContent || input.trim();
       if (!content || isLoading) return;
 
-      // Generate unique request ID for this request
-      const requestId = crypto.randomUUID();
-      setCurrentRequestId(requestId);
+      const requestId = generateRequestId();
 
       // Only add user message to chat if not hidden
       if (!hideUserMessage) {
@@ -158,15 +74,14 @@ function App() {
           content: content,
           timestamp: Date.now(),
         };
-        setMessages((prev) => [...prev, userMessage]);
+        addMessage(userMessage);
       }
 
-      if (!messageContent) setInput(""); // Only clear input if it's from the input field
-      setIsLoading(true);
-      setCurrentAssistantMessage(null);
+      if (!messageContent) clearInput();
+      startRequest();
 
       try {
-        const response = await fetch("http://localhost:8080/api/chat", {
+        const response = await fetch(getChatUrl(), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -182,35 +97,18 @@ function App() {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
 
-        // Reset init state for new request
-        setHasReceivedInit(false);
-
         // Local state for this streaming session
         let localHasReceivedInit = false;
         let shouldAbort = false;
 
-        const streamingContext = {
-          currentAssistantMessage: null,
+        const streamingContext: StreamingContext = {
+          currentAssistantMessage,
           setCurrentAssistantMessage,
-          addMessage: (msg: AllMessage) => {
-            setMessages((prev) => [...prev, msg]);
-          },
-          updateLastMessage: (content: string) => {
-            setMessages((prev) =>
-              prev.map((msg, index) =>
-                index === prev.length - 1 && isChatMessage(msg)
-                  ? { ...msg, content }
-                  : msg,
-              ),
-            );
-          },
-          onSessionId: (sessionId: string) => {
-            setCurrentSessionId(sessionId);
-          },
+          addMessage,
+          updateLastMessage,
+          onSessionId: setCurrentSessionId,
           shouldShowInitMessage: () => !hasShownInitMessage,
-          onInitMessageShown: () => {
-            setHasShownInitMessage(true);
-          },
+          onInitMessageShown: () => setHasShownInitMessage(true),
           get hasReceivedInit() {
             return localHasReceivedInit;
           },
@@ -221,15 +119,7 @@ function App() {
           onPermissionError: handlePermissionError,
           onAbortRequest: async () => {
             shouldAbort = true;
-            // Immediately call abort API with current request ID
-            try {
-              await fetch(`http://localhost:8080/api/abort/${requestId}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-              });
-            } catch (error) {
-              console.error("Failed to abort request:", error);
-            }
+            await createAbortHandler(requestId)();
           },
         };
 
@@ -249,18 +139,14 @@ function App() {
         }
       } catch (error) {
         console.error("Failed to send message:", error);
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: "chat",
-            role: "assistant",
-            content: "Error: Failed to get response",
-            timestamp: Date.now(),
-          },
-        ]);
+        addMessage({
+          type: "chat",
+          role: "assistant",
+          content: "Error: Failed to get response",
+          timestamp: Date.now(),
+        });
       } finally {
-        setIsLoading(false);
-        setCurrentRequestId(null);
+        resetRequestState();
       }
     },
     [
@@ -269,76 +155,79 @@ function App() {
       currentSessionId,
       allowedTools,
       hasShownInitMessage,
+      currentAssistantMessage,
+      generateRequestId,
+      clearInput,
+      startRequest,
+      addMessage,
+      updateLastMessage,
+      setCurrentSessionId,
+      setHasShownInitMessage,
+      setHasReceivedInit,
+      setCurrentAssistantMessage,
+      resetRequestState,
       processStreamLine,
       handlePermissionError,
+      createAbortHandler,
     ],
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    sendMessage();
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
+  const handleAbort = useCallback(() => {
+    abortRequest(currentRequestId, isLoading, resetRequestState);
+  }, [abortRequest, currentRequestId, isLoading, resetRequestState]);
 
   // Permission dialog handlers
   const handlePermissionAllow = useCallback(() => {
     if (!permissionDialog) return;
 
     const pattern = permissionDialog.pattern;
-    // Close dialog and send continue message
-    setPermissionDialog(null);
+    closePermissionDialog();
 
-    // Send a continue message with session permissions + temporary permission (hidden from chat)
     if (currentSessionId) {
-      sendMessage("continue", [...allowedTools, pattern], true);
+      sendMessage("continue", allowToolTemporary(pattern), true);
     }
-  }, [permissionDialog, currentSessionId, sendMessage, allowedTools]);
+  }, [
+    permissionDialog,
+    currentSessionId,
+    sendMessage,
+    allowToolTemporary,
+    closePermissionDialog,
+  ]);
 
   const handlePermissionAllowPermanent = useCallback(() => {
     if (!permissionDialog) return;
 
     const pattern = permissionDialog.pattern;
-    // Add to allowed tools permanently (for entire session)
-    const updatedAllowedTools = [...allowedTools, pattern];
-    setAllowedTools(updatedAllowedTools);
+    const updatedAllowedTools = allowToolPermanent(pattern);
+    closePermissionDialog();
 
-    // Close dialog and send continue message
-    setPermissionDialog(null);
-
-    // Send a continue message with updated session permissions (hidden from chat)
     if (currentSessionId) {
       sendMessage("continue", updatedAllowedTools, true);
     }
-  }, [permissionDialog, currentSessionId, sendMessage, allowedTools]);
+  }, [
+    permissionDialog,
+    currentSessionId,
+    sendMessage,
+    allowToolPermanent,
+    closePermissionDialog,
+  ]);
 
   const handlePermissionDeny = useCallback(() => {
-    // Close dialog and stop execution
-    setPermissionDialog(null);
-  }, []);
-
-  const handlePermissionDialogClose = useCallback(() => {
-    setPermissionDialog(null);
-  }, []);
+    closePermissionDialog();
+  }, [closePermissionDialog]);
 
   // Handle global keyboard shortcuts
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // ESC key to abort (configurable in future)
-      if (e.key === "Escape" && isLoading && currentRequestId) {
+      if (e.key === KEYBOARD_SHORTCUTS.ABORT && isLoading && currentRequestId) {
         e.preventDefault();
-        abortRequest();
+        handleAbort();
       }
     };
 
     document.addEventListener("keydown", handleGlobalKeyDown);
     return () => document.removeEventListener("keydown", handleGlobalKeyDown);
-  }, [isLoading, currentRequestId, abortRequest]);
+  }, [isLoading, currentRequestId, handleAbort]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
@@ -348,104 +237,21 @@ function App() {
           <h1 className="text-slate-800 dark:text-slate-100 text-3xl font-bold tracking-tight">
             Claude Code Web UI
           </h1>
-          <button
-            onClick={toggleTheme}
-            className="p-3 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-all duration-200 backdrop-blur-sm shadow-sm hover:shadow-md"
-            aria-label="Toggle theme"
-          >
-            {theme === "light" ? (
-              <SunIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            ) : (
-              <MoonIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            )}
-          </button>
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
         </div>
 
         {/* Chat Messages */}
-        <div
-          ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto bg-white/70 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60 p-6 mb-6 rounded-2xl shadow-sm backdrop-blur-sm flex flex-col"
-        >
-          {messages.length === 0 && (
-            <div className="flex-1 flex items-center justify-center text-center text-slate-500 dark:text-slate-400">
-              <div>
-                <div className="text-6xl mb-6 opacity-60">
-                  <span role="img" aria-label="chat icon">
-                    💬
-                  </span>
-                </div>
-                <p className="text-lg font-medium">
-                  Start a conversation with Claude
-                </p>
-                <p className="text-sm mt-2 opacity-80">
-                  Type your message below to begin
-                </p>
-              </div>
-            </div>
-          )}
-          {messages.length > 0 && (
-            <>
-              {/* Spacer div to push messages to the bottom */}
-              <div className="flex-1" aria-hidden="true"></div>
-              {messages.map((message, index) => {
-                if (isSystemMessage(message)) {
-                  return (
-                    <SystemMessageComponent key={index} message={message} />
-                  );
-                } else if (isToolMessage(message)) {
-                  return <ToolMessageComponent key={index} message={message} />;
-                } else if (isToolResultMessage(message)) {
-                  return (
-                    <ToolResultMessageComponent key={index} message={message} />
-                  );
-                } else {
-                  return <ChatMessageComponent key={index} message={message} />;
-                }
-              })}
-              {isLoading && <LoadingComponent />}
-              <div ref={messagesEndRef} />
-            </>
-          )}
-        </div>
+        <ChatMessages messages={messages} isLoading={isLoading} />
 
         {/* Input */}
-        <div className="flex-shrink-0">
-          <form onSubmit={handleSubmit} className="relative">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                isLoading && currentRequestId
-                  ? "Processing... (Press ESC to stop)"
-                  : "Type your message... (Shift+Enter for new line)"
-              }
-              rows={1}
-              className="w-full px-4 py-3 pr-32 bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm shadow-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none overflow-hidden min-h-[48px] max-h-[200px]"
-              disabled={isLoading}
-            />
-            <div className="absolute right-2 bottom-3 flex gap-2">
-              {isLoading && currentRequestId && (
-                <button
-                  type="button"
-                  onClick={abortRequest}
-                  className="p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
-                  title="Stop (ESC)"
-                >
-                  <StopIcon className="w-4 h-4" />
-                </button>
-              )}
-              <button
-                type="submit"
-                disabled={!input.trim() || isLoading}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 text-sm"
-              >
-                {isLoading ? "..." : "Send"}
-              </button>
-            </div>
-          </form>
-        </div>
+        <ChatInput
+          input={input}
+          isLoading={isLoading}
+          currentRequestId={currentRequestId}
+          onInputChange={setInput}
+          onSubmit={() => sendMessage()}
+          onAbort={handleAbort}
+        />
       </div>
 
       {/* Permission Dialog */}
@@ -457,7 +263,7 @@ function App() {
           onAllow={handlePermissionAllow}
           onAllowPermanent={handlePermissionAllowPermanent}
           onDeny={handlePermissionDeny}
-          onClose={handlePermissionDialogClose}
+          onClose={closePermissionDialog}
         />
       )}
     </div>

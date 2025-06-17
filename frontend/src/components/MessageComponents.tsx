@@ -1,4 +1,3 @@
-import React, { useState } from "react";
 import type {
   ChatMessage,
   SystemMessage,
@@ -6,35 +5,9 @@ import type {
   ToolResultMessage,
 } from "../types";
 import { TimestampComponent } from "./TimestampComponent";
-
-interface BubbleContainerProps {
-  alignment: "left" | "right" | "center";
-  colorScheme: string;
-  children: React.ReactNode;
-}
-
-function BubbleContainer({
-  alignment,
-  colorScheme,
-  children,
-}: BubbleContainerProps) {
-  const justifyClass =
-    alignment === "right"
-      ? "justify-end"
-      : alignment === "center"
-        ? "justify-center"
-        : "justify-start";
-
-  return (
-    <div className={`mb-4 flex ${justifyClass}`}>
-      <div
-        className={`max-w-[85%] sm:max-w-[70%] rounded-lg px-4 py-3 ${colorScheme}`}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
+import { MessageContainer } from "./messages/MessageContainer";
+import { CollapsibleDetails } from "./messages/CollapsibleDetails";
+import { MESSAGE_CONSTANTS, UI_CONSTANTS } from "../utils/constants";
 
 interface ChatMessageComponentProps {
   message: ChatMessage;
@@ -47,7 +20,7 @@ export function ChatMessageComponent({ message }: ChatMessageComponentProps) {
     : "bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100";
 
   return (
-    <BubbleContainer
+    <MessageContainer
       alignment={isUser ? "right" : "left"}
       colorScheme={colorScheme}
     >
@@ -69,7 +42,7 @@ export function ChatMessageComponent({ message }: ChatMessageComponentProps) {
       <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
         {message.content}
       </pre>
-    </BubbleContainer>
+    </MessageContainer>
   );
 }
 
@@ -80,14 +53,12 @@ interface SystemMessageComponentProps {
 export function SystemMessageComponent({
   message,
 }: SystemMessageComponentProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
   // Generate details based on message type and subtype
   const getDetails = () => {
     if (message.type === "system" && message.subtype === "init") {
       return [
         `Model: ${message.model}`,
-        `Session: ${message.session_id.substring(0, 8)}`,
+        `Session: ${message.session_id.substring(0, MESSAGE_CONSTANTS.SESSION_ID_DISPLAY_LENGTH)}`,
         `Tools: ${message.tools.length} available`,
         `CWD: ${message.cwd}`,
         `Permission Mode: ${message.permissionMode}`,
@@ -115,46 +86,20 @@ export function SystemMessageComponent({
   };
 
   const details = getDetails();
-  const hasDetails = details.trim().length > 0;
 
   return (
-    <div className="mb-3 p-3 rounded-lg bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-      <div
-        className={`text-blue-800 dark:text-blue-300 text-xs font-medium mb-1 flex items-center gap-2 ${hasDetails ? "cursor-pointer hover:text-blue-600 dark:hover:text-blue-200" : ""}`}
-        role={hasDetails ? "button" : undefined}
-        tabIndex={hasDetails ? 0 : undefined}
-        aria-expanded={hasDetails ? isExpanded : undefined}
-        onClick={hasDetails ? () => setIsExpanded(!isExpanded) : undefined}
-        onKeyDown={
-          hasDetails
-            ? (e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setIsExpanded(!isExpanded);
-                }
-              }
-            : undefined
-        }
-      >
-        <div className="w-4 h-4 bg-blue-400 dark:bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
-          ⚙
-        </div>
-        <span>{getLabel()}</span>
-        <span className="text-blue-600 dark:text-blue-400">
-          ({message.subtype})
-        </span>
-        {hasDetails && (
-          <span className="ml-1 text-blue-600 dark:text-blue-400">
-            {isExpanded ? "▼" : "▶"}
-          </span>
-        )}
-      </div>
-      {hasDetails && isExpanded && (
-        <pre className="whitespace-pre-wrap text-blue-700 dark:text-blue-300 text-xs font-mono leading-relaxed mt-2 pl-6 border-l-2 border-blue-200 dark:border-blue-700">
-          {details}
-        </pre>
-      )}
-    </div>
+    <CollapsibleDetails
+      label={getLabel()}
+      details={details}
+      badge={message.subtype}
+      icon={<span className="bg-blue-400 dark:bg-blue-500">⚙</span>}
+      colorScheme={{
+        header: "text-blue-800 dark:text-blue-300",
+        content: "text-blue-700 dark:text-blue-300",
+        border: "border-blue-200 dark:border-blue-700",
+        bg: "bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800",
+      }}
+    />
   );
 }
 
@@ -164,7 +109,7 @@ interface ToolMessageComponentProps {
 
 export function ToolMessageComponent({ message }: ToolMessageComponentProps) {
   return (
-    <BubbleContainer
+    <MessageContainer
       alignment="left"
       colorScheme="bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-100"
     >
@@ -174,7 +119,7 @@ export function ToolMessageComponent({ message }: ToolMessageComponentProps) {
         </div>
         {message.content}
       </div>
-    </BubbleContainer>
+    </MessageContainer>
   );
 }
 
@@ -185,54 +130,25 @@ interface ToolResultMessageComponentProps {
 export function ToolResultMessageComponent({
   message,
 }: ToolResultMessageComponentProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const hasDetails = message.content.trim().length > 0;
-
   return (
-    <div className="mb-3 p-3 rounded-lg bg-emerald-50/80 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
-      <div
-        className={`text-emerald-800 dark:text-emerald-300 text-xs font-medium mb-1 flex items-center gap-2 ${hasDetails ? "cursor-pointer hover:text-emerald-600 dark:hover:text-emerald-200" : ""}`}
-        role={hasDetails ? "button" : undefined}
-        tabIndex={hasDetails ? 0 : undefined}
-        aria-expanded={hasDetails ? isExpanded : undefined}
-        onClick={hasDetails ? () => setIsExpanded(!isExpanded) : undefined}
-        onKeyDown={
-          hasDetails
-            ? (e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setIsExpanded(!isExpanded);
-                }
-              }
-            : undefined
-        }
-      >
-        <div className="w-4 h-4 bg-emerald-400 dark:bg-emerald-500 rounded-full flex items-center justify-center text-white text-xs">
-          ✓
-        </div>
-        <span>{message.toolName}</span>
-        <span className="text-emerald-600 dark:text-emerald-400">
-          {message.summary}
-        </span>
-        {hasDetails && (
-          <span className="ml-1 text-emerald-600 dark:text-emerald-400">
-            {isExpanded ? "▼" : "▶"}
-          </span>
-        )}
-      </div>
-      {hasDetails && isExpanded && (
-        <pre className="whitespace-pre-wrap text-emerald-700 dark:text-emerald-300 text-xs font-mono leading-relaxed mt-2 pl-6 border-l-2 border-emerald-200 dark:border-emerald-700">
-          {message.content}
-        </pre>
-      )}
-    </div>
+    <CollapsibleDetails
+      label={message.toolName}
+      details={message.content}
+      badge={message.summary}
+      icon={<span className="bg-emerald-400 dark:bg-emerald-500">✓</span>}
+      colorScheme={{
+        header: "text-emerald-800 dark:text-emerald-300",
+        content: "text-emerald-700 dark:text-emerald-300",
+        border: "border-emerald-200 dark:border-emerald-700",
+        bg: "bg-emerald-50/80 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800",
+      }}
+    />
   );
 }
 
 export function LoadingComponent() {
   return (
-    <BubbleContainer
+    <MessageContainer
       alignment="left"
       colorScheme="bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100"
     >
@@ -244,18 +160,18 @@ export function LoadingComponent() {
         <div className="flex gap-1">
           <div
             className="w-1 h-1 bg-current rounded-full animate-bounce"
-            style={{ animationDelay: "0ms" }}
+            style={{ animationDelay: UI_CONSTANTS.ANIMATION_DELAYS.BOUNCE_1 }}
           ></div>
           <div
             className="w-1 h-1 bg-current rounded-full animate-bounce"
-            style={{ animationDelay: "150ms" }}
+            style={{ animationDelay: UI_CONSTANTS.ANIMATION_DELAYS.BOUNCE_2 }}
           ></div>
           <div
             className="w-1 h-1 bg-current rounded-full animate-bounce"
-            style={{ animationDelay: "300ms" }}
+            style={{ animationDelay: UI_CONSTANTS.ANIMATION_DELAYS.BOUNCE_3 }}
           ></div>
         </div>
       </div>
-    </BubbleContainer>
+    </MessageContainer>
   );
 }
