@@ -1,8 +1,7 @@
 import { TOOL_CONSTANTS } from "./constants";
 
-// Extract tool name and command from tool_use_id and previous context
+// Extract tool name and command from previous context
 export function extractToolInfo(
-  _toolUseId: string,
   toolName?: string,
   input?: Record<string, unknown>,
 ): { toolName: string; command: string } {

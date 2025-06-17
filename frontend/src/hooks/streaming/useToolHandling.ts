@@ -37,7 +37,6 @@ export function useToolHandling() {
 
       // Extract tool information for permission handling
       const { toolName, command } = extractToolInfo(
-        toolUseId,
         cachedToolInfo?.name,
         cachedToolInfo?.input,
       );

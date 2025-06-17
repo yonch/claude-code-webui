@@ -1,5 +1,4 @@
 import React from "react";
-import { MESSAGE_CONSTANTS } from "../../utils/constants";
 
 interface MessageContainerProps {
   alignment: "left" | "right" | "center";
@@ -22,7 +21,7 @@ export function MessageContainer({
   return (
     <div className={`mb-4 flex ${justifyClass}`}>
       <div
-        className={`max-w-[${MESSAGE_CONSTANTS.MAX_DISPLAY_WIDTH.MOBILE}] sm:max-w-[${MESSAGE_CONSTANTS.MAX_DISPLAY_WIDTH.DESKTOP}] rounded-lg px-4 py-3 ${colorScheme}`}
+        className={`max-w-[85%] sm:max-w-[70%] rounded-lg px-4 py-3 ${colorScheme}`}
       >
         {children}
       </div>

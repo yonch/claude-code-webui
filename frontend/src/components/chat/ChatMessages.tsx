@@ -49,14 +49,17 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
   }, [messages]);
 
   const renderMessage = (message: AllMessage, index: number) => {
+    // Use timestamp as key for stable rendering, fallback to index if needed
+    const key = `${message.timestamp}-${index}`;
+    
     if (isSystemMessage(message)) {
-      return <SystemMessageComponent key={index} message={message} />;
+      return <SystemMessageComponent key={key} message={message} />;
     } else if (isToolMessage(message)) {
-      return <ToolMessageComponent key={index} message={message} />;
+      return <ToolMessageComponent key={key} message={message} />;
     } else if (isToolResultMessage(message)) {
-      return <ToolResultMessageComponent key={index} message={message} />;
+      return <ToolResultMessageComponent key={key} message={message} />;
     } else if (isChatMessage(message)) {
-      return <ChatMessageComponent key={index} message={message} />;
+      return <ChatMessageComponent key={key} message={message} />;
     }
     return null;
   };

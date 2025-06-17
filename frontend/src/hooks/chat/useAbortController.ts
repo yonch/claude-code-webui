@@ -2,6 +2,14 @@ import { useCallback } from "react";
 import { getAbortUrl } from "../../config/api";
 
 export function useAbortController() {
+  // Helper function to perform abort request
+  const performAbortRequest = useCallback(async (requestId: string) => {
+    await fetch(getAbortUrl(requestId), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+  }, []);
+
   const abortRequest = useCallback(
     async (
       requestId: string | null,
@@ -11,34 +19,26 @@ export function useAbortController() {
       if (!requestId || !isLoading) return;
 
       try {
-        await fetch(getAbortUrl(requestId), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        });
-
-        // Clean up state after successful abort
-        onAbortComplete();
+        await performAbortRequest(requestId);
       } catch (error) {
         console.error("Failed to abort request:", error);
-        // Still clean up on error
+      } finally {
+        // Clean up state after successful abort or error
         onAbortComplete();
       }
     },
-    [],
+    [performAbortRequest],
   );
 
   const createAbortHandler = useCallback(
     (requestId: string) => async () => {
       try {
-        await fetch(getAbortUrl(requestId), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        });
+        await performAbortRequest(requestId);
       } catch (error) {
         console.error("Failed to abort request:", error);
       }
     },
-    [],
+    [performAbortRequest],
   );
 
   return {
