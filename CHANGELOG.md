@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.1.13](https://github.com/sugyan/claude-code-webui/compare/v0.1.12...v0.1.13) - 2025-06-17
+- feat: add abort functionality for streaming responses by @sugyan in https://github.com/sugyan/claude-code-webui/pull/51
+- Add permission handling for tool usage with user dialog by @sugyan in https://github.com/sugyan/claude-code-webui/pull/54
+
 ## [v0.1.12](https://github.com/sugyan/claude-code-webui/compare/v0.1.11...v0.1.12) - 2025-06-15
 - feat: Show 'Claude Code initialized' message only once per session by @sugyan in https://github.com/sugyan/claude-code-webui/pull/42
 - feat: Add timestamps to chat messages by @sugyan in https://github.com/sugyan/claude-code-webui/pull/44
