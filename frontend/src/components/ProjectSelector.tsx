@@ -31,7 +31,9 @@ export function ProjectSelector() {
   };
 
   const handleProjectSelect = (projectPath: string) => {
-    const normalizedPath = projectPath.startsWith("/") ? projectPath : `/${projectPath}`;
+    const normalizedPath = projectPath.startsWith("/")
+      ? projectPath
+      : `/${projectPath}`;
     navigate(`/projects${normalizedPath}`);
   };
 
