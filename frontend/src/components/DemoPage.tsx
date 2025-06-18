@@ -1,222 +1,92 @@
-import { useState, useEffect, useCallback } from "react";
+import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import type { AllMessage, ChatMessage } from "../types";
 import { useTheme } from "../hooks/useTheme";
 import { useChatState } from "../hooks/chat/useChatState";
 import { usePermissions } from "../hooks/chat/usePermissions";
+import { useDemoAutomation } from "../hooks/useDemoAutomation";
 import { ThemeToggle } from "./chat/ThemeToggle";
 import { ChatInput } from "./chat/ChatInput";
 import { ChatMessages } from "./chat/ChatMessages";
 import { PermissionDialog } from "./PermissionDialog";
-import {
-  scenarioToStream,
-  type MockScenarioStep,
-} from "../utils/mockResponseGenerator";
-import type { SDKMessage } from "../types";
+import { DEMO_SCENARIOS } from "../utils/mockResponseGenerator";
 
 export function DemoPage() {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
-  const [demoStep, setDemoStep] = useState(0);
   const isDemo = true;
-  const [demoCompleted, setDemoCompleted] = useState(false);
 
-  // Check for control parameter
+  // Check for control parameter and scenario
   const searchParams = new URLSearchParams(location.search);
   const showControls = searchParams.get("control") === "true";
+  const scenarioParam = searchParams.get(
+    "scenario",
+  ) as keyof typeof DEMO_SCENARIOS;
+  const selectedScenario =
+    scenarioParam && DEMO_SCENARIOS[scenarioParam] ? scenarioParam : "basic";
 
-  const {
-    messages,
-    input,
-    isLoading,
-    currentRequestId,
-    currentAssistantMessage,
-    setInput,
-    setCurrentSessionId,
-    setHasShownInitMessage,
-    setHasReceivedInit,
-    setCurrentAssistantMessage,
-    addMessage,
-    updateLastMessage,
-    generateRequestId,
-    resetRequestState,
-    startRequest,
-  } = useChatState();
+  const { messages, input, isLoading, currentRequestId } = useChatState();
 
+  const { permissionDialog, closePermissionDialog, allowToolPermanent } =
+    usePermissions();
+
+  // Demo automation
   const {
-    permissionDialog,
-    showPermissionDialog,
-    closePermissionDialog,
-    allowToolPermanent,
-  } = usePermissions();
+    currentStep,
+    isCompleted,
+    currentInput,
+    isTyping,
+    startDemo,
+    pauseDemo,
+    resetDemo,
+    resumeDemo,
+    isPaused,
+  } = useDemoAutomation({
+    autoStart: true,
+    typingSpeed: 25,
+    scenarioKey: selectedScenario,
+    onStepComplete: (step) => {
+      console.log(`Demo step ${step} completed`);
+    },
+    onDemoComplete: () => {
+      console.log("Demo completed");
+    },
+  });
 
   // Demo state
   const demoWorkingDirectory = "/Users/demo/claude-code-webui";
 
-  // Process mock stream data
-  const processStreamData = useCallback(
-    (step: MockScenarioStep) => {
-      if (step.type === "permission_error") {
-        const errorData = step.data as {
-          toolName: string;
-          pattern: string;
-          toolUseId: string;
-        };
-        showPermissionDialog(
-          errorData.toolName,
-          errorData.pattern,
-          errorData.toolUseId,
-        );
-        return;
-      }
+  // Get current scenario info for display
+  const currentScenario = DEMO_SCENARIOS[selectedScenario];
+  const scenarioInputText = currentScenario.inputText;
 
-      const sdkMessage = step.data as SDKMessage;
-
-      switch (sdkMessage.type) {
-        case "system": {
-          if (sdkMessage.session_id) {
-            setCurrentSessionId(sdkMessage.session_id);
-          }
-
-          if (!currentAssistantMessage) {
-            const systemMessage: AllMessage = {
-              ...sdkMessage,
-              timestamp: Date.now(),
-            };
-            addMessage(systemMessage);
-            setHasShownInitMessage(true);
-            setHasReceivedInit(true);
-          }
-          break;
-        }
-
-        case "assistant": {
-          if (sdkMessage.session_id) {
-            setCurrentSessionId(sdkMessage.session_id);
-          }
-
-          const assistantMsg = sdkMessage as Extract<
-            SDKMessage,
-            { type: "assistant" }
-          >;
-
-          // Process the assistant message content
-          for (const contentItem of assistantMsg.message.content) {
-            if (contentItem.type === "text") {
-              const textContent = (contentItem as { text: string }).text;
-              const assistantMessage: ChatMessage = {
-                type: "chat",
-                role: "assistant",
-                content: textContent,
-                timestamp: Date.now(),
-              };
-
-              if (currentAssistantMessage) {
-                updateLastMessage(textContent);
-              } else {
-                setCurrentAssistantMessage(assistantMessage);
-                addMessage(assistantMessage);
-              }
-            } else if (contentItem.type === "tool_use") {
-              const toolUse = contentItem as {
-                type: "tool_use";
-                id: string;
-                name: string;
-                input: Record<string, unknown>;
-              };
-
-              const toolMessage: AllMessage = {
-                type: "tool",
-                content: `${toolUse.name}(${JSON.stringify(toolUse.input, null, 2)})`,
-                timestamp: Date.now(),
-              };
-              addMessage(toolMessage);
-            }
-          }
-
-          setCurrentAssistantMessage(null);
-          break;
-        }
-
-        case "result": {
-          if (sdkMessage.session_id) {
-            setCurrentSessionId(sdkMessage.session_id);
-          }
-
-          const resultMessage: AllMessage = {
-            timestamp: Date.now(),
-            ...(sdkMessage as Extract<SDKMessage, { type: "result" }>),
-          };
-          addMessage(resultMessage);
-          break;
-        }
-      }
-    },
-    [
-      addMessage,
-      currentAssistantMessage,
-      setCurrentSessionId,
-      setHasShownInitMessage,
-      setHasReceivedInit,
-      setCurrentAssistantMessage,
-      updateLastMessage,
-      showPermissionDialog,
-    ],
-  );
-
-  // Run demo scenario
+  // Auto-allow permissions for demo after 2 seconds
   useEffect(() => {
-    if (!isDemo || demoCompleted) return;
+    if (permissionDialog && permissionDialog.isOpen) {
+      const timer = setTimeout(() => {
+        const pattern = permissionDialog.pattern;
+        allowToolPermanent(pattern);
+        closePermissionDialog();
+      }, 2000); // Auto-allow after 2 seconds for demo
 
-    const scenario = scenarioToStream("basic");
-
-    if (demoStep >= scenario.length) {
-      setDemoCompleted(true);
-      resetRequestState();
-      return;
+      return () => clearTimeout(timer);
     }
-
-    const currentStep = scenario[demoStep];
-    const timer = setTimeout(() => {
-      processStreamData(currentStep);
-      setDemoStep((prev) => prev + 1);
-    }, currentStep.delay);
-
-    return () => clearTimeout(timer);
-  }, [demoStep, isDemo, demoCompleted, processStreamData, resetRequestState]);
-
-  // Start demo on mount
-  useEffect(() => {
-    if (isDemo && demoStep === 0) {
-      startRequest();
-      generateRequestId();
-    }
-  }, [demoStep, generateRequestId, isDemo, startRequest]);
+  }, [permissionDialog, allowToolPermanent, closePermissionDialog]);
 
   // Permission dialog handlers (for demo)
   const handlePermissionAllow = () => {
     if (!permissionDialog) return;
-
     closePermissionDialog();
-
-    // In demo, simply continue with the current scenario
-    // The main useEffect will handle the next steps automatically
-    // This ensures demoStep stays synchronized
   };
 
   const handlePermissionAllowPermanent = () => {
     if (!permissionDialog) return;
-
     const pattern = permissionDialog.pattern;
     allowToolPermanent(pattern);
     closePermissionDialog();
-
-    // Continue demo as above - the main useEffect handles progression
   };
 
   const handlePermissionDeny = () => {
     closePermissionDialog();
-    // In demo, we could show an error or skip to next scenario
   };
 
   // Fake send message for demo (input is controlled by automation)
@@ -256,16 +126,50 @@ export function DemoPage() {
           <div className="mb-4 p-4 bg-slate-100 dark:bg-slate-800 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600">
             <div className="flex items-center justify-between">
               <div className="text-sm text-slate-600 dark:text-slate-400">
-                Demo Controls - Step: {demoStep} | Completed:{" "}
-                {demoCompleted ? "Yes" : "No"}
+                Demo Controls - Scenario: {selectedScenario} | Step:{" "}
+                {currentStep} | Status:{" "}
+                {isCompleted
+                  ? "Completed"
+                  : isPaused
+                    ? "Paused"
+                    : isTyping
+                      ? "Typing"
+                      : "Running"}
               </div>
               <div className="flex gap-2">
+                {!isCompleted && (
+                  <>
+                    {isPaused ? (
+                      <button
+                        onClick={resumeDemo}
+                        className="px-3 py-1 text-xs bg-green-200 dark:bg-green-700 text-green-700 dark:text-green-300 rounded hover:bg-green-300 dark:hover:bg-green-600"
+                      >
+                        Resume
+                      </button>
+                    ) : (
+                      <button
+                        onClick={pauseDemo}
+                        className="px-3 py-1 text-xs bg-yellow-200 dark:bg-yellow-700 text-yellow-700 dark:text-yellow-300 rounded hover:bg-yellow-300 dark:hover:bg-yellow-600"
+                      >
+                        Pause
+                      </button>
+                    )}
+                  </>
+                )}
                 <button
-                  onClick={() => window.location.reload()}
+                  onClick={resetDemo}
                   className="px-3 py-1 text-xs bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-300 dark:hover:bg-slate-600"
                 >
                   Reset Demo
                 </button>
+                {isCompleted && (
+                  <button
+                    onClick={startDemo}
+                    className="px-3 py-1 text-xs bg-blue-200 dark:bg-blue-700 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-300 dark:hover:bg-blue-600"
+                  >
+                    Restart
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -276,12 +180,14 @@ export function DemoPage() {
 
         {/* Input */}
         <ChatInput
-          input={input}
-          isLoading={isLoading}
+          input={isDemo ? currentInput : input}
+          isLoading={isLoading || isTyping}
           currentRequestId={currentRequestId}
-          onInputChange={setInput}
+          onInputChange={() => {}} // No-op in demo
           onSubmit={handleSendMessage}
           onAbort={() => {}} // No-op in demo
+          placeholder={isTyping ? "Typing..." : `Try: "${scenarioInputText}"`}
+          disabled={isDemo} // Disable input in demo mode
         />
       </div>
 

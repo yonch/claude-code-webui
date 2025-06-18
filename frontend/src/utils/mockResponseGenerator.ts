@@ -138,53 +138,135 @@ export function* generateMockStream(
   yield { type: "done" };
 }
 
+// Demo input scenarios
+export const DEMO_INPUTS = {
+  basic: "Hello! Can you help me understand this project?",
+  fileOperations:
+    "Can you read the main App.tsx file and explain what it does?",
+  codeAnalysis:
+    "Please analyze the frontend code structure and suggest improvements",
+  debugging:
+    "I'm getting a TypeScript error in my component, can you help debug it?",
+} as const;
+
 // Predefined demo scenarios
 export const DEMO_SCENARIOS = {
   basic: {
     sessionId: "demo-session-basic",
+    inputText: DEMO_INPUTS.basic,
     steps: [
       {
         type: "system" as const,
-        delay: 500,
+        delay: 800,
         data: createSystemMessage("demo-session-basic"),
       },
       {
         type: "assistant" as const,
-        delay: 1000,
+        delay: 1500,
         data: createAssistantMessage(
-          "Hello! I'm Claude, your AI assistant. I can help you with coding, file operations, and much more. What would you like to work on today?",
+          "Hello! I'm Claude, your AI assistant. I can help you with coding, file operations, and much more. I can see this is a Claude Code Web UI project - a React frontend with a Deno backend. What specific aspect would you like me to help you understand?",
           "demo-session-basic",
         ),
       },
       {
         type: "result" as const,
-        delay: 500,
-        data: createResultMessage("demo-session-basic", 25, 45),
+        delay: 600,
+        data: createResultMessage("demo-session-basic", 35, 65),
       },
     ],
   },
   fileOperations: {
     sessionId: "demo-session-files",
+    inputText: DEMO_INPUTS.fileOperations,
     steps: [
       {
         type: "system" as const,
-        delay: 500,
+        delay: 600,
         data: createSystemMessage("demo-session-files"),
       },
       {
         type: "assistant" as const,
-        delay: 1200,
+        delay: 1800,
         data: createToolUseMessage(
           "Read",
-          { file_path: "/Users/demo/project/src/App.tsx" },
+          { file_path: "/Users/demo/claude-code-webui/frontend/src/App.tsx" },
           "demo-session-files",
           "read-app-tsx",
         ),
       },
       {
         type: "permission_error" as const,
+        delay: 1000,
+        data: {
+          toolName: "Read",
+          pattern: "**/*.tsx",
+          toolUseId: "read-app-tsx",
+        },
+      },
+      {
+        type: "assistant" as const,
+        delay: 2000,
+        data: createAssistantMessage(
+          "I can see this is the main App.tsx file for the Claude Code Web UI project. It's a React application that uses React Router for navigation between a project selector page and the main chat interface. The app includes theme management with light/dark mode support, and provides a web-based interface for interacting with the Claude CLI tool. The routing system allows users to first select a working directory, then engage in conversations with Claude within that project context.",
+          "demo-session-files",
+        ),
+      },
+      {
+        type: "result" as const,
         delay: 800,
-        data: { toolName: "Read", pattern: "Read", toolUseId: "read-app-tsx" },
+        data: createResultMessage("demo-session-files", 45, 120),
+      },
+    ],
+  },
+  codeAnalysis: {
+    sessionId: "demo-session-analysis",
+    inputText: DEMO_INPUTS.codeAnalysis,
+    steps: [
+      {
+        type: "system" as const,
+        delay: 700,
+        data: createSystemMessage("demo-session-analysis"),
+      },
+      {
+        type: "assistant" as const,
+        delay: 1600,
+        data: createToolUseMessage(
+          "Bash",
+          {
+            command:
+              "find frontend/src -name '*.tsx' -o -name '*.ts' | head -10",
+          },
+          "demo-session-analysis",
+          "find-files",
+        ),
+      },
+      {
+        type: "permission_error" as const,
+        delay: 900,
+        data: { toolName: "Bash", pattern: "find", toolUseId: "find-files" },
+      },
+      {
+        type: "assistant" as const,
+        delay: 2200,
+        data: createToolUseMessage(
+          "Read",
+          { file_path: "/Users/demo/claude-code-webui/frontend/src" },
+          "demo-session-analysis",
+          "read-src-dir",
+        ),
+      },
+      {
+        type: "assistant" as const,
+        delay: 1800,
+        data: createAssistantMessage(
+          "Based on my analysis of the frontend code structure, here are some observations and suggestions:\n\n**Strengths:**\n- Well-organized modular architecture with clear separation of concerns\n- Proper TypeScript usage throughout\n- Good hook composition pattern\n- Comprehensive component testing setup\n\n**Suggestions for improvement:**\n- Consider implementing lazy loading for better performance\n- Add error boundaries for better error handling\n- Implement proper loading states for better UX\n- Consider adding more comprehensive error logging",
+          "demo-session-analysis",
+        ),
+      },
+      {
+        type: "result" as const,
+        delay: 900,
+        data: createResultMessage("demo-session-analysis", 55, 180),
       },
     ],
   },
