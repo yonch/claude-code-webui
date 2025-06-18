@@ -18,7 +18,7 @@ export function DemoPage() {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   const [demoStep, setDemoStep] = useState(0);
-  const [isDemo] = useState(true);
+  const isDemo = true;
   const [demoCompleted, setDemoCompleted] = useState(false);
 
   // Check for control parameter
@@ -199,21 +199,9 @@ export function DemoPage() {
 
     closePermissionDialog();
 
-    // In demo, continue with next steps after permission is granted
-    const scenario = scenarioToStream("fileOperations");
-    const remainingSteps = scenario.slice(demoStep);
-
-    // Continue processing steps after permission
-    remainingSteps.forEach((step, index) => {
-      if (step.type !== "permission_error") {
-        setTimeout(
-          () => {
-            processStreamData(step);
-          },
-          (index + 1) * 1000,
-        );
-      }
-    });
+    // In demo, simply continue with the current scenario
+    // The main useEffect will handle the next steps automatically
+    // This ensures demoStep stays synchronized
   };
 
   const handlePermissionAllowPermanent = () => {
@@ -223,8 +211,7 @@ export function DemoPage() {
     allowToolPermanent(pattern);
     closePermissionDialog();
 
-    // Continue demo as above
-    handlePermissionAllow();
+    // Continue demo as above - the main useEffect handles progression
   };
 
   const handlePermissionDeny = () => {
