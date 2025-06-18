@@ -31,7 +31,8 @@ export function ProjectSelector() {
   };
 
   const handleProjectSelect = (projectPath: string) => {
-    navigate(`/projects${projectPath}`);
+    const normalizedPath = projectPath.startsWith("/") ? projectPath : `/${projectPath}`;
+    navigate(`/projects${normalizedPath}`);
   };
 
   const handleNewDirectory = async () => {
