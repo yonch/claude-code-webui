@@ -322,6 +322,28 @@ export function useDemoAutomation(
   ]);
 
   // Demo control functions
+  const resetDemo = useCallback(() => {
+    setCurrentStep(0);
+    setIsCompleted(false);
+    setIsPaused(false);
+    setCurrentInput("");
+    setIsTyping(false);
+    setInput("");
+
+    // Clear all timeouts
+    if (stepTimeoutRef.current) {
+      clearTimeout(stepTimeoutRef.current);
+    }
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    if (typingIntervalRef.current) {
+      clearTimeout(typingIntervalRef.current);
+    }
+
+    resetRequestState();
+  }, [setInput, resetRequestState]);
+
   const startDemo = useCallback(() => {
     if (isCompleted) {
       // Reset demo if completed
@@ -348,28 +370,6 @@ export function useDemoAutomation(
   const resumeDemo = useCallback(() => {
     setIsPaused(false);
   }, []);
-
-  const resetDemo = useCallback(() => {
-    setCurrentStep(0);
-    setIsCompleted(false);
-    setIsPaused(false);
-    setCurrentInput("");
-    setIsTyping(false);
-    setInput("");
-
-    // Clear all timeouts
-    if (stepTimeoutRef.current) {
-      clearTimeout(stepTimeoutRef.current);
-    }
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-    if (typingIntervalRef.current) {
-      clearTimeout(typingIntervalRef.current);
-    }
-
-    resetRequestState();
-  }, [setInput, resetRequestState]);
 
   // Cleanup on unmount
   useEffect(() => {
