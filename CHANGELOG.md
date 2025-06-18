@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.1.14](https://github.com/sugyan/claude-code-webui/compare/v0.1.13...v0.1.14) - 2025-06-18
+- Refactor frontend with modular architecture for improved maintainability by @sugyan in https://github.com/sugyan/claude-code-webui/pull/56
+- Add project directory selection feature by @sugyan in https://github.com/sugyan/claude-code-webui/pull/59
+
 ## [v0.1.13](https://github.com/sugyan/claude-code-webui/compare/v0.1.12...v0.1.13) - 2025-06-17
 - feat: add abort functionality for streaming responses by @sugyan in https://github.com/sugyan/claude-code-webui/pull/51
 - Add permission handling for tool usage with user dialog by @sugyan in https://github.com/sugyan/claude-code-webui/pull/54
