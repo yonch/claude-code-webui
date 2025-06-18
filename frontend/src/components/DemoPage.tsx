@@ -55,10 +55,6 @@ export function DemoPage() {
   // Demo state
   const demoWorkingDirectory = "/Users/demo/claude-code-webui";
 
-  // Get current scenario info for display
-  const currentScenario = DEMO_SCENARIOS[selectedScenario];
-  const scenarioInputText = currentScenario.inputText;
-
   // Auto-allow permissions for demo after 2 seconds
   useEffect(() => {
     if (permissionDialog && permissionDialog.isOpen) {
@@ -186,8 +182,8 @@ export function DemoPage() {
           onInputChange={() => {}} // No-op in demo
           onSubmit={handleSendMessage}
           onAbort={() => {}} // No-op in demo
-          placeholder={isTyping ? "Typing..." : `Try: "${scenarioInputText}"`}
-          disabled={isDemo} // Disable input in demo mode
+          placeholder={isTyping ? "Typing..." : undefined}
+          disabled={false} // Don't disable for demo - let it stay focused for cursor effect
         />
       </div>
 

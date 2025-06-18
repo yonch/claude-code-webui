@@ -25,12 +25,12 @@ export function ChatInput({
 }: ChatInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Focus input when not loading
+  // Focus input when not loading (allow focus even when disabled for demo effect)
   useEffect(() => {
     if (!isLoading && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [isLoading]);
+  }, [isLoading, disabled]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -74,7 +74,7 @@ export function ChatInput({
           }
           rows={1}
           className={`w-full px-4 py-3 pr-32 bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm shadow-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none overflow-hidden min-h-[48px] max-h-[${UI_CONSTANTS.TEXTAREA_MAX_HEIGHT}px]`}
-          disabled={isLoading || disabled}
+          disabled={isLoading}
         />
         <div className="absolute right-2 bottom-3 flex gap-2">
           {isLoading && currentRequestId && (
@@ -89,7 +89,7 @@ export function ChatInput({
           )}
           <button
             type="submit"
-            disabled={!input.trim() || isLoading || disabled}
+            disabled={!input.trim() || isLoading}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 text-sm"
           >
             {isLoading ? "..." : "Send"}

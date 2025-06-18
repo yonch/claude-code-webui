@@ -29,8 +29,8 @@ interface DemoAutomationOptions {
   onDemoComplete?: () => void;
 }
 
-const DEFAULT_TYPING_SPEED = 25; // characters per second
-const REALISTIC_TYPING_VARIANCE = 0.3; // 30% variance in typing speed
+const DEFAULT_TYPING_SPEED = 30; // characters per second
+const REALISTIC_TYPING_VARIANCE = 0.15; // 15% variance in typing speed (reduced for smoother effect)
 
 export function useDemoAutomation(
   options: DemoAutomationOptions = {},
@@ -101,8 +101,8 @@ export function useDemoAutomation(
           const delay = Math.max(50, baseDelay + randomVariance);
 
           // Add occasional longer pauses for more realistic typing
-          const shouldPause = Math.random() < 0.05; // 5% chance of pause
-          const pauseDelay = shouldPause ? Math.random() * 300 + 200 : 0;
+          const shouldPause = Math.random() < 0.02; // 2% chance of pause (reduced)
+          const pauseDelay = shouldPause ? Math.random() * 200 + 100 : 0;
 
           typingIntervalRef.current = setTimeout(
             typeNextCharacter,
