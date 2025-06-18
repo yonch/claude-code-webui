@@ -21,7 +21,7 @@
     "react-router-dom": "^7.6.2"
   },
   "devDependencies": {
-    "@anthropic-ai/claude-code": "^1.0.24",
+    "@anthropic-ai/claude-code": "^1.0.27",
     "@eslint/js": "^9.25.0",
     "@tailwindcss/vite": "^4.1.8",
     "@testing-library/jest-dom": "^6.6.3",
