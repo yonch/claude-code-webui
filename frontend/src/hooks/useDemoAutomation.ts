@@ -232,11 +232,26 @@ export function useDemoAutomation(
 
   // Execute next demo step
   const executeNextStep = useCallback(() => {
-    if (isPaused || isCompleted || currentStep >= scenario.length) {
+    console.log("executeNextStep called:", {
+      currentStep,
+      scenario: scenario.length,
+      isPaused,
+      isCompleted,
+    });
+    if (
+      isPaused ||
+      isCompleted ||
+      currentStep === 0 ||
+      currentStep > scenario.length
+    ) {
+      console.log("executeNextStep early return");
       return;
     }
 
-    const step = scenario[currentStep];
+    // Convert step number to array index (step 1 = index 0)
+    const stepIndex = currentStep - 1;
+    const step = scenario[stepIndex];
+    console.log("Executing step:", stepIndex, step);
 
     // Clear any existing timeouts
     if (stepTimeoutRef.current) {
@@ -251,7 +266,7 @@ export function useDemoAutomation(
 
       onStepComplete?.(nextStep);
 
-      if (nextStep >= scenario.length) {
+      if (nextStep > scenario.length) {
         setIsCompleted(true);
         resetRequestState();
         onDemoComplete?.();
@@ -270,7 +285,12 @@ export function useDemoAutomation(
 
   // Demo execution effect
   useEffect(() => {
-    if (!isCompleted && !isPaused && currentStep < scenario.length) {
+    if (
+      !isCompleted &&
+      !isPaused &&
+      currentStep > 0 &&
+      currentStep <= scenario.length
+    ) {
       executeNextStep();
     }
 
@@ -283,13 +303,22 @@ export function useDemoAutomation(
 
   // Auto-start effect with typing animation
   useEffect(() => {
+    console.log("Auto-start effect:", {
+      autoStart,
+      currentStep,
+      isCompleted,
+      isPaused,
+      scenarioKey,
+    });
     if (autoStart && currentStep === 0 && !isCompleted && !isPaused) {
       // First, simulate typing the input
       const inputText = DEMO_SCENARIOS[scenarioKey].inputText;
+      console.log("Starting demo with input:", inputText);
 
       // Start typing after a short delay
       const typingTimer = setTimeout(() => {
         typeText(inputText, () => {
+          console.log("Typing completed, adding user message");
           // Add the user message to chat
           const userMessage: ChatMessage = {
             type: "chat",
@@ -301,8 +330,11 @@ export function useDemoAutomation(
 
           // After typing is complete, wait a bit then start the demo
           setTimeout(() => {
+            console.log("Starting demo execution");
             startRequest();
             generateRequestId();
+            // Move to step 1 to begin scenario execution
+            setCurrentStep(1);
           }, 1000);
         });
       }, 1000);
