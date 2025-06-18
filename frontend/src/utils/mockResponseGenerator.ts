@@ -117,7 +117,11 @@ export function* generateMockStream(
   for (const step of steps) {
     if (step.type === "permission_error") {
       // This would trigger permission dialog in real app
-      const errorData = step.data as { toolName: string; pattern: string; toolUseId: string };
+      const errorData = step.data as {
+        toolName: string;
+        pattern: string;
+        toolUseId: string;
+      };
       yield {
         type: "error",
         error: `Permission required for tool: ${errorData.toolName}`,
@@ -187,6 +191,8 @@ export const DEMO_SCENARIOS = {
 } as const;
 
 // Helper to convert scenario to stream responses
-export function scenarioToStream(scenarioKey: keyof typeof DEMO_SCENARIOS): MockScenarioStep[] {
+export function scenarioToStream(
+  scenarioKey: keyof typeof DEMO_SCENARIOS,
+): MockScenarioStep[] {
   return [...DEMO_SCENARIOS[scenarioKey].steps];
 }

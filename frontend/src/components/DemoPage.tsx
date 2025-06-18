@@ -54,99 +54,122 @@ export function DemoPage() {
   const demoWorkingDirectory = "/Users/demo/claude-code-webui";
 
   // Process mock stream data
-  const processStreamData = useCallback((step: MockScenarioStep) => {
-    if (step.type === "permission_error") {
-      const errorData = step.data as { toolName: string; pattern: string; toolUseId: string };
-      showPermissionDialog(errorData.toolName, errorData.pattern, errorData.toolUseId);
-      return;
-    }
-
-    const sdkMessage = step.data as SDKMessage;
-
-    switch (sdkMessage.type) {
-      case "system": {
-        if (sdkMessage.session_id) {
-          setCurrentSessionId(sdkMessage.session_id);
-        }
-        
-        if (!currentAssistantMessage) {
-          const systemMessage: AllMessage = {
-            ...sdkMessage,
-            timestamp: Date.now(),
-          };
-          addMessage(systemMessage);
-          setHasShownInitMessage(true);
-          setHasReceivedInit(true);
-        }
-        break;
-      }
-
-      case "assistant": {
-        if (sdkMessage.session_id) {
-          setCurrentSessionId(sdkMessage.session_id);
-        }
-
-        const assistantMsg = sdkMessage as Extract<SDKMessage, { type: "assistant" }>;
-        
-        // Process the assistant message content
-        for (const contentItem of assistantMsg.message.content) {
-          if (contentItem.type === "text") {
-            const textContent = (contentItem as { text: string }).text;
-            const assistantMessage: ChatMessage = {
-              type: "chat",
-              role: "assistant",
-              content: textContent,
-              timestamp: Date.now(),
-            };
-            
-            if (currentAssistantMessage) {
-              updateLastMessage(textContent);
-            } else {
-              setCurrentAssistantMessage(assistantMessage);
-              addMessage(assistantMessage);
-            }
-          } else if (contentItem.type === "tool_use") {
-            const toolUse = contentItem as {
-              type: "tool_use";
-              id: string;
-              name: string;
-              input: Record<string, unknown>;
-            };
-            
-            const toolMessage: AllMessage = {
-              type: "tool",
-              content: `${toolUse.name}(${JSON.stringify(toolUse.input, null, 2)})`,
-              timestamp: Date.now(),
-            };
-            addMessage(toolMessage);
-          }
-        }
-        
-        setCurrentAssistantMessage(null);
-        break;
-      }
-
-      case "result": {
-        if (sdkMessage.session_id) {
-          setCurrentSessionId(sdkMessage.session_id);
-        }
-
-        const resultMessage: AllMessage = {
-          timestamp: Date.now(),
-          ...(sdkMessage as Extract<SDKMessage, { type: "result" }>),
+  const processStreamData = useCallback(
+    (step: MockScenarioStep) => {
+      if (step.type === "permission_error") {
+        const errorData = step.data as {
+          toolName: string;
+          pattern: string;
+          toolUseId: string;
         };
-        addMessage(resultMessage);
-        break;
+        showPermissionDialog(
+          errorData.toolName,
+          errorData.pattern,
+          errorData.toolUseId,
+        );
+        return;
       }
-    }
-  }, [addMessage, currentAssistantMessage, setCurrentSessionId, setHasShownInitMessage, setHasReceivedInit, setCurrentAssistantMessage, updateLastMessage, showPermissionDialog]);
+
+      const sdkMessage = step.data as SDKMessage;
+
+      switch (sdkMessage.type) {
+        case "system": {
+          if (sdkMessage.session_id) {
+            setCurrentSessionId(sdkMessage.session_id);
+          }
+
+          if (!currentAssistantMessage) {
+            const systemMessage: AllMessage = {
+              ...sdkMessage,
+              timestamp: Date.now(),
+            };
+            addMessage(systemMessage);
+            setHasShownInitMessage(true);
+            setHasReceivedInit(true);
+          }
+          break;
+        }
+
+        case "assistant": {
+          if (sdkMessage.session_id) {
+            setCurrentSessionId(sdkMessage.session_id);
+          }
+
+          const assistantMsg = sdkMessage as Extract<
+            SDKMessage,
+            { type: "assistant" }
+          >;
+
+          // Process the assistant message content
+          for (const contentItem of assistantMsg.message.content) {
+            if (contentItem.type === "text") {
+              const textContent = (contentItem as { text: string }).text;
+              const assistantMessage: ChatMessage = {
+                type: "chat",
+                role: "assistant",
+                content: textContent,
+                timestamp: Date.now(),
+              };
+
+              if (currentAssistantMessage) {
+                updateLastMessage(textContent);
+              } else {
+                setCurrentAssistantMessage(assistantMessage);
+                addMessage(assistantMessage);
+              }
+            } else if (contentItem.type === "tool_use") {
+              const toolUse = contentItem as {
+                type: "tool_use";
+                id: string;
+                name: string;
+                input: Record<string, unknown>;
+              };
+
+              const toolMessage: AllMessage = {
+                type: "tool",
+                content: `${toolUse.name}(${JSON.stringify(toolUse.input, null, 2)})`,
+                timestamp: Date.now(),
+              };
+              addMessage(toolMessage);
+            }
+          }
+
+          setCurrentAssistantMessage(null);
+          break;
+        }
+
+        case "result": {
+          if (sdkMessage.session_id) {
+            setCurrentSessionId(sdkMessage.session_id);
+          }
+
+          const resultMessage: AllMessage = {
+            timestamp: Date.now(),
+            ...(sdkMessage as Extract<SDKMessage, { type: "result" }>),
+          };
+          addMessage(resultMessage);
+          break;
+        }
+      }
+    },
+    [
+      addMessage,
+      currentAssistantMessage,
+      setCurrentSessionId,
+      setHasShownInitMessage,
+      setHasReceivedInit,
+      setCurrentAssistantMessage,
+      updateLastMessage,
+      showPermissionDialog,
+    ],
+  );
 
   // Run demo scenario
   useEffect(() => {
     if (!isDemo || demoCompleted) return;
 
     const scenario = scenarioToStream("basic");
-    
+
     if (demoStep >= scenario.length) {
       setDemoCompleted(true);
       resetRequestState();
@@ -156,7 +179,7 @@ export function DemoPage() {
     const currentStep = scenario[demoStep];
     const timer = setTimeout(() => {
       processStreamData(currentStep);
-      setDemoStep(prev => prev + 1);
+      setDemoStep((prev) => prev + 1);
     }, currentStep.delay);
 
     return () => clearTimeout(timer);
@@ -173,30 +196,33 @@ export function DemoPage() {
   // Permission dialog handlers (for demo)
   const handlePermissionAllow = () => {
     if (!permissionDialog) return;
-    
+
     closePermissionDialog();
-    
+
     // In demo, continue with next steps after permission is granted
     const scenario = scenarioToStream("fileOperations");
     const remainingSteps = scenario.slice(demoStep);
-    
+
     // Continue processing steps after permission
     remainingSteps.forEach((step, index) => {
       if (step.type !== "permission_error") {
-        setTimeout(() => {
-          processStreamData(step);
-        }, (index + 1) * 1000);
+        setTimeout(
+          () => {
+            processStreamData(step);
+          },
+          (index + 1) * 1000,
+        );
       }
     });
   };
 
   const handlePermissionAllowPermanent = () => {
     if (!permissionDialog) return;
-    
+
     const pattern = permissionDialog.pattern;
     allowToolPermanent(pattern);
     closePermissionDialog();
-    
+
     // Continue demo as above
     handlePermissionAllow();
   };
@@ -213,7 +239,7 @@ export function DemoPage() {
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300"
       data-demo-active={isDemo}
       data-demo-completed={demoCompleted}
@@ -243,7 +269,8 @@ export function DemoPage() {
           <div className="mb-4 p-4 bg-slate-100 dark:bg-slate-800 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600">
             <div className="flex items-center justify-between">
               <div className="text-sm text-slate-600 dark:text-slate-400">
-                Demo Controls - Step: {demoStep} | Completed: {demoCompleted ? "Yes" : "No"}
+                Demo Controls - Step: {demoStep} | Completed:{" "}
+                {demoCompleted ? "Yes" : "No"}
               </div>
               <div className="flex gap-2">
                 <button
