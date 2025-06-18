@@ -177,13 +177,13 @@ export function DemoPage() {
         {/* Input */}
         <ChatInput
           input={isDemo ? currentInput : input}
-          isLoading={isLoading || isTyping}
+          isLoading={isLoading} // Don't include isTyping here - keep input enabled during typing
           currentRequestId={currentRequestId}
           onInputChange={() => {}} // No-op in demo
           onSubmit={handleSendMessage}
           onAbort={() => {}} // No-op in demo
           placeholder={isTyping ? "Typing..." : undefined}
-          disabled={false} // Don't disable for demo - let it stay focused for cursor effect
+          readOnly={isDemo} // Read-only for demo - maintains focus but blocks user input
         />
       </div>
 
