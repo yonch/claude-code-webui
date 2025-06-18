@@ -24,7 +24,19 @@ export function DemoPage() {
   const selectedScenario =
     scenarioParam && DEMO_SCENARIOS[scenarioParam] ? scenarioParam : "basic";
 
-  const { messages, input, isLoading, currentRequestId } = useChatState();
+  const {
+    messages,
+    input,
+    isLoading,
+    currentRequestId,
+    addMessage,
+    setInput: setChatInput,
+  } = useChatState();
+
+  // Debug: Log messages array changes
+  useEffect(() => {
+    console.log("DemoPage messages updated:", messages.length, messages);
+  }, [messages]);
 
   const { permissionDialog, closePermissionDialog, allowToolPermanent } =
     usePermissions();
@@ -50,6 +62,9 @@ export function DemoPage() {
     onDemoComplete: () => {
       console.log("Demo completed");
     },
+    // Pass message handling functions from DemoPage
+    addMessage: addMessage,
+    setInput: setChatInput,
   });
 
   // Demo state

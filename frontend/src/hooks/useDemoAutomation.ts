@@ -27,6 +27,8 @@ interface DemoAutomationOptions {
   scenarioKey?: keyof typeof DEMO_SCENARIOS;
   onStepComplete?: (step: number) => void;
   onDemoComplete?: () => void;
+  addMessage?: (message: AllMessage | ChatMessage) => void;
+  setInput?: (input: string) => void;
 }
 
 const DEFAULT_TYPING_SPEED = 30; // characters per second
@@ -41,6 +43,8 @@ export function useDemoAutomation(
     scenarioKey = "basic",
     onStepComplete,
     onDemoComplete,
+    addMessage: externalAddMessage,
+    setInput: externalSetInput,
   } = options;
 
   // State
@@ -55,7 +59,8 @@ export function useDemoAutomation(
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Chat state
+  // Chat state (fallback if not provided externally)
+  const chatState = useChatState();
   const {
     setInput,
     setCurrentSessionId,
@@ -68,7 +73,11 @@ export function useDemoAutomation(
     resetRequestState,
     startRequest,
     currentAssistantMessage,
-  } = useChatState();
+  } = chatState;
+
+  // Use external functions if provided, otherwise use internal ones
+  const finalAddMessage = externalAddMessage || addMessage;
+  const finalSetInput = externalSetInput || setInput;
 
   // Permissions
   const { showPermissionDialog } = usePermissions();
@@ -91,7 +100,7 @@ export function useDemoAutomation(
       const typeNextCharacter = () => {
         if (currentIndex < text.length) {
           setCurrentInput(text.slice(0, currentIndex + 1));
-          setInput(text.slice(0, currentIndex + 1));
+          finalSetInput(text.slice(0, currentIndex + 1));
           currentIndex++;
 
           // Calculate realistic delay with variance
@@ -116,7 +125,7 @@ export function useDemoAutomation(
 
       typeNextCharacter();
     },
-    [typingSpeed, setInput],
+    [typingSpeed, finalSetInput],
   );
 
   // Process stream data
@@ -155,7 +164,7 @@ export function useDemoAutomation(
               timestamp: Date.now(),
             };
             console.log("Adding system message:", systemMessage);
-            addMessage(systemMessage);
+            finalAddMessage(systemMessage);
             setHasShownInitMessage(true);
             setHasReceivedInit(true);
           }
@@ -195,7 +204,7 @@ export function useDemoAutomation(
               } else {
                 console.log("Adding new assistant message:", assistantMessage);
                 setCurrentAssistantMessage(assistantMessage);
-                addMessage(assistantMessage);
+                finalAddMessage(assistantMessage);
               }
             } else if (contentItem.type === "tool_use") {
               const toolUse = contentItem as {
@@ -210,7 +219,7 @@ export function useDemoAutomation(
                 content: `${toolUse.name}(${JSON.stringify(toolUse.input, null, 2)})`,
                 timestamp: Date.now(),
               };
-              addMessage(toolMessage);
+              finalAddMessage(toolMessage);
             }
           }
 
@@ -227,7 +236,7 @@ export function useDemoAutomation(
             timestamp: Date.now(),
             ...(sdkMessage as Extract<SDKMessage, { type: "result" }>),
           };
-          addMessage(resultMessage);
+          finalAddMessage(resultMessage);
           break;
         }
       }
@@ -241,6 +250,7 @@ export function useDemoAutomation(
       setCurrentAssistantMessage,
       updateLastMessage,
       showPermissionDialog,
+      finalAddMessage,
     ],
   );
 
@@ -340,7 +350,7 @@ export function useDemoAutomation(
             content: inputText,
             timestamp: Date.now(),
           };
-          addMessage(userMessage);
+          finalAddMessage(userMessage);
 
           // After typing is complete, wait a bit then start the demo
           setTimeout(() => {
@@ -348,7 +358,7 @@ export function useDemoAutomation(
             startRequest();
             generateRequestId();
             // Clear the input for clean demo UI
-            setInput("");
+            finalSetInput("");
             setCurrentInput("");
             // Move to step 1 to begin scenario execution
             setCurrentStep(1);
@@ -367,8 +377,8 @@ export function useDemoAutomation(
     generateRequestId,
     scenarioKey,
     typeText,
-    addMessage,
-    setInput,
+    finalAddMessage,
+    finalSetInput,
   ]);
 
   // Demo control functions
@@ -378,7 +388,7 @@ export function useDemoAutomation(
     setIsPaused(false);
     setCurrentInput("");
     setIsTyping(false);
-    setInput("");
+    finalSetInput("");
 
     // Clear all timeouts
     if (stepTimeoutRef.current) {
@@ -392,7 +402,7 @@ export function useDemoAutomation(
     }
 
     resetRequestState();
-  }, [setInput, resetRequestState]);
+  }, [finalSetInput, resetRequestState]);
 
   const startDemo = useCallback(() => {
     if (isCompleted) {
