@@ -26,11 +26,14 @@ This project consists of three main components:
 
 **API Endpoints**:
 
+- `GET /api/projects` - Retrieves list of available project directories
+  - Response: `{ projects: string[] }` - Array of project directory paths from Claude configuration
 - `POST /api/chat` - Accepts chat messages and returns streaming responses
-  - Request body: `{ message: string, sessionId?: string, requestId: string, allowedTools?: string[] }`
+  - Request body: `{ message: string, sessionId?: string, requestId: string, allowedTools?: string[], workingDirectory?: string }`
   - `requestId` is required for request tracking and abort functionality
   - Optional `sessionId` enables conversation continuity within the same chat session
   - Optional `allowedTools` array restricts which tools Claude can use
+  - Optional `workingDirectory` specifies the project directory for Claude execution
 - `POST /api/abort/:requestId` - Aborts an ongoing request by request ID
 - `/*` - Serves static frontend files (in single binary mode)
 
@@ -38,11 +41,13 @@ This project consists of three main components:
 
 - **Location**: `frontend/`
 - **Port**: 3000
-- **Technology**: Vite + React + SWC + TypeScript + TailwindCSS
-- **Purpose**: Provides chat interface and handles streaming responses
+- **Technology**: Vite + React + SWC + TypeScript + TailwindCSS + React Router
+- **Purpose**: Provides project selection and chat interface with streaming responses
 
 **Key Features**:
 
+- **Project Directory Selection**: Choose working directory before starting chat sessions
+- **Routing System**: Separate pages for project selection and chat interface
 - Real-time streaming response display with modular message processing
 - Parses different Claude JSON message types (system, assistant, result, tool messages)
 - TailwindCSS utility-first styling for responsive design
@@ -72,8 +77,11 @@ This project consists of three main components:
   - `sessionId?: string` - Optional session ID for conversation continuity
   - `requestId: string` - Required unique identifier for request tracking and abort functionality
   - `allowedTools?: string[]` - Optional array to restrict which tools Claude can use
+  - `workingDirectory?: string` - Optional project directory path for Claude execution
 - `AbortRequest` - Request structure for aborting ongoing operations
   - `requestId: string` - ID of the request to abort
+- `ProjectsResponse` - Response structure for project directory list
+  - `projects: string[]` - Array of available project directory paths
 
 **Note**: Enhanced message types (`ChatMessage`, `SystemMessage`, `ToolMessage`, `ToolResultMessage`, etc.) are defined in `frontend/src/types.ts` for comprehensive frontend message handling.
 
@@ -153,7 +161,7 @@ The application supports conversation continuity within the same chat session us
 │   └── args.ts       # CLI argument parsing
 ├── frontend/         # React frontend application
 │   ├── src/
-│   │   ├── App.tsx   # Main application component (refactored)
+│   │   ├── App.tsx   # Main application component with routing
 │   │   ├── main.tsx  # Application entry point
 │   │   ├── types.ts  # Frontend-specific type definitions
 │   │   ├── config/
@@ -175,6 +183,8 @@ The application supports conversation continuity within the same chat session us
 │   │   │       ├── useToolHandling.ts     # Tool-specific message handling
 │   │   │       └── useStreamParser.ts     # Stream parsing and routing
 │   │   ├── components/
+│   │   │   ├── ChatPage.tsx           # Main chat interface page
+│   │   │   ├── ProjectSelector.tsx    # Project directory selection page
 │   │   │   ├── MessageComponents.tsx  # Message display components (refactored)
 │   │   │   ├── PermissionDialog.tsx   # Permission handling dialog
 │   │   │   ├── TimestampComponent.tsx # Timestamp display
@@ -204,23 +214,27 @@ The application supports conversation continuity within the same chat session us
 
 5. **Theme System**: Light/dark theme toggle with automatic system preference detection and localStorage persistence.
 
-6. **Project Root Execution**: Claude commands execute from project root to have full access to project files.
+6. **Project Directory Selection**: Users choose working directory before starting chat sessions, with support for both configured projects and custom directory selection.
 
-7. **Request Management**: Unique request IDs enable request tracking and abort functionality for better user control.
+7. **Routing Architecture**: React Router separates project selection and chat interfaces for better user experience.
 
-8. **Tool Permission Handling**: Frontend permission dialog allows users to grant/deny tool access with proper state management.
+8. **Dynamic Working Directory**: Claude commands execute in user-selected project directories for contextual file access.
 
-9. **Comprehensive Error Handling**: Enhanced error states and user feedback for better debugging and user experience.
+9. **Request Management**: Unique request IDs enable request tracking and abort functionality for better user control.
 
-10. **Modular Architecture**: Frontend code is organized into specialized hooks and components for better maintainability and testability.
+10. **Tool Permission Handling**: Frontend permission dialog allows users to grant/deny tool access with proper state management.
 
-11. **Separation of Concerns**: Business logic, UI components, and utilities are clearly separated into different modules.
+11. **Comprehensive Error Handling**: Enhanced error states and user feedback for better debugging and user experience.
 
-12. **Configuration Management**: Centralized configuration for API endpoints and application constants.
+12. **Modular Architecture**: Frontend code is organized into specialized hooks and components for better maintainability and testability.
 
-13. **Reusable Components**: Common UI patterns are extracted into reusable components to reduce duplication.
+13. **Separation of Concerns**: Business logic, UI components, and utilities are clearly separated into different modules.
 
-14. **Hook Composition**: Complex functionality is built by composing smaller, focused hooks that each handle a specific concern.
+14. **Configuration Management**: Centralized configuration for API endpoints and application constants.
+
+15. **Reusable Components**: Common UI patterns are extracted into reusable components to reduce duplication.
+
+16. **Hook Composition**: Complex functionality is built by composing smaller, focused hooks that each handle a specific concern.
 
 ## Frontend Architecture Benefits
 

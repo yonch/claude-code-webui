@@ -83,7 +83,11 @@ export function isToolResultMessage(
 }
 
 // Re-export shared types
-export type { StreamResponse, ChatRequest } from "../../shared/types";
+export type {
+  StreamResponse,
+  ChatRequest,
+  ProjectsResponse,
+} from "../../shared/types";
 
 // Re-export SDK types
 export type {
