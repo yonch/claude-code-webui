@@ -236,6 +236,36 @@ The application supports conversation continuity within the same chat session us
 
 16. **Hook Composition**: Complex functionality is built by composing smaller, focused hooks that each handle a specific concern.
 
+## Claude Code SDK Types Reference
+
+**SDK Types**: `frontend/node_modules/@anthropic-ai/claude-code/sdk.d.ts`
+
+### Common Patterns
+```typescript
+// Type extraction
+const systemMsg = sdkMessage as Extract<SDKMessage, { type: "system" }>;
+const assistantMsg = sdkMessage as Extract<SDKMessage, { type: "assistant" }>;
+const resultMsg = sdkMessage as Extract<SDKMessage, { type: "result" }>;
+
+// Assistant content access (nested structure!)
+for (const item of assistantMsg.message.content) {
+  if (item.type === "text") {
+    const text = (item as { text: string }).text;
+  } else if (item.type === "tool_use") {
+    const toolUse = item as { name: string; input: Record<string, unknown> };
+  }
+}
+
+// System message (no .message property)
+console.log(systemMsg.cwd); // Direct access, no nesting
+```
+
+### Key Points
+- **System**: Fields directly on object (`systemMsg.cwd`, `systemMsg.tools`)
+- **Assistant**: Content nested under `message.content` 
+- **Result**: Has `subtype` field (`success` | `error_max_turns` | `error_during_execution`)
+- **Type Safety**: Always use `Extract<SDKMessage, { type: "..." }>` for narrowing
+
 ## Frontend Architecture Benefits
 
 The modular frontend architecture provides several key benefits:
