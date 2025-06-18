@@ -31,12 +31,10 @@ export function DemoPage() {
     currentRequestId,
     addMessage,
     setInput: setChatInput,
+    startRequest,
+    resetRequestState,
+    generateRequestId,
   } = useChatState();
-
-  // Debug: Log messages array changes
-  useEffect(() => {
-    console.log("DemoPage messages updated:", messages.length, messages);
-  }, [messages]);
 
   const { permissionDialog, closePermissionDialog, allowToolPermanent } =
     usePermissions();
@@ -65,6 +63,9 @@ export function DemoPage() {
     // Pass message handling functions from DemoPage
     addMessage: addMessage,
     setInput: setChatInput,
+    startRequest: startRequest,
+    resetRequestState: resetRequestState,
+    generateRequestId: generateRequestId,
   });
 
   // Demo state
@@ -192,7 +193,7 @@ export function DemoPage() {
         {/* Input */}
         <ChatInput
           input={isDemo ? currentInput : input}
-          isLoading={isLoading} // Don't include isTyping here - keep input enabled during typing
+          isLoading={isLoading} // Use real loading state like ChatPage
           currentRequestId={currentRequestId}
           onInputChange={() => {}} // No-op in demo - block user input completely
           onSubmit={handleSendMessage}
