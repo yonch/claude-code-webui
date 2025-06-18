@@ -179,11 +179,10 @@ export function DemoPage() {
           input={isDemo ? currentInput : input}
           isLoading={isLoading} // Don't include isTyping here - keep input enabled during typing
           currentRequestId={currentRequestId}
-          onInputChange={() => {}} // No-op in demo
+          onInputChange={() => {}} // No-op in demo - block user input completely
           onSubmit={handleSendMessage}
           onAbort={() => {}} // No-op in demo
           placeholder={isTyping ? "Typing..." : undefined}
-          readOnly={isDemo} // Read-only for demo - maintains focus but blocks user input
         />
       </div>
 

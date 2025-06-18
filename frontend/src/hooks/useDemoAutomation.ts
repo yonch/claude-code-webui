@@ -333,6 +333,9 @@ export function useDemoAutomation(
             console.log("Starting demo execution");
             startRequest();
             generateRequestId();
+            // Clear the input for clean demo UI
+            setInput("");
+            setCurrentInput("");
             // Move to step 1 to begin scenario execution
             setCurrentStep(1);
           }, 1000);
@@ -351,6 +354,7 @@ export function useDemoAutomation(
     scenarioKey,
     typeText,
     addMessage,
+    setInput,
   ]);
 
   // Demo control functions
