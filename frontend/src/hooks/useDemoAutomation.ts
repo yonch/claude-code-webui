@@ -122,7 +122,10 @@ export function useDemoAutomation(
   // Process stream data
   const processStreamData = useCallback(
     (step: MockScenarioStep) => {
+      console.log("processStreamData called with step:", step);
+
       if (step.type === "permission_error") {
+        console.log("Processing permission error");
         const errorData = step.data as {
           toolName: string;
           pattern: string;
@@ -137,9 +140,11 @@ export function useDemoAutomation(
       }
 
       const sdkMessage = step.data as SDKMessage;
+      console.log("Processing SDK message:", sdkMessage.type, sdkMessage);
 
       switch (sdkMessage.type) {
         case "system": {
+          console.log("Processing system message");
           if (sdkMessage.session_id) {
             setCurrentSessionId(sdkMessage.session_id);
           }
@@ -149,6 +154,7 @@ export function useDemoAutomation(
               ...sdkMessage,
               timestamp: Date.now(),
             };
+            console.log("Adding system message:", systemMessage);
             addMessage(systemMessage);
             setHasShownInitMessage(true);
             setHasReceivedInit(true);
@@ -157,6 +163,7 @@ export function useDemoAutomation(
         }
 
         case "assistant": {
+          console.log("Processing assistant message");
           if (sdkMessage.session_id) {
             setCurrentSessionId(sdkMessage.session_id);
           }
@@ -167,9 +174,14 @@ export function useDemoAutomation(
           >;
 
           // Process the assistant message content
+          console.log(
+            "Assistant message content:",
+            assistantMsg.message.content,
+          );
           for (const contentItem of assistantMsg.message.content) {
             if (contentItem.type === "text") {
               const textContent = (contentItem as { text: string }).text;
+              console.log("Processing text content:", textContent);
               const assistantMessage: ChatMessage = {
                 type: "chat",
                 role: "assistant",
@@ -178,8 +190,10 @@ export function useDemoAutomation(
               };
 
               if (currentAssistantMessage) {
+                console.log("Updating last message");
                 updateLastMessage(textContent);
               } else {
+                console.log("Adding new assistant message:", assistantMessage);
                 setCurrentAssistantMessage(assistantMessage);
                 addMessage(assistantMessage);
               }
