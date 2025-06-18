@@ -99,8 +99,8 @@ export function DemoPage() {
     <div
       className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300"
       data-demo-active={isDemo}
-      data-demo-completed={demoCompleted}
-      data-demo-step={demoStep}
+      data-demo-completed={isCompleted}
+      data-demo-step={currentStep}
     >
       <div className="max-w-6xl mx-auto p-6 h-screen flex flex-col">
         {/* Header */}
