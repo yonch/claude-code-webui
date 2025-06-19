@@ -61,11 +61,11 @@ export function DemoPage() {
       console.log("Demo completed");
     },
     // Pass message handling functions from DemoPage
-    addMessage: addMessage,
+    addMessage,
     setInput: setChatInput,
-    startRequest: startRequest,
-    resetRequestState: resetRequestState,
-    generateRequestId: generateRequestId,
+    startRequest,
+    resetRequestState,
+    generateRequestId,
   });
 
   // Demo state

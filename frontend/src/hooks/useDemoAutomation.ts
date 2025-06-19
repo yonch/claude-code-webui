@@ -263,6 +263,13 @@ export function useDemoAutomation(
     const stepIndex = currentStep - 1;
     const step = scenario[stepIndex];
 
+    if (!step) {
+      console.error(
+        `Invalid step index: ${stepIndex} for scenario with ${scenario.length} steps`,
+      );
+      return;
+    }
+
     // Clear any existing timeouts
     if (stepTimeoutRef.current) {
       clearTimeout(stepTimeoutRef.current);
@@ -344,13 +351,14 @@ export function useDemoAutomation(
 
       return () => clearTimeout(typingTimer);
     }
+    // typeText is intentionally excluded to prevent infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     autoStart,
     currentStep,
     isCompleted,
     isPaused,
     scenarioKey,
-    typeText,
     finalAddMessage,
     finalSetInput,
     finalStartRequest,
