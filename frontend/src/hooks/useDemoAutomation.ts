@@ -334,7 +334,7 @@ export function useDemoAutomation(
           setCurrentInput("");
           finalStartRequest();
           finalGenerateRequestId();
-          
+
           // Start demo execution after a short delay
           setTimeout(() => {
             setCurrentStep(1);
@@ -390,7 +390,13 @@ export function useDemoAutomation(
       finalStartRequest();
       finalGenerateRequestId();
     }
-  }, [isCompleted, currentStep, finalStartRequest, finalGenerateRequestId, resetDemo]);
+  }, [
+    isCompleted,
+    currentStep,
+    finalStartRequest,
+    finalGenerateRequestId,
+    resetDemo,
+  ]);
 
   const pauseDemo = useCallback(() => {
     setIsPaused(true);
