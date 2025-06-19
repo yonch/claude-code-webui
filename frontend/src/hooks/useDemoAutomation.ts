@@ -127,9 +127,9 @@ export function useDemoAutomation(
           const randomVariance = (Math.random() - 0.5) * 2 * variance;
           const delay = Math.max(50, baseDelay + randomVariance);
 
-          // Add occasional longer pauses for more realistic typing
-          const shouldPause = Math.random() < 0.02; // 2% chance of pause (reduced)
-          const pauseDelay = shouldPause ? Math.random() * 200 + 100 : 0;
+          // Add occasional subtle pauses for more realistic typing
+          const shouldPause = Math.random() < 0.008; // 0.8% chance of pause (further reduced)
+          const pauseDelay = shouldPause ? Math.random() * 80 + 40 : 0;
 
           typingIntervalRef.current = setTimeout(
             typeNextCharacter,
@@ -337,25 +337,28 @@ export function useDemoAutomation(
       // Start typing after a short delay
       const typingTimer = setTimeout(() => {
         typeText(inputText, () => {
-          // Add the user message to chat
-          const userMessage: ChatMessage = {
-            type: "chat",
-            role: "user",
-            content: inputText,
-            timestamp: Date.now(),
-          };
-          finalAddMessage(userMessage);
-
-          // After typing is complete, immediately clear input and start demo (like real chat)
-          finalSetInput("");
-          setCurrentInput("");
-          finalStartRequest();
-          finalGenerateRequestId();
-
-          // Start demo execution after a short delay
+          // Wait a moment after typing is complete before sending (like real user behavior)
           setTimeout(() => {
-            setCurrentStep(1);
-          }, 1000);
+            // Add the user message to chat
+            const userMessage: ChatMessage = {
+              type: "chat",
+              role: "user",
+              content: inputText,
+              timestamp: Date.now(),
+            };
+            finalAddMessage(userMessage);
+
+            // After typing is complete, clear input and start demo (like real chat)
+            finalSetInput("");
+            setCurrentInput("");
+            finalStartRequest();
+            finalGenerateRequestId();
+
+            // Start demo execution after a short delay
+            setTimeout(() => {
+              setCurrentStep(1);
+            }, 1000);
+          }, 800); // 800ms delay after typing completion before sending
         });
       }, 1000);
 
@@ -434,18 +437,14 @@ export function useDemoAutomation(
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      const stepTimeout = stepTimeoutRef.current;
-      const typingTimeout = typingTimeoutRef.current;
-      const typingInterval = typingIntervalRef.current;
-
-      if (stepTimeout) {
-        clearTimeout(stepTimeout);
+      if (stepTimeoutRef.current) {
+        clearTimeout(stepTimeoutRef.current);
       }
-      if (typingTimeout) {
-        clearTimeout(typingTimeout);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
       }
-      if (typingInterval) {
-        clearTimeout(typingInterval);
+      if (typingIntervalRef.current) {
+        clearTimeout(typingIntervalRef.current);
       }
     };
   }, []);
