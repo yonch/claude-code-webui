@@ -8,11 +8,11 @@ pre-commit:
       run: make check
       fail_text: |
         ❌ Quality checks failed!
-        
+
         To fix issues:
           • Run 'make format' to fix formatting
           • Fix any lint errors shown above  
           • Fix any TypeScript type errors
           • Ensure all tests pass
-        
+
         Then try committing again.
