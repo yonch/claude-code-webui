@@ -92,8 +92,8 @@ export function DemoPage() {
           allowToolPermanent(pattern);
           closePermissionDialog();
           setAutoClickButton(null);
-        }, 450); // Delay to show the focus sequence animation (150ms + 300ms)
-      }, 2000); // Auto-allow after 2 seconds for demo
+        }, 1200); // Delay to show the focus sequence animation (500ms + 700ms)
+      }, 1000); // Auto-allow after 1 second for demo
 
       return () => clearTimeout(timer);
     }

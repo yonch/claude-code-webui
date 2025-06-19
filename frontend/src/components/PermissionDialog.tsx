@@ -35,15 +35,15 @@ export function PermissionDialog({
         // 1. First highlight "Yes" button
         setActiveButton("allow");
 
-        // 2. Then move to target "Allow Permanent" button after short delay
+        // 2. Then move to target "Allow Permanent" button after longer delay
         const focusTimer = setTimeout(() => {
           setActiveButton("allowPermanent");
-        }, 150);
+        }, 500);
 
         // 3. Remove effect after animation completes
         const cleanupTimer = setTimeout(() => {
           setActiveButton(null);
-        }, 450); // 150ms + 300ms animation duration
+        }, 1200); // 500ms + 700ms animation duration
 
         return () => {
           clearTimeout(focusTimer);
@@ -70,7 +70,7 @@ export function PermissionDialog({
     const isActive = activeButton === buttonType;
     return `${baseClasses} ${
       isActive
-        ? "scale-95 !bg-opacity-80 ring-2 ring-blue-300 dark:ring-blue-500"
+        ? "scale-95 !bg-opacity-80 ring-2 ring-blue-300 dark:ring-blue-500 border-2 border-blue-400 dark:border-blue-400 outline outline-2 outline-blue-500 dark:outline-blue-300"
         : ""
     } transition-all duration-300`;
   };
