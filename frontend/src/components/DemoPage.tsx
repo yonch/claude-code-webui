@@ -198,7 +198,6 @@ export function DemoPage() {
           onInputChange={() => {}} // No-op in demo - intentionally blocks user input to simulate a controlled environment where input is not required or allowed
           onSubmit={handleSendMessage}
           onAbort={() => {}} // No-op in demo
-          placeholder={isTyping ? "Typing..." : undefined}
         />
       </div>
 

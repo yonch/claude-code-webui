@@ -9,7 +9,6 @@ interface ChatInputProps {
   onInputChange: (value: string) => void;
   onSubmit: () => void;
   onAbort: () => void;
-  placeholder?: string;
 }
 
 export function ChatInput({
@@ -19,7 +18,6 @@ export function ChatInput({
   onInputChange,
   onSubmit,
   onAbort,
-  placeholder,
 }: ChatInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -65,10 +63,9 @@ export function ChatInput({
           onChange={(e) => onInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={
-            placeholder ||
-            (isLoading && currentRequestId
+            isLoading && currentRequestId
               ? "Processing... (Press ESC to stop)"
-              : "Type your message... (Shift+Enter for new line)")
+              : "Type your message... (Shift+Enter for new line)"
           }
           rows={1}
           className={`w-full px-4 py-3 pr-32 bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm shadow-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none overflow-hidden min-h-[48px] max-h-[${UI_CONSTANTS.TEXTAREA_MAX_HEIGHT}px]`}
