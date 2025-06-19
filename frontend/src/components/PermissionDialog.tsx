@@ -27,15 +27,36 @@ export function PermissionDialog({
 }: PermissionDialogProps) {
   const [activeButton, setActiveButton] = useState<string | null>(null);
 
-  // Handle auto-click effect
+  // Handle auto-click effect with focus sequence animation
   useEffect(() => {
     if (autoClickButton) {
-      setActiveButton(autoClickButton);
-      // Remove effect after animation
-      const timer = setTimeout(() => {
-        setActiveButton(null);
-      }, 300);
-      return () => clearTimeout(timer);
+      // Start focus sequence from the top button for better UX
+      if (autoClickButton === "allowPermanent") {
+        // 1. First highlight "Yes" button
+        setActiveButton("allow");
+
+        // 2. Then move to target "Allow Permanent" button after short delay
+        const focusTimer = setTimeout(() => {
+          setActiveButton("allowPermanent");
+        }, 150);
+
+        // 3. Remove effect after animation completes
+        const cleanupTimer = setTimeout(() => {
+          setActiveButton(null);
+        }, 450); // 150ms + 300ms animation duration
+
+        return () => {
+          clearTimeout(focusTimer);
+          clearTimeout(cleanupTimer);
+        };
+      } else {
+        // For other buttons, use direct animation (no sequence needed)
+        setActiveButton(autoClickButton);
+        const timer = setTimeout(() => {
+          setActiveButton(null);
+        }, 300);
+        return () => clearTimeout(timer);
+      }
     }
   }, [autoClickButton]);
 

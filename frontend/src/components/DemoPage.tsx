@@ -86,13 +86,13 @@ export function DemoPage() {
         // Show button press effect first
         setAutoClickButton("allowPermanent");
 
-        // Then perform the actual action after a short delay
+        // Then perform the actual action after focus sequence completes
         setTimeout(() => {
           const pattern = permissionDialog.pattern;
           allowToolPermanent(pattern);
           closePermissionDialog();
           setAutoClickButton(null);
-        }, 300); // Delay to show the press effect
+        }, 450); // Delay to show the focus sequence animation (150ms + 300ms)
       }, 2000); // Auto-allow after 2 seconds for demo
 
       return () => clearTimeout(timer);
