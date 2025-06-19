@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.1.15](https://github.com/sugyan/claude-code-webui/compare/v0.1.14...v0.1.15) - 2025-06-19
+- Update claude-code dependency to 1.0.27 by @sugyan in https://github.com/sugyan/claude-code-webui/pull/60
+- Add DemoPage component with mock response system (#63) by @sugyan in https://github.com/sugyan/claude-code-webui/pull/69
+- Implement demo automation hook and typing animations by @sugyan in https://github.com/sugyan/claude-code-webui/pull/70
+- Fix demo permission dialogs and add visual feedback by @sugyan in https://github.com/sugyan/claude-code-webui/pull/71
+- Fix IME composition Enter key triggering unintended message submission by @sugyan in https://github.com/sugyan/claude-code-webui/pull/73
+
 ## [v0.1.14](https://github.com/sugyan/claude-code-webui/compare/v0.1.13...v0.1.14) - 2025-06-18
 - Refactor frontend with modular architecture for improved maintainability by @sugyan in https://github.com/sugyan/claude-code-webui/pull/56
 - Add project directory selection feature by @sugyan in https://github.com/sugyan/claude-code-webui/pull/59
