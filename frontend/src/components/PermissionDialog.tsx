@@ -11,6 +11,11 @@ interface PermissionDialogProps {
   onAllowPermanent: () => void;
   onDeny: () => void;
   onClose: () => void;
+  // Optional extension point for custom button styling (e.g., demo effects)
+  getButtonClassName?: (
+    buttonType: "allow" | "allowPermanent" | "deny",
+    defaultClassName: string,
+  ) => string;
 }
 
 export function PermissionDialog({
@@ -21,6 +26,7 @@ export function PermissionDialog({
   onAllowPermanent,
   onDeny,
   onClose,
+  getButtonClassName = (_, defaultClassName) => defaultClassName, // Default: no modification
 }: PermissionDialogProps) {
   if (!isOpen) return null;
 
@@ -67,19 +73,28 @@ export function PermissionDialog({
           <div className="space-y-3">
             <button
               onClick={onAllow}
-              className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow-md"
+              className={getButtonClassName(
+                "allow",
+                "w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow-md",
+              )}
             >
               Yes
             </button>
             <button
               onClick={onAllowPermanent}
-              className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow-md"
+              className={getButtonClassName(
+                "allowPermanent",
+                "w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow-md",
+              )}
             >
               Yes, and don't ask again for {toolName}
             </button>
             <button
               onClick={handleDeny}
-              className="w-full px-4 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg font-medium transition-colors"
+              className={getButtonClassName(
+                "deny",
+                "w-full px-4 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg font-medium transition-colors",
+              )}
             >
               No
             </button>

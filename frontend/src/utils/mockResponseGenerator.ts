@@ -1,4 +1,5 @@
 import type { SDKMessage } from "@anthropic-ai/claude-code";
+import { generateToolPattern } from "./toolUtils";
 
 export interface MockStreamResponse {
   type: "claude_json" | "done" | "error";
@@ -90,10 +91,6 @@ export function createToolUseMessage(
       role: "assistant",
       content: [
         {
-          type: "text",
-          text: `I'll help you with that. Let me ${toolName === "Read" ? "read the file" : "use the " + toolName + " tool"}.`,
-        },
-        {
           type: "tool_use",
           id: toolUseId,
           name: toolName,
@@ -145,6 +142,8 @@ export const DEMO_INPUTS = {
     "Can you read the main App.tsx file and explain what it does?",
   codeAnalysis:
     "Please analyze the frontend code structure and suggest improvements",
+  codeGeneration:
+    "Write a simple Python script that calculates fibonacci numbers and run it",
 } as const;
 
 // Predefined demo scenarios
@@ -197,7 +196,7 @@ export const DEMO_SCENARIOS = {
         delay: 1000,
         data: {
           toolName: "Read",
-          pattern: "**/*.tsx",
+          pattern: generateToolPattern("Read", "*"),
           toolUseId: "read-app-tsx",
         },
       },
@@ -241,7 +240,11 @@ export const DEMO_SCENARIOS = {
       {
         type: "permission_error" as const,
         delay: 900,
-        data: { toolName: "Bash", pattern: "find", toolUseId: "find-files" },
+        data: {
+          toolName: "Bash",
+          pattern: generateToolPattern("Bash", "find"),
+          toolUseId: "find-files",
+        },
       },
       {
         type: "assistant" as const,
@@ -265,6 +268,108 @@ export const DEMO_SCENARIOS = {
         type: "result" as const,
         delay: 900,
         data: createResultMessage("demo-session-analysis", 55, 180),
+      },
+    ],
+  },
+  codeGeneration: {
+    sessionId: "demo-session-codegen",
+    inputText: DEMO_INPUTS.codeGeneration,
+    steps: [
+      {
+        type: "system" as const,
+        delay: 700,
+        data: createSystemMessage("demo-session-codegen"),
+      },
+      {
+        type: "assistant" as const,
+        delay: 1500,
+        data: createAssistantMessage(
+          "I'll create a Python Fibonacci calculator for you. Let me write the script.",
+          "demo-session-codegen",
+        ),
+      },
+      {
+        type: "assistant" as const,
+        delay: 1800,
+        data: createToolUseMessage(
+          "Write",
+          {
+            file_path: "/Users/demo/claude-code-webui/fibonacci.py",
+            content: `def fibonacci(n):
+    """Generate Fibonacci sequence up to n terms"""
+    if n <= 0:
+        return []
+    elif n == 1:
+        return [0]
+    elif n == 2:
+        return [0, 1]
+    
+    fib = [0, 1]
+    for i in range(2, n):
+        fib.append(fib[i-1] + fib[i-2])
+    return fib
+
+if __name__ == "__main__":
+    n = 10
+    result = fibonacci(n)
+    print(f"Fibonacci sequence ({n} terms): {result}")
+    print(f"Sum: {sum(result)}")`,
+          },
+          "demo-session-codegen",
+          "write-fibonacci",
+        ),
+      },
+      {
+        type: "permission_error" as const,
+        delay: 1000,
+        data: {
+          toolName: "Write",
+          pattern: generateToolPattern("Write", "*"),
+          toolUseId: "write-fibonacci",
+        },
+      },
+      {
+        type: "assistant" as const,
+        delay: 2000,
+        data: createAssistantMessage(
+          "Great! I've created the Fibonacci script. Now let me run it to show you the results.",
+          "demo-session-codegen",
+        ),
+      },
+      {
+        type: "assistant" as const,
+        delay: 1200,
+        data: createToolUseMessage(
+          "Bash",
+          {
+            command: "python fibonacci.py",
+            description: "Run the Fibonacci calculator script",
+          },
+          "demo-session-codegen",
+          "run-fibonacci",
+        ),
+      },
+      {
+        type: "permission_error" as const,
+        delay: 800,
+        data: {
+          toolName: "Bash",
+          pattern: generateToolPattern("Bash", "python"),
+          toolUseId: "run-fibonacci",
+        },
+      },
+      {
+        type: "assistant" as const,
+        delay: 2200,
+        data: createAssistantMessage(
+          "Perfect! The script executed successfully. Here's what it generated:\n\n```\nFibonacci sequence (10 terms): [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]\nSum: 88\n```\n\nThe Fibonacci script calculates the first 10 numbers in the sequence and shows their sum. Each number is the sum of the two preceding ones, starting from 0 and 1. This demonstrates a complete development workflow from writing code to execution!",
+          "demo-session-codegen",
+        ),
+      },
+      {
+        type: "result" as const,
+        delay: 900,
+        data: createResultMessage("demo-session-codegen", 65, 220),
       },
     ],
   },

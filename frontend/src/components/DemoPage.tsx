@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { useTheme } from "../hooks/useTheme";
 import { useChatState } from "../hooks/chat/useChatState";
@@ -7,7 +7,7 @@ import { useDemoAutomation } from "../hooks/useDemoAutomation";
 import { ThemeToggle } from "./chat/ThemeToggle";
 import { ChatInput } from "./chat/ChatInput";
 import { ChatMessages } from "./chat/ChatMessages";
-import { PermissionDialog } from "./PermissionDialog";
+import { DemoPermissionDialogWrapper } from "./DemoPermissionDialogWrapper";
 import { DEMO_SCENARIOS } from "../utils/mockResponseGenerator";
 
 export function DemoPage() {
@@ -36,8 +36,12 @@ export function DemoPage() {
     generateRequestId,
   } = useChatState();
 
-  const { permissionDialog, closePermissionDialog, allowToolPermanent } =
-    usePermissions();
+  const {
+    permissionDialog,
+    closePermissionDialog,
+    allowToolPermanent,
+    showPermissionDialog,
+  } = usePermissions();
 
   // Demo automation
   const {
@@ -59,6 +63,7 @@ export function DemoPage() {
     },
     onDemoComplete: () => {
       console.log("Demo completed");
+      permissionDialogCountRef.current = 0; // Reset dialog count on demo completion
     },
     // Pass message handling functions from DemoPage
     addMessage,
@@ -66,23 +71,58 @@ export function DemoPage() {
     startRequest,
     resetRequestState,
     generateRequestId,
+    showPermissionDialog,
   });
 
   // Demo state
   const demoWorkingDirectory = "/Users/demo/claude-code-webui";
+  const [autoClickButton, setAutoClickButton] = useState<
+    "allow" | "allowPermanent" | null
+  >(null);
+  const permissionDialogCountRef = useRef(0);
+  const hasHandledDialogRef = useRef(false);
 
-  // Auto-allow permissions for demo after 2 seconds
+  // Auto-allow permissions for demo after 1 second with visual effect
   useEffect(() => {
-    if (permissionDialog && permissionDialog.isOpen) {
-      const timer = setTimeout(() => {
-        const pattern = permissionDialog.pattern;
-        allowToolPermanent(pattern);
-        closePermissionDialog();
-      }, 2000); // Auto-allow after 2 seconds for demo
+    if (
+      permissionDialog &&
+      permissionDialog.isOpen &&
+      !hasHandledDialogRef.current
+    ) {
+      hasHandledDialogRef.current = true; // Mark this dialog as handled
 
-      return () => clearTimeout(timer);
+      // Increment dialog count when a new dialog opens
+      const currentCount = permissionDialogCountRef.current;
+      permissionDialogCountRef.current += 1;
+
+      const timer = setTimeout(() => {
+        // First dialog: use allowPermanent, Second+ dialog: use allow
+        const buttonToClick = currentCount === 0 ? "allowPermanent" : "allow";
+        setAutoClickButton(buttonToClick);
+        // That's it! PermissionDialog will handle the rest
+      }, 1000); // Auto-allow after 1 second for demo
+
+      return () => {
+        clearTimeout(timer);
+        hasHandledDialogRef.current = false;
+      };
     }
-  }, [permissionDialog, allowToolPermanent, closePermissionDialog]);
+  }, [permissionDialog]);
+
+  // Reset autoClickButton when dialog closes
+  useEffect(() => {
+    if (!permissionDialog || !permissionDialog.isOpen) {
+      setAutoClickButton(null);
+      hasHandledDialogRef.current = false;
+    }
+  }, [permissionDialog]);
+
+  // Reset dialog count when demo starts/resets
+  useEffect(() => {
+    if (currentStep === 0 || currentStep === 1) {
+      permissionDialogCountRef.current = 0;
+    }
+  }, [currentStep]);
 
   // Permission dialog handlers (for demo)
   const handlePermissionAllow = () => {
@@ -203,7 +243,7 @@ export function DemoPage() {
 
       {/* Permission Dialog */}
       {permissionDialog && (
-        <PermissionDialog
+        <DemoPermissionDialogWrapper
           isOpen={permissionDialog.isOpen}
           toolName={permissionDialog.toolName}
           pattern={permissionDialog.pattern}
@@ -211,6 +251,7 @@ export function DemoPage() {
           onAllowPermanent={handlePermissionAllowPermanent}
           onDeny={handlePermissionDeny}
           onClose={closePermissionDialog}
+          autoClickButton={autoClickButton}
         />
       )}
     </div>
