@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { useTheme } from "../hooks/useTheme";
 import { useChatState } from "../hooks/chat/useChatState";
@@ -63,7 +63,7 @@ export function DemoPage() {
     },
     onDemoComplete: () => {
       console.log("Demo completed");
-      setPermissionDialogCount(0); // Reset dialog count on demo completion
+      permissionDialogCountRef.current = 0; // Reset dialog count on demo completion
     },
     // Pass message handling functions from DemoPage
     addMessage,
@@ -79,18 +79,18 @@ export function DemoPage() {
   const [autoClickButton, setAutoClickButton] = useState<
     "allow" | "allowPermanent" | null
   >(null);
-  const [permissionDialogCount, setPermissionDialogCount] = useState(0);
+  const permissionDialogCountRef = useRef(0);
 
   // Auto-allow permissions for demo after 1 second with visual effect
   useEffect(() => {
     if (permissionDialog && permissionDialog.isOpen) {
       // Increment dialog count when a new dialog opens
-      setPermissionDialogCount((prev) => prev + 1);
+      const currentCount = permissionDialogCountRef.current;
+      permissionDialogCountRef.current += 1;
 
       const timer = setTimeout(() => {
         // First dialog: use allowPermanent, Second+ dialog: use allow
-        const buttonToClick =
-          permissionDialogCount === 0 ? "allowPermanent" : "allow";
+        const buttonToClick = currentCount === 0 ? "allowPermanent" : "allow";
         setAutoClickButton(buttonToClick);
 
         // Then perform the actual action after focus sequence completes
@@ -111,17 +111,12 @@ export function DemoPage() {
 
       return () => clearTimeout(timer);
     }
-  }, [
-    permissionDialog,
-    allowToolPermanent,
-    closePermissionDialog,
-    permissionDialogCount,
-  ]);
+  }, [permissionDialog, allowToolPermanent, closePermissionDialog]);
 
   // Reset dialog count when demo starts/resets
   useEffect(() => {
     if (currentStep === 0 || currentStep === 1) {
-      setPermissionDialogCount(0);
+      permissionDialogCountRef.current = 0;
     }
   }, [currentStep]);
 
