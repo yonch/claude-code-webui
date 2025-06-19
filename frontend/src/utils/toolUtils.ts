@@ -3,7 +3,7 @@ import { TOOL_CONSTANTS } from "./constants";
 // Extract tool name and command from previous context
 export function extractToolInfo(
   toolName?: string,
-  input?: Record<string, unknown>
+  input?: Record<string, unknown>,
 ): { toolName: string; command: string } {
   // Default tool name if not provided
   const extractedToolName = toolName || TOOL_CONSTANTS.DEFAULT_TOOL_NAME;
@@ -47,7 +47,7 @@ function extractBashCommand(commandString: string): string {
     if (
       cmdParts.length >= 2 &&
       TOOL_CONSTANTS.MULTI_WORD_COMMANDS.includes(
-        cmdParts[0] as (typeof TOOL_CONSTANTS.MULTI_WORD_COMMANDS)[number]
+        cmdParts[0] as (typeof TOOL_CONSTANTS.MULTI_WORD_COMMANDS)[number],
       )
     ) {
       return cmdParts.slice(0, 2).join(" ");
