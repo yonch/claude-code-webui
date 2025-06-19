@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   XMarkIcon,
   ExclamationTriangleIcon,
@@ -27,6 +27,11 @@ export function PermissionDialog({
 }: PermissionDialogProps) {
   const [activeButton, setActiveButton] = useState<string | null>(null);
   const [clickedButton, setClickedButton] = useState<string | null>(null);
+  const timersRef = useRef<{
+    focus?: NodeJS.Timeout;
+    action?: NodeJS.Timeout;
+    clickEffect?: NodeJS.Timeout;
+  }>({});
 
   // Handle auto-click effect with focus sequence animation
   useEffect(() => {
@@ -37,36 +42,48 @@ export function PermissionDialog({
         setActiveButton("allow");
 
         // 2. Then move to "Allow Permanent" button after delay
-        const focusTimer = setTimeout(() => {
+        timersRef.current.focus = setTimeout(() => {
           setActiveButton("allowPermanent");
         }, 500);
 
         // 3. Show click effect then execute action
-        const actionTimer = setTimeout(() => {
+        timersRef.current.action = setTimeout(() => {
           setClickedButton("allowPermanent");
-          setTimeout(() => {
+          timersRef.current.clickEffect = setTimeout(() => {
             onAllowPermanent();
           }, 200); // Brief click effect
         }, 1200);
 
         return () => {
-          clearTimeout(focusTimer);
-          clearTimeout(actionTimer);
+          if (timersRef.current.focus) {
+            clearTimeout(timersRef.current.focus);
+          }
+          if (timersRef.current.action) {
+            clearTimeout(timersRef.current.action);
+          }
+          if (timersRef.current.clickEffect) {
+            clearTimeout(timersRef.current.clickEffect);
+          }
         };
       } else if (autoClickButton === "allow") {
         // For allow: direct focus on 1st button only
         setActiveButton("allow");
 
         // Show click effect then execute action
-        const actionTimer = setTimeout(() => {
+        timersRef.current.action = setTimeout(() => {
           setClickedButton("allow");
-          setTimeout(() => {
+          timersRef.current.clickEffect = setTimeout(() => {
             onAllow();
           }, 200); // Brief click effect
         }, 700);
 
         return () => {
-          clearTimeout(actionTimer);
+          if (timersRef.current.action) {
+            clearTimeout(timersRef.current.action);
+          }
+          if (timersRef.current.clickEffect) {
+            clearTimeout(timersRef.current.clickEffect);
+          }
         };
       }
     }
