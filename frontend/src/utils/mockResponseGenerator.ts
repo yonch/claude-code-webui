@@ -145,8 +145,6 @@ export const DEMO_INPUTS = {
     "Can you read the main App.tsx file and explain what it does?",
   codeAnalysis:
     "Please analyze the frontend code structure and suggest improvements",
-  debugging:
-    "I'm getting a TypeScript error in my component, can you help debug it?",
 } as const;
 
 // Predefined demo scenarios

@@ -195,7 +195,7 @@ export function DemoPage() {
           input={isDemo ? currentInput : input}
           isLoading={isLoading} // Use real loading state like ChatPage
           currentRequestId={currentRequestId}
-          onInputChange={() => {}} // No-op in demo - block user input completely
+          onInputChange={() => {}} // No-op in demo - intentionally blocks user input to simulate a controlled environment where input is not required or allowed
           onSubmit={handleSendMessage}
           onAbort={() => {}} // No-op in demo
           placeholder={isTyping ? "Typing..." : undefined}
