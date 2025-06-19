@@ -32,7 +32,7 @@ typecheck-backend:
 
 # Testing
 test:
-	cd frontend && npm test
+	cd frontend && npm run test:run
 
 # Building
 build: build-frontend copy-dist build-backend
