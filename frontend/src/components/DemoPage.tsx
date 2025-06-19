@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useTheme } from "../hooks/useTheme";
 import { useChatState } from "../hooks/chat/useChatState";
@@ -36,8 +36,12 @@ export function DemoPage() {
     generateRequestId,
   } = useChatState();
 
-  const { permissionDialog, closePermissionDialog, allowToolPermanent } =
-    usePermissions();
+  const {
+    permissionDialog,
+    closePermissionDialog,
+    allowToolPermanent,
+    showPermissionDialog,
+  } = usePermissions();
 
   // Demo automation
   const {
@@ -66,18 +70,29 @@ export function DemoPage() {
     startRequest,
     resetRequestState,
     generateRequestId,
+    showPermissionDialog,
   });
 
   // Demo state
   const demoWorkingDirectory = "/Users/demo/claude-code-webui";
+  const [autoClickButton, setAutoClickButton] = useState<
+    "allow" | "allowPermanent" | null
+  >(null);
 
-  // Auto-allow permissions for demo after 2 seconds
+  // Auto-allow permissions for demo after 2 seconds with visual effect
   useEffect(() => {
     if (permissionDialog && permissionDialog.isOpen) {
       const timer = setTimeout(() => {
-        const pattern = permissionDialog.pattern;
-        allowToolPermanent(pattern);
-        closePermissionDialog();
+        // Show button press effect first
+        setAutoClickButton("allowPermanent");
+
+        // Then perform the actual action after a short delay
+        setTimeout(() => {
+          const pattern = permissionDialog.pattern;
+          allowToolPermanent(pattern);
+          closePermissionDialog();
+          setAutoClickButton(null);
+        }, 300); // Delay to show the press effect
       }, 2000); // Auto-allow after 2 seconds for demo
 
       return () => clearTimeout(timer);
@@ -211,6 +226,7 @@ export function DemoPage() {
           onAllowPermanent={handlePermissionAllowPermanent}
           onDeny={handlePermissionDeny}
           onClose={closePermissionDialog}
+          autoClickButton={autoClickButton}
         />
       )}
     </div>

@@ -32,6 +32,11 @@ interface DemoAutomationOptions {
   startRequest?: () => void;
   resetRequestState?: () => void;
   generateRequestId?: () => string;
+  showPermissionDialog?: (
+    toolName: string,
+    pattern: string,
+    toolUseId: string,
+  ) => void;
 }
 
 const DEFAULT_TYPING_SPEED = 30; // characters per second
@@ -51,6 +56,7 @@ export function useDemoAutomation(
     startRequest: externalStartRequest,
     resetRequestState: externalResetRequestState,
     generateRequestId: externalGenerateRequestId,
+    showPermissionDialog: externalShowPermissionDialog,
   } = options;
 
   // State
@@ -88,8 +94,10 @@ export function useDemoAutomation(
   const finalResetRequestState = externalResetRequestState || resetRequestState;
   const finalGenerateRequestId = externalGenerateRequestId || generateRequestId;
 
-  // Permissions
-  const { showPermissionDialog } = usePermissions();
+  // Permissions - use external if provided, otherwise use internal
+  const permissionsHook = usePermissions();
+  const finalShowPermissionDialog =
+    externalShowPermissionDialog || permissionsHook.showPermissionDialog;
 
   // Get current scenario
   const scenario = scenarioToStream(scenarioKey);
@@ -146,7 +154,7 @@ export function useDemoAutomation(
           pattern: string;
           toolUseId: string;
         };
-        showPermissionDialog(
+        finalShowPermissionDialog(
           errorData.toolName,
           errorData.pattern,
           errorData.toolUseId,
@@ -243,7 +251,7 @@ export function useDemoAutomation(
       setHasReceivedInit,
       setCurrentAssistantMessage,
       updateLastMessage,
-      showPermissionDialog,
+      finalShowPermissionDialog,
       finalAddMessage,
     ],
   );

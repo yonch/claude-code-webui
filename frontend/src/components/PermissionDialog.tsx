@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   XMarkIcon,
   ExclamationTriangleIcon,
@@ -11,6 +12,7 @@ interface PermissionDialogProps {
   onAllowPermanent: () => void;
   onDeny: () => void;
   onClose: () => void;
+  autoClickButton?: "allow" | "allowPermanent" | null;
 }
 
 export function PermissionDialog({
@@ -21,11 +23,35 @@ export function PermissionDialog({
   onAllowPermanent,
   onDeny,
   onClose,
+  autoClickButton = null,
 }: PermissionDialogProps) {
+  const [activeButton, setActiveButton] = useState<string | null>(null);
+
+  // Handle auto-click effect
+  useEffect(() => {
+    if (autoClickButton) {
+      setActiveButton(autoClickButton);
+      // Remove effect after animation
+      const timer = setTimeout(() => {
+        setActiveButton(null);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [autoClickButton]);
+
   if (!isOpen) return null;
 
   const handleDeny = () => {
     onDeny();
+  };
+
+  const getButtonClasses = (buttonType: string, baseClasses: string) => {
+    const isActive = activeButton === buttonType;
+    return `${baseClasses} ${
+      isActive
+        ? "scale-95 !bg-opacity-80 ring-2 ring-blue-300 dark:ring-blue-500"
+        : ""
+    } transition-all duration-300`;
   };
 
   return (
@@ -67,19 +93,28 @@ export function PermissionDialog({
           <div className="space-y-3">
             <button
               onClick={onAllow}
-              className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow-md"
+              className={getButtonClasses(
+                "allow",
+                "w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm hover:shadow-md",
+              )}
             >
               Yes
             </button>
             <button
               onClick={onAllowPermanent}
-              className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow-md"
+              className={getButtonClasses(
+                "allowPermanent",
+                "w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium shadow-sm hover:shadow-md",
+              )}
             >
               Yes, and don't ask again for {toolName}
             </button>
             <button
               onClick={handleDeny}
-              className="w-full px-4 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg font-medium transition-colors"
+              className={getButtonClasses(
+                "deny",
+                "w-full px-4 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg font-medium",
+              )}
             >
               No
             </button>
