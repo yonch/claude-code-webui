@@ -7,7 +7,7 @@ import { useDemoAutomation } from "../hooks/useDemoAutomation";
 import { ThemeToggle } from "./chat/ThemeToggle";
 import { ChatInput } from "./chat/ChatInput";
 import { ChatMessages } from "./chat/ChatMessages";
-import { PermissionDialog } from "./PermissionDialog";
+import { DemoPermissionDialogWrapper } from "./DemoPermissionDialogWrapper";
 import { DEMO_SCENARIOS } from "../utils/mockResponseGenerator";
 
 export function DemoPage() {
@@ -243,7 +243,7 @@ export function DemoPage() {
 
       {/* Permission Dialog */}
       {permissionDialog && (
-        <PermissionDialog
+        <DemoPermissionDialogWrapper
           isOpen={permissionDialog.isOpen}
           toolName={permissionDialog.toolName}
           pattern={permissionDialog.pattern}

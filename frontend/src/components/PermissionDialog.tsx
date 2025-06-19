@@ -1,4 +1,3 @@
-import { useState, useEffect, useRef } from "react";
 import {
   XMarkIcon,
   ExclamationTriangleIcon,
@@ -12,7 +11,11 @@ interface PermissionDialogProps {
   onAllowPermanent: () => void;
   onDeny: () => void;
   onClose: () => void;
-  autoClickButton?: "allow" | "allowPermanent" | null;
+  // Optional extension point for custom button styling (e.g., demo effects)
+  getButtonClassName?: (
+    buttonType: "allow" | "allowPermanent" | "deny",
+    defaultClassName: string,
+  ) => string;
 }
 
 export function PermissionDialog({
@@ -23,107 +26,12 @@ export function PermissionDialog({
   onAllowPermanent,
   onDeny,
   onClose,
-  autoClickButton = null,
+  getButtonClassName = (_, defaultClassName) => defaultClassName, // Default: no modification
 }: PermissionDialogProps) {
-  const [activeButton, setActiveButton] = useState<string | null>(null);
-  const [clickedButton, setClickedButton] = useState<string | null>(null);
-  const timersRef = useRef<{
-    focus?: NodeJS.Timeout;
-    action?: NodeJS.Timeout;
-    clickEffect?: NodeJS.Timeout;
-  }>({});
-
-  // Handle auto-click effect with focus sequence animation
-  useEffect(() => {
-    if (autoClickButton) {
-      if (autoClickButton === "allowPermanent") {
-        // For allowPermanent: sequence 1st → 2nd button
-        // 1. First highlight "Yes" button (top button)
-        setActiveButton("allow");
-
-        // 2. Then move to "Allow Permanent" button after delay
-        timersRef.current.focus = setTimeout(() => {
-          setActiveButton("allowPermanent");
-        }, 500);
-
-        // 3. Show click effect then execute action
-        timersRef.current.action = setTimeout(() => {
-          setClickedButton("allowPermanent");
-          timersRef.current.clickEffect = setTimeout(() => {
-            onAllowPermanent();
-          }, 200); // Brief click effect
-        }, 1200);
-
-        return () => {
-          if (timersRef.current.focus) {
-            clearTimeout(timersRef.current.focus);
-          }
-          if (timersRef.current.action) {
-            clearTimeout(timersRef.current.action);
-          }
-          if (timersRef.current.clickEffect) {
-            clearTimeout(timersRef.current.clickEffect);
-          }
-        };
-      } else if (autoClickButton === "allow") {
-        // For allow: direct focus on 1st button only
-        setActiveButton("allow");
-
-        // Show click effect then execute action
-        timersRef.current.action = setTimeout(() => {
-          setClickedButton("allow");
-          timersRef.current.clickEffect = setTimeout(() => {
-            onAllow();
-          }, 200); // Brief click effect
-        }, 700);
-
-        return () => {
-          if (timersRef.current.action) {
-            clearTimeout(timersRef.current.action);
-          }
-          if (timersRef.current.clickEffect) {
-            clearTimeout(timersRef.current.clickEffect);
-          }
-        };
-      }
-    }
-  }, [autoClickButton, onAllow, onAllowPermanent]);
-
-  // Reset active button when dialog closes
-  useEffect(() => {
-    if (!isOpen) {
-      setActiveButton(null);
-    }
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
   const handleDeny = () => {
     onDeny();
-  };
-
-  const getButtonClasses = (buttonType: string, baseClasses: string) => {
-    const isActive = activeButton === buttonType;
-    const isClicked = clickedButton === buttonType;
-
-    // Pressed state (brief moment before action)
-    if (isClicked) {
-      return `${baseClasses} ring-2 ring-white/70`;
-    }
-
-    // Demo focus state (subtle addition to normal styles)
-    if (isActive) {
-      if (buttonType === "allowPermanent") {
-        return `${baseClasses} ring-1 ring-green-300`;
-      } else if (buttonType === "allow") {
-        return `${baseClasses} ring-1 ring-blue-300`;
-      } else {
-        return `${baseClasses} ring-1 ring-slate-300`;
-      }
-    }
-
-    // Default state (normal styles)
-    return baseClasses;
   };
 
   return (
@@ -165,27 +73,27 @@ export function PermissionDialog({
           <div className="space-y-3">
             <button
               onClick={onAllow}
-              className={getButtonClasses(
+              className={getButtonClassName(
                 "allow",
-                "w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm hover:shadow-md",
+                "w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow-md",
               )}
             >
               Yes
             </button>
             <button
               onClick={onAllowPermanent}
-              className={getButtonClasses(
+              className={getButtonClassName(
                 "allowPermanent",
-                "w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium shadow-sm hover:shadow-md",
+                "w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow-md",
               )}
             >
               Yes, and don't ask again for {toolName}
             </button>
             <button
               onClick={handleDeny}
-              className={getButtonClasses(
+              className={getButtonClassName(
                 "deny",
-                "w-full px-4 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg font-medium",
+                "w-full px-4 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg font-medium transition-colors",
               )}
             >
               No
