@@ -2,6 +2,38 @@
 
 A web-based interface for the `claude` command line tool that provides streaming responses in a chat interface.
 
+## Code Quality
+
+This project uses automated quality checks to ensure consistent code standards:
+
+- **Lefthook**: Git hooks manager that runs `make check` before every commit
+- **Quality Commands**: Use `make check` to run all quality checks manually  
+- **CI/CD**: GitHub Actions runs the same quality checks on every push
+
+The pre-commit hook prevents commits with formatting, linting, or test failures.
+
+### Setup for New Contributors
+
+1. **Install Lefthook**: 
+   ```bash
+   # macOS
+   brew install lefthook
+   
+   # Or download from https://github.com/evilmartians/lefthook/releases
+   ```
+
+2. **Install hooks**:
+   ```bash
+   lefthook install
+   ```
+
+3. **Verify setup**:
+   ```bash
+   lefthook run pre-commit
+   ```
+
+The `.lefthook.yml` configuration is tracked in the repository, ensuring consistent quality checks across all contributors.
+
 ## Architecture
 
 This project consists of three main components:
@@ -332,20 +364,19 @@ cd backend && deno task build
 - **Build Binary**: `make build-backend`
 - **Build Frontend**: `make build-frontend`
 
-**Note**: Always run format and lint commands before committing to ensure consistent code style. GitHub Actions will automatically run all quality checks on push and pull requests.
+**Note**: Lefthook automatically runs `make check` before every commit. GitHub Actions will also run all quality checks on push and pull requests.
 
 ## Development Workflow
 
 ### Pull Request Process
 
 1. Create a feature branch from `main`: `git checkout -b feature/your-feature-name`
-2. Make your changes and commit them
-3. Run all quality checks locally before pushing: `make check`
-4. Push your branch and create a pull request
-5. **Add appropriate labels** to categorize the changes (see Labels section below)
-6. **Include essential PR information** as outlined in the Labels section
-7. Request review and address feedback
-8. Merge after approval and CI passes
+2. Make your changes and commit them (Lefthook runs `make check` automatically)
+3. Push your branch and create a pull request
+4. **Add appropriate labels** to categorize the changes (see Labels section below)
+5. **Include essential PR information** as outlined in the Labels section
+6. Request review and address feedback
+7. Merge after approval and CI passes
 
 #### Creating Pull Requests
 
