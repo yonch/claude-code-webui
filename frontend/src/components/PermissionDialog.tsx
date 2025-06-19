@@ -26,21 +26,58 @@ export function PermissionDialog({
   autoClickButton = null,
 }: PermissionDialogProps) {
   const [activeButton, setActiveButton] = useState<string | null>(null);
+  const [clickedButton, setClickedButton] = useState<string | null>(null);
 
   // Handle auto-click effect with focus sequence animation
   useEffect(() => {
     if (autoClickButton) {
-      // Direct focus on the target button (no sequence for cleaner UX)
-      setActiveButton(autoClickButton);
+      if (autoClickButton === "allowPermanent") {
+        // For allowPermanent: sequence 1st → 2nd button
+        // 1. First highlight "Yes" button (top button)
+        setActiveButton("allow");
 
-      // Remove effect after animation completes
-      const timer = setTimeout(() => {
-        setActiveButton(null);
-      }, 700); // Single button focus duration
+        // 2. Then move to "Allow Permanent" button after delay
+        const focusTimer = setTimeout(() => {
+          setActiveButton("allowPermanent");
+        }, 500);
 
-      return () => clearTimeout(timer);
+        // 3. Show click effect then execute action
+        const actionTimer = setTimeout(() => {
+          setClickedButton("allowPermanent");
+          setTimeout(() => {
+            onAllowPermanent();
+          }, 200); // Brief click effect
+        }, 1200);
+
+        return () => {
+          clearTimeout(focusTimer);
+          clearTimeout(actionTimer);
+        };
+      } else if (autoClickButton === "allow") {
+        // For allow: direct focus on 1st button only
+        setActiveButton("allow");
+
+        // Show click effect then execute action
+        const actionTimer = setTimeout(() => {
+          setClickedButton("allow");
+          setTimeout(() => {
+            onAllow();
+          }, 200); // Brief click effect
+        }, 700);
+
+        return () => {
+          clearTimeout(actionTimer);
+        };
+      }
     }
-  }, [autoClickButton]);
+  }, [autoClickButton, onAllow, onAllowPermanent]);
+
+  // Reset active button when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setActiveButton(null);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -50,22 +87,26 @@ export function PermissionDialog({
 
   const getButtonClasses = (buttonType: string, baseClasses: string) => {
     const isActive = activeButton === buttonType;
+    const isClicked = clickedButton === buttonType;
 
-    if (!isActive) {
-      return `${baseClasses} transition-all duration-300`;
+    // Pressed state (brief moment before action)
+    if (isClicked) {
+      return `${baseClasses} ring-2 ring-white/70`;
     }
 
-    // Maintain original button color when active
-    if (buttonType === "allowPermanent") {
-      // Green button (Allow Permanent) - enhance green color
-      return `${baseClasses} !bg-green-700 dark:!bg-green-600 shadow-lg shadow-green-500/50 ring-2 ring-green-400 dark:ring-green-300 transition-all duration-300`;
-    } else if (buttonType === "allow") {
-      // Blue button (Yes) - enhance blue color
-      return `${baseClasses} !bg-blue-700 dark:!bg-blue-600 shadow-lg shadow-blue-500/50 ring-2 ring-blue-400 dark:ring-blue-300 transition-all duration-300`;
-    } else {
-      // Default for deny button
-      return `${baseClasses} !bg-slate-400 dark:!bg-slate-500 shadow-lg shadow-slate-500/50 ring-2 ring-slate-400 dark:ring-slate-300 transition-all duration-300`;
+    // Demo focus state (subtle addition to normal styles)
+    if (isActive) {
+      if (buttonType === "allowPermanent") {
+        return `${baseClasses} ring-1 ring-green-300`;
+      } else if (buttonType === "allow") {
+        return `${baseClasses} ring-1 ring-blue-300`;
+      } else {
+        return `${baseClasses} ring-1 ring-slate-300`;
+      }
     }
+
+    // Default state (normal styles)
+    return baseClasses;
   };
 
   return (

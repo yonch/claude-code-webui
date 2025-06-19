@@ -80,10 +80,17 @@ export function DemoPage() {
     "allow" | "allowPermanent" | null
   >(null);
   const permissionDialogCountRef = useRef(0);
+  const hasHandledDialogRef = useRef(false);
 
   // Auto-allow permissions for demo after 1 second with visual effect
   useEffect(() => {
-    if (permissionDialog && permissionDialog.isOpen) {
+    if (
+      permissionDialog &&
+      permissionDialog.isOpen &&
+      !hasHandledDialogRef.current
+    ) {
+      hasHandledDialogRef.current = true; // Mark this dialog as handled
+
       // Increment dialog count when a new dialog opens
       const currentCount = permissionDialogCountRef.current;
       permissionDialogCountRef.current += 1;
@@ -92,23 +99,23 @@ export function DemoPage() {
         // First dialog: use allowPermanent, Second+ dialog: use allow
         const buttonToClick = currentCount === 0 ? "allowPermanent" : "allow";
         setAutoClickButton(buttonToClick);
-
-        // Then perform the actual action after focus sequence completes
-        setTimeout(() => {
-          const pattern = permissionDialog.pattern;
-          if (buttonToClick === "allowPermanent") {
-            allowToolPermanent(pattern);
-          } else {
-            // For "allow", we'll just close the dialog (temporary permission)
-            closePermissionDialog();
-          }
-          setAutoClickButton(null);
-        }, 700); // Consistent timing for all buttons
+        // That's it! PermissionDialog will handle the rest
       }, 1000); // Auto-allow after 1 second for demo
 
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        hasHandledDialogRef.current = false;
+      };
     }
-  }, [permissionDialog, allowToolPermanent, closePermissionDialog]);
+  }, [permissionDialog]);
+
+  // Reset autoClickButton when dialog closes
+  useEffect(() => {
+    if (!permissionDialog || !permissionDialog.isOpen) {
+      setAutoClickButton(null);
+      hasHandledDialogRef.current = false;
+    }
+  }, [permissionDialog]);
 
   // Reset dialog count when demo starts/resets
   useEffect(() => {
