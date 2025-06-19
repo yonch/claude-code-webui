@@ -1,4 +1,5 @@
 import type { SDKMessage } from "@anthropic-ai/claude-code";
+import { generateToolPattern } from "./toolUtils";
 
 export interface MockStreamResponse {
   type: "claude_json" | "done" | "error";
@@ -195,7 +196,7 @@ export const DEMO_SCENARIOS = {
         delay: 1000,
         data: {
           toolName: "Read",
-          pattern: "**/*.tsx",
+          pattern: generateToolPattern("Read", "*"),
           toolUseId: "read-app-tsx",
         },
       },
@@ -239,7 +240,11 @@ export const DEMO_SCENARIOS = {
       {
         type: "permission_error" as const,
         delay: 900,
-        data: { toolName: "Bash", pattern: "find", toolUseId: "find-files" },
+        data: { 
+          toolName: "Bash", 
+          pattern: generateToolPattern("Bash", "find"), 
+          toolUseId: "find-files" 
+        },
       },
       {
         type: "assistant" as const,
@@ -319,7 +324,7 @@ if __name__ == "__main__":
         delay: 1000,
         data: {
           toolName: "Write",
-          pattern: "**/*.py",
+          pattern: generateToolPattern("Write", "*"),
           toolUseId: "write-fibonacci",
         },
       },
@@ -349,7 +354,7 @@ if __name__ == "__main__":
         delay: 800,
         data: {
           toolName: "Bash",
-          pattern: "python *",
+          pattern: generateToolPattern("Bash", "python"),
           toolUseId: "run-fibonacci",
         },
       },

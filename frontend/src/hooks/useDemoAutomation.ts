@@ -8,6 +8,7 @@ import {
   DEMO_SCENARIOS,
 } from "../utils/mockResponseGenerator";
 import type { SDKMessage } from "../types";
+import { formatToolArguments } from "../utils/toolUtils";
 
 export interface DemoAutomationHook {
   currentStep: number;
@@ -217,9 +218,10 @@ export function useDemoAutomation(
                 input: Record<string, unknown>;
               };
 
+              const argsDisplay = formatToolArguments(toolUse.input);
               const toolMessage: AllMessage = {
                 type: "tool",
-                content: `${toolUse.name}(${JSON.stringify(toolUse.input, null, 2)})`,
+                content: `${toolUse.name}${argsDisplay}`,
                 timestamp: Date.now(),
               };
               finalAddMessage(toolMessage);
