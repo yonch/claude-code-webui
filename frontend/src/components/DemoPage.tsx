@@ -199,7 +199,6 @@ export function DemoPage() {
           onSubmit={handleSendMessage}
           onAbort={() => {}} // No-op in demo
           placeholder={isTyping ? "Typing..." : undefined}
-          disabled={false} // Force enabled in demo to maintain focus and cursor
         />
       </div>
 
