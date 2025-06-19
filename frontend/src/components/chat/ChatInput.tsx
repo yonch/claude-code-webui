@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { StopIcon } from "@heroicons/react/24/solid";
 import { UI_CONSTANTS, KEYBOARD_SHORTCUTS } from "../../utils/constants";
 
@@ -20,6 +20,7 @@ export function ChatInput({
   onAbort,
 }: ChatInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [isComposing, setIsComposing] = useState(false);
 
   // Focus input when not loading
   useEffect(() => {
@@ -48,10 +49,19 @@ export function ChatInput({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === KEYBOARD_SHORTCUTS.SUBMIT && !e.shiftKey) {
+    if (e.key === KEYBOARD_SHORTCUTS.SUBMIT && !e.shiftKey && !isComposing) {
       e.preventDefault();
       onSubmit();
     }
+  };
+
+  const handleCompositionStart = () => {
+    setIsComposing(true);
+  };
+
+  const handleCompositionEnd = () => {
+    // Add small delay to handle race condition between composition and keydown events
+    setTimeout(() => setIsComposing(false), 0);
   };
 
   return (
@@ -62,6 +72,8 @@ export function ChatInput({
           value={input}
           onChange={(e) => onInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
+          onCompositionStart={handleCompositionStart}
+          onCompositionEnd={handleCompositionEnd}
           placeholder={
             isLoading && currentRequestId
               ? "Processing... (Press ESC to stop)"
