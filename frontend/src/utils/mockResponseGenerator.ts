@@ -282,14 +282,6 @@ export const DEMO_SCENARIOS = {
       {
         type: "assistant" as const,
         delay: 1800,
-        data: createAssistantMessage(
-          "I'll help you create a Fibonacci calculator in Python and run it. Let me write the script for you.",
-          "demo-session-codegen",
-        ),
-      },
-      {
-        type: "assistant" as const,
-        delay: 1500,
         data: createToolUseMessage(
           "Write",
           {
@@ -326,14 +318,6 @@ if __name__ == "__main__":
           pattern: "**/*.py",
           toolUseId: "write-fibonacci",
         },
-      },
-      {
-        type: "assistant" as const,
-        delay: 2000,
-        data: createAssistantMessage(
-          "Great! I've created the Fibonacci script. Now let me run it to show you the results.",
-          "demo-session-codegen",
-        ),
       },
       {
         type: "assistant" as const,

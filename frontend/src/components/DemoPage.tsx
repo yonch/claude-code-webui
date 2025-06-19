@@ -63,6 +63,7 @@ export function DemoPage() {
     },
     onDemoComplete: () => {
       console.log("Demo completed");
+      setPermissionDialogCount(0); // Reset dialog count on demo completion
     },
     // Pass message handling functions from DemoPage
     addMessage,
@@ -78,26 +79,51 @@ export function DemoPage() {
   const [autoClickButton, setAutoClickButton] = useState<
     "allow" | "allowPermanent" | null
   >(null);
+  const [permissionDialogCount, setPermissionDialogCount] = useState(0);
 
-  // Auto-allow permissions for demo after 2 seconds with visual effect
+  // Auto-allow permissions for demo after 1 second with visual effect
   useEffect(() => {
     if (permissionDialog && permissionDialog.isOpen) {
+      // Increment dialog count when a new dialog opens
+      setPermissionDialogCount((prev) => prev + 1);
+
       const timer = setTimeout(() => {
-        // Show button press effect first
-        setAutoClickButton("allowPermanent");
+        // First dialog: use allowPermanent, Second+ dialog: use allow
+        const buttonToClick =
+          permissionDialogCount === 0 ? "allowPermanent" : "allow";
+        setAutoClickButton(buttonToClick);
 
         // Then perform the actual action after focus sequence completes
-        setTimeout(() => {
-          const pattern = permissionDialog.pattern;
-          allowToolPermanent(pattern);
-          closePermissionDialog();
-          setAutoClickButton(null);
-        }, 1200); // Delay to show the focus sequence animation (500ms + 700ms)
+        setTimeout(
+          () => {
+            const pattern = permissionDialog.pattern;
+            if (buttonToClick === "allowPermanent") {
+              allowToolPermanent(pattern);
+            } else {
+              // For "allow", we'll just close the dialog (temporary permission)
+              closePermissionDialog();
+            }
+            setAutoClickButton(null);
+          },
+          buttonToClick === "allowPermanent" ? 1200 : 300,
+        ); // Different timing for different buttons
       }, 1000); // Auto-allow after 1 second for demo
 
       return () => clearTimeout(timer);
     }
-  }, [permissionDialog, allowToolPermanent, closePermissionDialog]);
+  }, [
+    permissionDialog,
+    allowToolPermanent,
+    closePermissionDialog,
+    permissionDialogCount,
+  ]);
+
+  // Reset dialog count when demo starts/resets
+  useEffect(() => {
+    if (currentStep === 0 || currentStep === 1) {
+      setPermissionDialogCount(0);
+    }
+  }, [currentStep]);
 
   // Permission dialog handlers (for demo)
   const handlePermissionAllow = () => {
