@@ -70,7 +70,7 @@ export function PermissionDialog({
     const isActive = activeButton === buttonType;
     return `${baseClasses} ${
       isActive
-        ? "scale-95 !bg-opacity-80 ring-2 ring-blue-300 dark:ring-blue-500 border-2 border-blue-400 dark:border-blue-400 outline outline-2 outline-blue-500 dark:outline-blue-300"
+        ? "!bg-blue-700 dark:!bg-blue-600 shadow-lg shadow-blue-500/50 ring-2 ring-blue-400 dark:ring-blue-300"
         : ""
     } transition-all duration-300`;
   };
