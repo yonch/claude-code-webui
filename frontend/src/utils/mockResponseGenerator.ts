@@ -90,10 +90,6 @@ export function createToolUseMessage(
       role: "assistant",
       content: [
         {
-          type: "text",
-          text: `I'll help you with that. Let me ${toolName === "Read" ? "read the file" : "use the " + toolName + " tool"}.`,
-        },
-        {
           type: "tool_use",
           id: toolUseId,
           name: toolName,
@@ -281,6 +277,14 @@ export const DEMO_SCENARIOS = {
       },
       {
         type: "assistant" as const,
+        delay: 1500,
+        data: createAssistantMessage(
+          "I'll create a Python Fibonacci calculator for you. Let me write the script.",
+          "demo-session-codegen",
+        ),
+      },
+      {
+        type: "assistant" as const,
         delay: 1800,
         data: createToolUseMessage(
           "Write",
@@ -318,6 +322,14 @@ if __name__ == "__main__":
           pattern: "**/*.py",
           toolUseId: "write-fibonacci",
         },
+      },
+      {
+        type: "assistant" as const,
+        delay: 2000,
+        data: createAssistantMessage(
+          "Great! I've created the Fibonacci script. Now let me run it to show you the results.",
+          "demo-session-codegen",
+        ),
       },
       {
         type: "assistant" as const,

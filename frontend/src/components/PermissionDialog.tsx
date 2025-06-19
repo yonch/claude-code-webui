@@ -30,33 +30,15 @@ export function PermissionDialog({
   // Handle auto-click effect with focus sequence animation
   useEffect(() => {
     if (autoClickButton) {
-      // Start focus sequence from the top button for better UX
-      if (autoClickButton === "allowPermanent") {
-        // 1. First highlight "Yes" button
-        setActiveButton("allow");
+      // Direct focus on the target button (no sequence for cleaner UX)
+      setActiveButton(autoClickButton);
 
-        // 2. Then move to target "Allow Permanent" button after longer delay
-        const focusTimer = setTimeout(() => {
-          setActiveButton("allowPermanent");
-        }, 500);
+      // Remove effect after animation completes
+      const timer = setTimeout(() => {
+        setActiveButton(null);
+      }, 700); // Single button focus duration
 
-        // 3. Remove effect after animation completes
-        const cleanupTimer = setTimeout(() => {
-          setActiveButton(null);
-        }, 1200); // 500ms + 700ms animation duration
-
-        return () => {
-          clearTimeout(focusTimer);
-          clearTimeout(cleanupTimer);
-        };
-      } else {
-        // For other buttons, use direct animation (no sequence needed)
-        setActiveButton(autoClickButton);
-        const timer = setTimeout(() => {
-          setActiveButton(null);
-        }, 300);
-        return () => clearTimeout(timer);
-      }
+      return () => clearTimeout(timer);
     }
   }, [autoClickButton]);
 
@@ -68,11 +50,22 @@ export function PermissionDialog({
 
   const getButtonClasses = (buttonType: string, baseClasses: string) => {
     const isActive = activeButton === buttonType;
-    return `${baseClasses} ${
-      isActive
-        ? "!bg-blue-700 dark:!bg-blue-600 shadow-lg shadow-blue-500/50 ring-2 ring-blue-400 dark:ring-blue-300"
-        : ""
-    } transition-all duration-300`;
+
+    if (!isActive) {
+      return `${baseClasses} transition-all duration-300`;
+    }
+
+    // Maintain original button color when active
+    if (buttonType === "allowPermanent") {
+      // Green button (Allow Permanent) - enhance green color
+      return `${baseClasses} !bg-green-700 dark:!bg-green-600 shadow-lg shadow-green-500/50 ring-2 ring-green-400 dark:ring-green-300 transition-all duration-300`;
+    } else if (buttonType === "allow") {
+      // Blue button (Yes) - enhance blue color
+      return `${baseClasses} !bg-blue-700 dark:!bg-blue-600 shadow-lg shadow-blue-500/50 ring-2 ring-blue-400 dark:ring-blue-300 transition-all duration-300`;
+    } else {
+      // Default for deny button
+      return `${baseClasses} !bg-slate-400 dark:!bg-slate-500 shadow-lg shadow-slate-500/50 ring-2 ring-slate-400 dark:ring-slate-300 transition-all duration-300`;
+    }
   };
 
   return (

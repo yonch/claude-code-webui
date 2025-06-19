@@ -94,19 +94,16 @@ export function DemoPage() {
         setAutoClickButton(buttonToClick);
 
         // Then perform the actual action after focus sequence completes
-        setTimeout(
-          () => {
-            const pattern = permissionDialog.pattern;
-            if (buttonToClick === "allowPermanent") {
-              allowToolPermanent(pattern);
-            } else {
-              // For "allow", we'll just close the dialog (temporary permission)
-              closePermissionDialog();
-            }
-            setAutoClickButton(null);
-          },
-          buttonToClick === "allowPermanent" ? 1200 : 300,
-        ); // Different timing for different buttons
+        setTimeout(() => {
+          const pattern = permissionDialog.pattern;
+          if (buttonToClick === "allowPermanent") {
+            allowToolPermanent(pattern);
+          } else {
+            // For "allow", we'll just close the dialog (temporary permission)
+            closePermissionDialog();
+          }
+          setAutoClickButton(null);
+        }, 700); // Consistent timing for all buttons
       }, 1000); // Auto-allow after 1 second for demo
 
       return () => clearTimeout(timer);
