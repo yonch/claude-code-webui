@@ -43,6 +43,28 @@ interface DemoAutomationOptions {
 const DEFAULT_TYPING_SPEED = 30; // characters per second
 const REALISTIC_TYPING_VARIANCE = 0.15; // 15% variance in typing speed (reduced for smoother effect)
 
+// Simple seeded pseudo-random number generator for reproducible demos
+class SeededRandom {
+  private _seed: number;
+
+  constructor(seed: number) {
+    this._seed = seed;
+  }
+
+  next(): number {
+    // Simple linear congruential generator
+    this._seed = (this._seed * 9301 + 49297) % 233280;
+    return this._seed / 233280;
+  }
+
+  reset(seed: number = 42): void {
+    this._seed = seed;
+  }
+}
+
+// Use fixed seed for reproducible demos
+const demoRandom = new SeededRandom(42);
+
 export function useDemoAutomation(
   options: DemoAutomationOptions = {},
 ): DemoAutomationHook {
@@ -121,15 +143,15 @@ export function useDemoAutomation(
           finalSetInput(text.slice(0, currentIndex + 1));
           currentIndex++;
 
-          // Calculate realistic delay with variance
+          // Calculate realistic delay with variance (using seeded random for reproducibility)
           const baseDelay = 1000 / typingSpeed;
           const variance = baseDelay * REALISTIC_TYPING_VARIANCE;
-          const randomVariance = (Math.random() - 0.5) * 2 * variance;
+          const randomVariance = (demoRandom.next() - 0.5) * 2 * variance;
           const delay = Math.max(50, baseDelay + randomVariance);
 
           // Add occasional subtle pauses for more realistic typing
-          const shouldPause = Math.random() < 0.008; // 0.8% chance of pause (further reduced)
-          const pauseDelay = shouldPause ? Math.random() * 80 + 40 : 0;
+          const shouldPause = demoRandom.next() < 0.008; // 0.8% chance of pause (further reduced)
+          const pauseDelay = shouldPause ? demoRandom.next() * 80 + 40 : 0;
 
           typingIntervalRef.current = setTimeout(
             typeNextCharacter,
@@ -380,6 +402,9 @@ export function useDemoAutomation(
 
   // Demo control functions
   const resetDemo = useCallback(() => {
+    // Reset the random seed for reproducible demos
+    demoRandom.reset(42);
+
     setCurrentStep(0);
     setIsCompleted(false);
     setIsPaused(false);
@@ -493,7 +518,7 @@ export function useTypingAnimation(
         setDisplayText(text.slice(0, index + 1));
         index++;
 
-        const delay = 1000 / speed + (Math.random() - 0.5) * 100;
+        const delay = 1000 / speed + (demoRandom.next() - 0.5) * 100;
         intervalRef.current = setTimeout(typeCharacter, delay);
       } else {
         setIsTyping(false);

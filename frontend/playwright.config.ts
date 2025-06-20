@@ -5,7 +5,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./",
-  testMatch: ["scripts/**/*.spec.ts", "tests/**/*.spec.ts"],
+  testMatch: ["tests/**/*.spec.ts"], // Only actual tests, not recording scripts
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -24,11 +24,8 @@ export default defineConfig({
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
 
-    /* Video recording settings for demo capture */
-    video: {
-      mode: "on",
-      size: { width: 1280, height: 720 },
-    },
+    /* Video recording disabled - using manual control in recording scripts */
+    video: "off",
 
     /* Screenshot settings */
     screenshot: "only-on-failure",

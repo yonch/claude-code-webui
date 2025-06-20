@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { spawn } from "child_process";
-import { existsSync, mkdirSync, readdirSync, copyFileSync } from "fs";
+import { chromium } from "playwright";
+import { existsSync, mkdirSync, readdirSync, copyFileSync, unlinkSync } from "fs";
 import { join } from "path";
 import {
   DEMO_SCENARIOS,
@@ -11,8 +11,8 @@ import {
 } from "./demo-constants";
 
 /**
- * Demo recording script
- * This script runs Playwright tests to record demo videos
+ * Demo recording script using Playwright's native video recording
+ * Creates context dynamically to control recording timing
  */
 
 function createOutputDir(): string {
@@ -24,99 +24,164 @@ function createOutputDir(): string {
   return outputDir;
 }
 
-function copyVideoFromTestResults(scenario: DemoScenario, theme: Theme): void {
-  const outputDir = createOutputDir();
-  const testResultsDir = join(process.cwd(), "test-results");
-
-  if (!existsSync(testResultsDir)) {
-    console.log("⚠️ No test-results directory found");
-    return;
-  }
-
-  // Find the most recent test result directory for this scenario
-  const dirs = readdirSync(testResultsDir, { withFileTypes: true })
-    .filter((dirent) => dirent.isDirectory())
-    .filter((dirent) => dirent.name.includes(`record-${scenario}-demo`))
-    .map((dirent) => ({
-      name: dirent.name,
-      path: join(testResultsDir, dirent.name),
-    }))
-    .sort((a, b) => b.name.localeCompare(a.name)); // Sort by name (newest first)
-
-  if (dirs.length === 0) {
-    console.log(`⚠️ No test results found for scenario: ${scenario}`);
-    return;
-  }
-
-  const latestDir = dirs[0];
-  const videoPath = join(latestDir.path, "video.webm");
-
-  if (!existsSync(videoPath)) {
-    console.log(`⚠️ No video file found in: ${latestDir.path}`);
-    return;
-  }
-
-  // Create output filename with theme suffix
+function createVideoFilename(scenario: DemoScenario, theme: Theme): string {
   const themeLabel = theme !== "light" ? `-${theme}` : "";
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  const outputFilename = `${scenario}${themeLabel}-${timestamp}.webm`;
-  const outputPath = join(outputDir, outputFilename);
-
-  try {
-    copyFileSync(videoPath, outputPath);
-    console.log(`📹 Video saved: ${outputFilename}`);
-  } catch (error) {
-    console.error(`❌ Failed to copy video: ${error}`);
-  }
+  return `${scenario}${themeLabel}-${timestamp}.webm`;
 }
 
-function runPlaywrightTest(options: RecordingOptions): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const { scenario, theme } = options;
-    const themeLabel = theme !== "light" ? ` (${theme})` : "";
-    console.log(`🎬 Recording demo scenario: ${scenario}${themeLabel}`);
+async function recordDemoVideo(options: RecordingOptions): Promise<void> {
+  const { scenario, theme } = options;
+  const themeLabel = theme !== "light" ? ` (${theme})` : "";
+  console.log(`🎬 Recording demo scenario: ${scenario}${themeLabel}`);
 
-    const args = [
-      "test",
-      "--config",
-      "playwright.config.ts",
-      "--grep",
-      `record ${scenario} demo`,
-      "--project",
-      "chromium",
-    ];
+  const browser = await chromium.launch({
+    headless: !!process.env.CI, // Use headless mode in CI environment
+    args: [
+      "--disable-web-security",
+      "--disable-features=VizDisplayCompositor",
+    ],
+  });
 
-    const child = spawn("npx", ["playwright", ...args], {
-      stdio: "inherit",
-      env: {
-        ...process.env,
-        DEMO_SCENARIO: scenario,
-        DEMO_THEME: theme,
-        DEMO_OUTPUT_DIR: createOutputDir(),
+  // Setup phase - no recording context
+  const setupContext = await browser.newContext({
+    viewport: { width: 1280, height: 720 },
+  });
+
+  let page = await setupContext.newPage();
+
+  try {
+    // Setup phase (not recorded)
+    console.log(`📱 Setting up demo page...`);
+    
+    // Pre-configure theme to avoid flashing
+    if (theme === "dark") {
+      await page.addInitScript(() => {
+        localStorage.setItem("theme", "dark");
+        document.documentElement.classList.add("dark");
+      });
+    }
+
+    // Navigate to demo page
+    const actualTheme = theme === "both" ? "light" : theme;
+    const url = `http://localhost:3000/demo?scenario=${scenario}&theme=${actualTheme}`;
+    
+    await page.goto(url, {
+      waitUntil: "networkidle",
+      timeout: 30000,
+    });
+
+    // Wait for demo page to be ready
+    await page.waitForSelector('[data-demo-active="true"]', { timeout: 10000 });
+    await page.waitForSelector("h1");
+    console.log(`📝 Demo page loaded for scenario: ${scenario}${themeLabel}`);
+
+    // Verify theme is applied correctly
+    if (actualTheme === "dark") {
+      console.log("⏳ Verifying dark theme...");
+      await page.waitForFunction(
+        () => document.documentElement.classList.contains("dark"),
+        { timeout: 5000 }
+      );
+      console.log("✅ Dark theme applied");
+    }
+
+    // Wait for demo to be ready to start (when demo step appears)
+    await page.waitForSelector("[data-demo-step]", { timeout: 10000 });
+    console.log("🎯 Demo is ready to start");
+
+    // Additional stabilization wait
+    await page.waitForTimeout(2000);
+
+    // Close setup context and create recording context
+    console.log("🔄 Switching to recording context...");
+    await setupContext.close();
+
+    // Create recording context with video enabled
+    const outputDir = createOutputDir();
+    const videoFilename = createVideoFilename(scenario, actualTheme);
+    
+    const recordingContext = await browser.newContext({
+      viewport: { width: 1280, height: 720 },
+      recordVideo: {
+        dir: outputDir,
+        size: { width: 1280, height: 720 },
       },
     });
 
-    child.on("close", (code) => {
-      if (code === 0) {
-        console.log(`✅ Successfully recorded ${scenario} demo${themeLabel}`);
+    page = await recordingContext.newPage();
 
-        // Copy video from test-results to demo-recordings
-        copyVideoFromTestResults(scenario, theme);
+    // Re-setup in recording context
+    if (theme === "dark") {
+      await page.addInitScript(() => {
+        localStorage.setItem("theme", "dark");
+        document.documentElement.classList.add("dark");
+      });
+    }
 
-        resolve();
-      } else {
-        console.error(
-          `❌ Failed to record ${scenario} demo${themeLabel} (exit code: ${code})`,
-        );
-        reject(new Error(`Recording failed for ${scenario}${themeLabel}`));
+    console.log("🔴 Starting video recording...");
+    await page.goto(url, {
+      waitUntil: "networkidle",
+      timeout: 30000,
+    });
+
+    // Wait for demo to be ready again
+    await page.waitForSelector('[data-demo-active="true"]', { timeout: 10000 });
+    await page.waitForSelector("[data-demo-step]", { timeout: 10000 });
+
+    console.log("🎬 Recording demo content...");
+    
+    // Wait for demo completion
+    console.log("⏳ Waiting for demo to complete...");
+    try {
+      await page.waitForSelector('[data-demo-completed="true"]', {
+        timeout: 120000, // 2 minutes timeout
+      });
+      console.log("✅ Demo completed successfully");
+
+      // Add a small buffer time at the end for clean recording
+      await page.waitForTimeout(2000);
+    } catch (error) {
+      console.error("❌ Demo did not complete within timeout");
+      
+      // Capture current state for debugging
+      const currentStep = await page.getAttribute("[data-demo-step]", "data-demo-step");
+      const isCompleted = await page.getAttribute("[data-demo-completed]", "data-demo-completed");
+      
+      console.log(`Debug info - Current step: ${currentStep}, Completed: ${isCompleted}`);
+      throw error;
+    }
+
+    // Close recording context to save video
+    console.log("⏹️ Stopping video recording...");
+    await recordingContext.close();
+    
+    // Find and rename the generated video file
+    const videoFiles = readdirSync(outputDir).filter(f => f.endsWith('.webm'));
+    if (videoFiles.length > 0) {
+      const generatedVideoPath = join(outputDir, videoFiles[0]);
+      const finalVideoPath = join(outputDir, videoFilename);
+      
+      if (existsSync(generatedVideoPath)) {
+        copyFileSync(generatedVideoPath, finalVideoPath);
+        // Remove the original file with generated name
+        try {
+          unlinkSync(generatedVideoPath);
+        } catch {
+          // Ignore deletion errors
+        }
+        console.log(`📹 Video saved: ${videoFilename}`);
       }
-    });
+    }
+    
+    console.log(`✅ Successfully recorded ${scenario} demo${themeLabel}`);
 
-    child.on("error", (error) => {
-      console.error(`❌ Error running Playwright: ${error.message}`);
-      reject(error);
-    });
-  });
+  } catch (error) {
+    console.error(`❌ Failed to record ${scenario} demo${themeLabel}:`, error);
+    throw error;
+  } finally {
+    await browser.close();
+  }
 }
 
 function parseArguments(): RecordingOptions {
@@ -124,14 +189,10 @@ function parseArguments(): RecordingOptions {
   let scenario: DemoScenario = "codeGeneration";
   let theme: Theme = "light";
 
-  // Parse scenario (first positional argument)
   if (args[0] && DEMO_SCENARIOS.includes(args[0] as DemoScenario)) {
     scenario = args[0] as DemoScenario;
-  } else if (args[0] === "all") {
-    // Special case handled in main()
   }
 
-  // Parse --theme option
   const themeArg = args.find((arg) => arg.startsWith("--theme="));
   if (themeArg) {
     const themeValue = themeArg.split("=")[1] as Theme;
@@ -143,6 +204,19 @@ function parseArguments(): RecordingOptions {
   return { scenario, theme };
 }
 
+async function checkDependencies(): Promise<void> {
+  try {
+    const response = await fetch("http://localhost:3000");
+    if (!response.ok) {
+      throw new Error("Development server not responding");
+    }
+  } catch {
+    console.error("❌ Development server is not running. Please start it first:");
+    console.error("   npm run dev");
+    process.exit(1);
+  }
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const options = parseArguments();
@@ -150,56 +224,33 @@ async function main() {
   console.log("🎥 Claude Code Web UI Demo Recorder");
   console.log("=====================================");
 
-  // Check if Playwright is installed
-  try {
-    await new Promise((resolve, reject) => {
-      const child = spawn("npx", ["playwright", "--version"], {
-        stdio: "pipe",
-      });
-      child.on("close", (code) => {
-        if (code === 0) resolve(undefined);
-        else reject(new Error("Playwright not found"));
-      });
-      child.on("error", reject);
-    });
-  } catch {
-    console.error("❌ Playwright not found. Please install it first:");
-    console.error("   npm install");
-    console.error("   npx playwright install");
-    process.exit(1);
-  }
+  await checkDependencies();
 
   try {
     const firstArg = args[0];
 
     if (firstArg === "all") {
-      // Record all scenarios
       const themeLabel = options.theme !== "light" ? ` (${options.theme})` : "";
       console.log(
         `📝 Recording all ${DEMO_SCENARIOS.length} demo scenarios${themeLabel}...`,
       );
 
       if (options.theme === "both") {
-        // Record both themes for all scenarios
         for (const scenario of DEMO_SCENARIOS) {
-          await runPlaywrightTest({ scenario, theme: "light" });
-          await runPlaywrightTest({ scenario, theme: "dark" });
+          await recordDemoVideo({ scenario, theme: "light" });
+          await recordDemoVideo({ scenario, theme: "dark" });
         }
       } else {
-        // Record single theme for all scenarios
         for (const scenario of DEMO_SCENARIOS) {
-          await runPlaywrightTest({ scenario, theme: options.theme });
+          await recordDemoVideo({ scenario, theme: options.theme });
         }
       }
     } else {
-      // Record specific scenario (or default)
       if (options.theme === "both") {
-        // Record both themes for the scenario
-        await runPlaywrightTest({ scenario: options.scenario, theme: "light" });
-        await runPlaywrightTest({ scenario: options.scenario, theme: "dark" });
+        await recordDemoVideo({ scenario: options.scenario, theme: "light" });
+        await recordDemoVideo({ scenario: options.scenario, theme: "dark" });
       } else {
-        // Record single theme
-        await runPlaywrightTest(options);
+        await recordDemoVideo(options);
       }
     }
 
@@ -214,8 +265,6 @@ async function main() {
   }
 }
 
-// Run main function if this file is executed directly
-// ES Module compatible execution check
 if (
   import.meta.url === `file://${process.argv[1]}` ||
   process.argv[1]?.endsWith("/record-demo.ts")
@@ -223,4 +272,4 @@ if (
   main().catch(console.error);
 }
 
-export { runPlaywrightTest };
+export { recordDemoVideo };
