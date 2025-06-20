@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { chromium } from "playwright";
-import { existsSync, mkdirSync, readdirSync, copyFileSync, unlinkSync } from "fs";
+import { existsSync, mkdirSync, readdirSync, copyFileSync, unlinkSync, statSync } from "fs";
 import { join } from "path";
 import {
   DEMO_SCENARIOS,
@@ -34,6 +34,12 @@ async function recordDemoVideo(options: RecordingOptions): Promise<void> {
   const { scenario, theme } = options;
   const themeLabel = theme !== "light" ? ` (${theme})` : "";
   console.log(`🎬 Recording demo scenario: ${scenario}${themeLabel}`);
+  
+  const startTime = Date.now();
+  const logTiming = (message: string) => {
+    const elapsed = Date.now() - startTime;
+    console.log(`[${elapsed.toString().padStart(5)}ms] ${message}`);
+  };
 
   const browser = await chromium.launch({
     headless: !!process.env.CI, // Use headless mode in CI environment
@@ -52,7 +58,7 @@ async function recordDemoVideo(options: RecordingOptions): Promise<void> {
 
   try {
     // Setup phase (not recorded)
-    console.log(`📱 Setting up demo page...`);
+    logTiming("📱 Setting up demo page...");
     
     // Pre-configure theme to avoid flashing
     if (theme === "dark") {
@@ -70,31 +76,33 @@ async function recordDemoVideo(options: RecordingOptions): Promise<void> {
       waitUntil: "networkidle",
       timeout: 30000,
     });
+    logTiming("🌐 Navigation completed");
 
     // Wait for demo page to be ready
     await page.waitForSelector('[data-demo-active="true"]', { timeout: 10000 });
     await page.waitForSelector("h1");
-    console.log(`📝 Demo page loaded for scenario: ${scenario}${themeLabel}`);
+    logTiming(`📝 Demo page loaded for scenario: ${scenario}${themeLabel}`);
 
     // Verify theme is applied correctly
     if (actualTheme === "dark") {
-      console.log("⏳ Verifying dark theme...");
+      logTiming("⏳ Verifying dark theme...");
       await page.waitForFunction(
         () => document.documentElement.classList.contains("dark"),
         { timeout: 5000 }
       );
-      console.log("✅ Dark theme applied");
+      logTiming("✅ Dark theme applied");
     }
 
     // Wait for demo to be ready to start (when demo step appears)
     await page.waitForSelector("[data-demo-step]", { timeout: 10000 });
-    console.log("🎯 Demo is ready to start");
+    logTiming("🎯 Demo is ready to start");
 
     // Additional stabilization wait
     await page.waitForTimeout(2000);
+    logTiming("✅ Stabilization completed");
 
     // Close setup context and create recording context
-    console.log("🔄 Switching to recording context...");
+    logTiming("🔄 Switching to recording context...");
     await setupContext.close();
 
     // Create recording context with video enabled
@@ -110,6 +118,8 @@ async function recordDemoVideo(options: RecordingOptions): Promise<void> {
     });
 
     page = await recordingContext.newPage();
+    
+    logTiming("🔴 Recording started");
 
     // Re-setup in recording context
     if (theme === "dark") {
@@ -118,8 +128,7 @@ async function recordDemoVideo(options: RecordingOptions): Promise<void> {
         document.documentElement.classList.add("dark");
       });
     }
-
-    console.log("🔴 Starting video recording...");
+    
     await page.goto(url, {
       waitUntil: "networkidle",
       timeout: 30000,
@@ -128,59 +137,59 @@ async function recordDemoVideo(options: RecordingOptions): Promise<void> {
     // Wait for demo to be ready again
     await page.waitForSelector('[data-demo-active="true"]', { timeout: 10000 });
     await page.waitForSelector("[data-demo-step]", { timeout: 10000 });
-
-    console.log("🎬 Recording demo content...");
+    logTiming("🎯 Recording demo ready");
     
     // Wait for demo completion
-    console.log("⏳ Waiting for demo to complete...");
+    logTiming("⏳ Waiting for demo to complete...");
     try {
       await page.waitForSelector('[data-demo-completed="true"]', {
         timeout: 120000, // 2 minutes timeout
       });
-      console.log("✅ Demo completed successfully");
-
-      // Add a small buffer time at the end for clean recording
-      await page.waitForTimeout(2000);
+      logTiming("✅ Demo completed detected");
     } catch (error) {
-      console.error("❌ Demo did not complete within timeout");
-      
-      // Capture current state for debugging
-      const currentStep = await page.getAttribute("[data-demo-step]", "data-demo-step");
-      const isCompleted = await page.getAttribute("[data-demo-completed]", "data-demo-completed");
-      
-      console.log(`Debug info - Current step: ${currentStep}, Completed: ${isCompleted}`);
+      logTiming("❌ Demo did not complete within timeout");
       throw error;
     }
 
     // Close recording context to save video
-    console.log("⏹️ Stopping video recording...");
+    logTiming("⏹️ Stopping video recording...");
     await recordingContext.close();
+    logTiming("💾 Video saved to disk");
     
-    // Find and rename the generated video file
-    const videoFiles = readdirSync(outputDir).filter(f => f.endsWith('.webm'));
+    // Find and rename the generated video file (find the newest one)
+    const videoFiles = readdirSync(outputDir)
+      .filter(f => f.endsWith('.webm'))
+      .map(f => ({
+        name: f,
+        path: join(outputDir, f),
+        stat: statSync(join(outputDir, f))
+      }))
+      .sort((a, b) => b.stat.mtime.getTime() - a.stat.mtime.getTime()); // Sort by modification time, newest first
+    
     if (videoFiles.length > 0) {
-      const generatedVideoPath = join(outputDir, videoFiles[0]);
+      const newestVideo = videoFiles[0];
       const finalVideoPath = join(outputDir, videoFilename);
       
-      if (existsSync(generatedVideoPath)) {
-        copyFileSync(generatedVideoPath, finalVideoPath);
+      if (newestVideo.path !== finalVideoPath) {
+        copyFileSync(newestVideo.path, finalVideoPath);
         // Remove the original file with generated name
         try {
-          unlinkSync(generatedVideoPath);
+          unlinkSync(newestVideo.path);
         } catch {
           // Ignore deletion errors
         }
-        console.log(`📹 Video saved: ${videoFilename}`);
       }
+      logTiming(`📹 Video saved: ${videoFilename}`);
     }
     
-    console.log(`✅ Successfully recorded ${scenario} demo${themeLabel}`);
+    logTiming(`✅ Successfully recorded ${scenario} demo${themeLabel}`);
 
   } catch (error) {
-    console.error(`❌ Failed to record ${scenario} demo${themeLabel}:`, error);
+    logTiming(`❌ Failed to record ${scenario} demo${themeLabel}: ${error}`);
     throw error;
   } finally {
     await browser.close();
+    logTiming("🔚 Browser closed");
   }
 }
 
