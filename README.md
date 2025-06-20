@@ -5,7 +5,8 @@
 
 A web-based interface for the `claude` command line tool that provides streaming responses in a chat interface.
 
-<img width="1133" alt="image" src="https://github.com/user-attachments/assets/bc5c06d2-38ea-498a-b956-594c41f14f0e" />
+[codeGeneration-dark-2025-06-20T15-06-24.webm](https://github.com/user-attachments/assets/559a46ae-41b9-440d-af3a-70ffe8e177fe)
+
 
 ## ⚠️ Important Security Notice
 
