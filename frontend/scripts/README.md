@@ -63,15 +63,17 @@ npm run test:demo
 ## Output
 
 - Videos are saved to `demo-recordings/` directory
-- Format: MP4 (1280x720, 30fps)
+- Format: WebM (1280x720, 25fps)
 - Automatic completion detection using `data-demo-completed` attribute
 
 ## How It Works
 
-1. **Playwright Configuration**: `playwright.config.ts` sets up video recording
-2. **Test Specs**: `demo-recorder.spec.ts` contains the recording tests
-3. **Recording Script**: `record-demo.ts` orchestrates the recording process
-4. **Demo Detection**: Waits for `[data-demo-completed="true"]` to stop recording
+1. **Shared Constants**: `demo-constants.ts` defines scenarios and types
+2. **Playwright Configuration**: `playwright.config.ts` sets up video recording
+3. **Recording Tests**: `demo-recorder.spec.ts` contains the recording logic
+4. **Recording Script**: `record-demo.ts` orchestrates the recording process
+5. **Validation Tests**: `../tests/demo-validation.spec.ts` validates demo functionality
+6. **Demo Detection**: Waits for `[data-demo-completed="true"]` to stop recording
 
 ## Troubleshooting
 

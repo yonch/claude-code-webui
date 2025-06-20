@@ -1,22 +1,15 @@
 import { test, expect } from "@playwright/test";
+import { type DemoScenario, type Theme } from "./demo-constants";
 
 /**
  * Demo recording tests for Claude Code Web UI
  * These tests automatically record demo scenarios for documentation
  */
 
-const DEMO_SCENARIOS = {
-  basic: "basic",
-  codeGeneration: "codeGeneration",
-  debugging: "debugging",
-  fileOperations: "fileOperations",
-} as const;
-
 // Get scenario and theme from environment variables
 const scenario =
-  (process.env.DEMO_SCENARIO as keyof typeof DEMO_SCENARIOS) ||
-  "codeGeneration";
-const theme = (process.env.DEMO_THEME as "light" | "dark" | "both") || "light";
+  (process.env.DEMO_SCENARIO as DemoScenario) || "codeGeneration";
+const theme = (process.env.DEMO_THEME as Theme) || "light";
 
 test.describe("Demo Recording", () => {
   test.beforeEach(async ({ page }) => {
@@ -142,72 +135,5 @@ test.describe("Demo Recording", () => {
 
     // Assert demo completed successfully
     await expect(page.locator('[data-demo-completed="true"]')).toBeVisible();
-  });
-
-  // Additional test for specific scenarios with custom behavior
-  if (scenario === "codeGeneration") {
-    test("record codeGeneration demo with permissions", async ({ page }) => {
-      const actualTheme = theme === "both" ? "light" : theme;
-      console.log(
-        "🎬 Starting codeGeneration demo with permission handling...",
-      );
-
-      const testUrl = `/demo?scenario=codeGeneration&theme=${actualTheme}`;
-      await page.goto(testUrl, {
-        waitUntil: "networkidle",
-      });
-
-      // Wait for permission dialogs and verify they auto-dismiss
-      await page.waitForSelector('[data-demo-active="true"]');
-
-      // Monitor for permission dialogs (they should auto-dismiss in demo)
-      page.on("dialog", async (dialog) => {
-        console.log(`📋 Permission dialog appeared: ${dialog.message()}`);
-        await dialog.accept();
-      });
-
-      // Wait for completion
-      await page.waitForSelector('[data-demo-completed="true"]', {
-        timeout: 120000,
-      });
-
-      // Extra wait for permission interactions
-      await page.waitForTimeout(2000);
-
-      console.log("✅ CodeGeneration demo with permissions completed");
-    });
-  }
-});
-
-// Helper test for validating demo page functionality
-test.describe("Demo Page Validation", () => {
-  test("demo page loads correctly", async ({ page }) => {
-    await page.goto("/demo", { waitUntil: "networkidle" });
-
-    // Verify essential elements
-    await expect(page.locator("h1")).toContainText("Claude Code Web UI");
-    await expect(page.locator('[data-demo-active="true"]')).toBeVisible();
-
-    // Verify theme toggle works
-    const themeToggle = page.locator('button[aria-label*="theme"]');
-    if (await themeToggle.isVisible()) {
-      await themeToggle.click();
-      await page.waitForTimeout(500);
-    }
-
-    console.log("✅ Demo page validation passed");
-  });
-
-  test("demo scenarios are accessible", async ({ page }) => {
-    for (const [key, value] of Object.entries(DEMO_SCENARIOS)) {
-      await page.goto(`/demo?scenario=${value}`, { waitUntil: "networkidle" });
-
-      await expect(page.locator('[data-demo-active="true"]')).toBeVisible();
-      await expect(page.locator(`[data-demo-step]`)).toBeVisible({
-        timeout: 10000,
-      });
-
-      console.log(`✅ Scenario ${key} (${value}) loads correctly`);
-    }
   });
 });

@@ -1,28 +1,19 @@
 #!/usr/bin/env node
 
 import { spawn } from "child_process";
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, readdirSync, copyFileSync } from "fs";
 import { join } from "path";
+import {
+  DEMO_SCENARIOS,
+  type DemoScenario,
+  type Theme,
+  type RecordingOptions,
+} from "./demo-constants";
 
 /**
  * Demo recording script
  * This script runs Playwright tests to record demo videos
  */
-
-const DEMO_SCENARIOS = [
-  "basic",
-  "codeGeneration",
-  "debugging",
-  "fileOperations",
-] as const;
-
-type DemoScenario = (typeof DEMO_SCENARIOS)[number];
-type Theme = "light" | "dark" | "both";
-
-interface RecordingOptions {
-  scenario: DemoScenario;
-  theme: Theme;
-}
 
 function createOutputDir(): string {
   const outputDir = join(process.cwd(), "demo-recordings");
@@ -31,6 +22,52 @@ function createOutputDir(): string {
     console.log(`📁 Created output directory: ${outputDir}`);
   }
   return outputDir;
+}
+
+function copyVideoFromTestResults(scenario: DemoScenario, theme: Theme): void {
+  const outputDir = createOutputDir();
+  const testResultsDir = join(process.cwd(), "test-results");
+
+  if (!existsSync(testResultsDir)) {
+    console.log("⚠️ No test-results directory found");
+    return;
+  }
+
+  // Find the most recent test result directory for this scenario
+  const dirs = readdirSync(testResultsDir, { withFileTypes: true })
+    .filter((dirent) => dirent.isDirectory())
+    .filter((dirent) => dirent.name.includes(`record-${scenario}-demo`))
+    .map((dirent) => ({
+      name: dirent.name,
+      path: join(testResultsDir, dirent.name),
+    }))
+    .sort((a, b) => b.name.localeCompare(a.name)); // Sort by name (newest first)
+
+  if (dirs.length === 0) {
+    console.log(`⚠️ No test results found for scenario: ${scenario}`);
+    return;
+  }
+
+  const latestDir = dirs[0];
+  const videoPath = join(latestDir.path, "video.webm");
+
+  if (!existsSync(videoPath)) {
+    console.log(`⚠️ No video file found in: ${latestDir.path}`);
+    return;
+  }
+
+  // Create output filename with theme suffix
+  const themeLabel = theme !== "light" ? `-${theme}` : "";
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const outputFilename = `${scenario}${themeLabel}-${timestamp}.webm`;
+  const outputPath = join(outputDir, outputFilename);
+
+  try {
+    copyFileSync(videoPath, outputPath);
+    console.log(`📹 Video saved: ${outputFilename}`);
+  } catch (error) {
+    console.error(`❌ Failed to copy video: ${error}`);
+  }
 }
 
 function runPlaywrightTest(options: RecordingOptions): Promise<void> {
@@ -62,6 +99,10 @@ function runPlaywrightTest(options: RecordingOptions): Promise<void> {
     child.on("close", (code) => {
       if (code === 0) {
         console.log(`✅ Successfully recorded ${scenario} demo${themeLabel}`);
+
+        // Copy video from test-results to demo-recordings
+        copyVideoFromTestResults(scenario, theme);
+
         resolve();
       } else {
         console.error(
@@ -174,8 +215,12 @@ async function main() {
 }
 
 // Run main function if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// ES Module compatible execution check
+if (
+  import.meta.url === `file://${process.argv[1]}` ||
+  process.argv[1]?.endsWith("/record-demo.ts")
+) {
   main().catch(console.error);
 }
 
-export { runPlaywrightTest, DEMO_SCENARIOS, type RecordingOptions, type Theme };
+export { runPlaywrightTest };
