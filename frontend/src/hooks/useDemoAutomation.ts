@@ -507,6 +507,9 @@ export function useTypingAnimation(
   const [isTyping, setIsTyping] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Create a seeded random generator for this typing animation
+  const typingRandom = useMemo(() => new SeededRandom(42), []);
+
   const startTyping = useCallback(() => {
     setIsTyping(true);
     setDisplayText("");
@@ -517,7 +520,7 @@ export function useTypingAnimation(
         setDisplayText(text.slice(0, index + 1));
         index++;
 
-        const delay = 1000 / speed + (demoRandom.next() - 0.5) * 100;
+        const delay = 1000 / speed + (typingRandom.next() - 0.5) * 100;
         intervalRef.current = setTimeout(typeCharacter, delay);
       } else {
         setIsTyping(false);
@@ -525,7 +528,7 @@ export function useTypingAnimation(
     };
 
     typeCharacter();
-  }, [text, speed]);
+  }, [text, speed, typingRandom]);
 
   const stopTyping = useCallback(() => {
     if (intervalRef.current) {
