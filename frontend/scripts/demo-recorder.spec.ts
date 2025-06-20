@@ -12,10 +12,11 @@ const DEMO_SCENARIOS = {
   fileOperations: "fileOperations",
 } as const;
 
-// Get scenario from environment variable or default to codeGeneration
+// Get scenario and theme from environment variables
 const scenario =
   (process.env.DEMO_SCENARIO as keyof typeof DEMO_SCENARIOS) ||
   "codeGeneration";
+const theme = (process.env.DEMO_THEME as "light" | "dark" | "both") || "light";
 
 test.describe("Demo Recording", () => {
   test.beforeEach(async ({ page }) => {
@@ -25,28 +26,67 @@ test.describe("Demo Recording", () => {
     // Enable slower actions for better video recording
     await page.setDefaultTimeout(30000);
     await page.setDefaultNavigationTimeout(30000);
+
+    // Pre-configure theme to avoid flashing
+    if (theme === "dark") {
+      await page.addInitScript(() => {
+        // Set theme in localStorage before page loads
+        localStorage.setItem("theme", "dark");
+        // Add dark class to html element immediately
+        document.documentElement.classList.add("dark");
+      });
+    }
   });
 
   test(`record ${scenario} demo`, async ({ page }) => {
-    console.log(`🎬 Starting ${scenario} demo recording...`);
+    const actualTheme = theme === "both" ? "light" : theme; // Default to light for "both"
+    const themeLabel = actualTheme !== "light" ? ` (${actualTheme})` : "";
 
-    // Navigate to demo page with specific scenario
-    await page.goto(`/demo?scenario=${scenario}`, {
+    // Build URL with scenario and theme parameters
+    const url = `/demo?scenario=${scenario}&theme=${actualTheme}`;
+
+    // Navigate IMMEDIATELY to minimize white frame
+    const navigationPromise = page.goto(url, {
       waitUntil: "networkidle",
       timeout: 30000,
     });
+
+    console.log(`🎬 Recording ${scenario} demo${themeLabel}...`);
+
+    // Wait for navigation to complete
+    await navigationPromise;
 
     // Verify demo page loaded
     await expect(page.locator('[data-demo-active="true"]')).toBeVisible();
     await expect(page.locator("h1")).toContainText("Claude Code Web UI");
 
-    console.log(`📝 Demo page loaded for scenario: ${scenario}`);
+    console.log(`📝 Demo page loaded for scenario: ${scenario}${themeLabel}`);
 
     // Wait for demo to start (should auto-start)
     await page.waitForSelector("[data-demo-step]", { timeout: 10000 });
 
-    // Optional: Add some initial wait for setup
-    await page.waitForTimeout(2000);
+    // Quick theme verification and minimal wait
+    if (actualTheme === "dark") {
+      console.log("⏳ Verifying dark theme...");
+      await page.waitForFunction(
+        () => document.documentElement.classList.contains("dark"),
+        { timeout: 5000 },
+      );
+      console.log("✅ Dark theme applied");
+    }
+
+    // Verify theme is applied correctly
+    if (actualTheme === "dark") {
+      await expect(page.locator("html")).toHaveClass(/dark/);
+    } else {
+      await expect(page.locator("html")).not.toHaveClass(/dark/);
+    }
+
+    // Minimal wait for visual stability
+    console.log("⏳ Brief stabilization...");
+    await page.waitForTimeout(1000);
+
+    console.log("🎬 Recording demo content...");
 
     // Wait for demo completion with generous timeout
     console.log("⏳ Waiting for demo to complete...");
@@ -107,11 +147,13 @@ test.describe("Demo Recording", () => {
   // Additional test for specific scenarios with custom behavior
   if (scenario === "codeGeneration") {
     test("record codeGeneration demo with permissions", async ({ page }) => {
+      const actualTheme = theme === "both" ? "light" : theme;
       console.log(
         "🎬 Starting codeGeneration demo with permission handling...",
       );
 
-      await page.goto("/demo?scenario=codeGeneration", {
+      const testUrl = `/demo?scenario=codeGeneration&theme=${actualTheme}`;
+      await page.goto(testUrl, {
         waitUntil: "networkidle",
       });
 

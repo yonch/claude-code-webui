@@ -15,11 +15,7 @@
     "test:run": "vitest run",
     "playwright:install": "npx playwright install",
     "record-demo": "npx tsx scripts/record-demo.ts",
-    "record-demo:basic": "npx tsx scripts/record-demo.ts basic",
-    "record-demo:code": "npx tsx scripts/record-demo.ts codeGeneration",
-    "record-demo:debug": "npx tsx scripts/record-demo.ts debugging",
-    "record-demo:files": "npx tsx scripts/record-demo.ts fileOperations",
-    "record-demo:all": "npx tsx scripts/record-demo.ts all",
+    "record-demo:dark": "npx tsx scripts/record-demo.ts --theme=dark",
     "test:demo": "npx playwright test --config playwright.config.ts"
   },
   "dependencies": {

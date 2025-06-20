@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { useTheme } from "../hooks/useTheme";
+import { type Theme } from "../hooks/useTheme";
 import { useChatState } from "../hooks/chat/useChatState";
 import { usePermissions } from "../hooks/chat/usePermissions";
 import { useDemoAutomation } from "../hooks/useDemoAutomation";
@@ -12,10 +12,9 @@ import { DEMO_SCENARIOS } from "../utils/mockResponseGenerator";
 
 export function DemoPage() {
   const location = useLocation();
-  const { theme, toggleTheme } = useTheme();
   const isDemo = true;
 
-  // Check for control parameter and scenario
+  // Check for control parameter, scenario, and theme
   const searchParams = new URLSearchParams(location.search);
   const showControls = searchParams.get("control") === "true";
   const scenarioParam = searchParams.get(
@@ -23,6 +22,72 @@ export function DemoPage() {
   ) as keyof typeof DEMO_SCENARIOS;
   const selectedScenario =
     scenarioParam && DEMO_SCENARIOS[scenarioParam] ? scenarioParam : "basic";
+
+  // Get theme from URL or use system default
+  const themeParam = searchParams.get("theme");
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (themeParam === "dark" || themeParam === "light") {
+      return themeParam;
+    }
+    // Get system theme without using useTheme hook
+    const saved = localStorage.getItem("theme");
+    if (saved === "dark" || saved === "light") {
+      return saved;
+    }
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  });
+
+  const toggleTheme = () => {
+    // For demo, theme is controlled by URL parameter
+    if (themeParam) return;
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
+
+  // Apply theme to DOM (similar to useTheme hook but with URL override)
+  useEffect(() => {
+    const root = window.document.documentElement;
+
+    // For demo with URL theme, disable transitions temporarily
+    if (themeParam) {
+      const style = document.createElement("style");
+      style.textContent =
+        "*, *::before, *::after { transition: none !important; animation: none !important; }";
+      document.head.appendChild(style);
+
+      // Remove after a short delay
+      setTimeout(() => {
+        document.head.removeChild(style);
+      }, 100);
+    }
+
+    // Remove existing theme class
+    root.classList.remove("dark");
+
+    // Apply current theme
+    if (theme === "dark") {
+      root.classList.add("dark");
+    }
+
+    // Save to localStorage (unless overridden by URL)
+    if (!themeParam) {
+      localStorage.setItem("theme", theme);
+    }
+
+    console.log(`Demo theme applied: ${theme}`, {
+      classList: root.className,
+      themeParam,
+      urlOverride: !!themeParam,
+    });
+  }, [theme, themeParam]);
+
+  // Update theme when URL parameter changes
+  useEffect(() => {
+    if (themeParam === "dark" || themeParam === "light") {
+      setTheme(themeParam);
+    }
+  }, [themeParam]);
 
   const {
     messages,

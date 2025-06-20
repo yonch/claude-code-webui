@@ -5,6 +5,7 @@ This directory contains Playwright-based scripts for automatically recording dem
 ## Setup
 
 1. Install dependencies:
+
    ```bash
    npm install
    npm run playwright:install
@@ -20,21 +21,41 @@ This directory contains Playwright-based scripts for automatically recording dem
 ### Quick Start
 
 Record the default codeGeneration demo:
+
 ```bash
 npm run record-demo
 ```
 
-### Available Scenarios
+### Quick Commands
 
-- **Basic**: `npm run record-demo:basic`
-- **Code Generation**: `npm run record-demo:code`
-- **Debugging**: `npm run record-demo:debug`
-- **File Operations**: `npm run record-demo:files`
-- **All Scenarios**: `npm run record-demo:all`
+- **Default (Light Mode)**: `npm run record-demo`
+- **Dark Mode**: `npm run record-demo:dark`
+
+### Advanced Usage
+
+Use the script directly for more control:
+
+```bash
+# Specific scenarios
+npx tsx scripts/record-demo.ts basic
+npx tsx scripts/record-demo.ts codeGeneration
+npx tsx scripts/record-demo.ts debugging
+npx tsx scripts/record-demo.ts fileOperations
+
+# Theme options
+npx tsx scripts/record-demo.ts codeGeneration --theme=light
+npx tsx scripts/record-demo.ts codeGeneration --theme=dark
+npx tsx scripts/record-demo.ts codeGeneration --theme=both
+
+# Record all scenarios
+npx tsx scripts/record-demo.ts all --theme=dark
+npx tsx scripts/record-demo.ts all --theme=both
+```
 
 ### Manual Recording
 
 Run Playwright tests directly:
+
 ```bash
 npm run test:demo
 ```
@@ -62,8 +83,12 @@ npm run test:demo
 ## Demo URL Format
 
 The recorder uses URLs like:
+
 ```
-http://localhost:3000/demo?scenario=codeGeneration
+http://localhost:3000/demo?scenario=codeGeneration&theme=dark
 ```
 
-Available scenarios: `basic`, `codeGeneration`, `debugging`, `fileOperations`
+Available parameters:
+
+- **scenario**: `basic`, `codeGeneration`, `debugging`, `fileOperations`
+- **theme**: `light`, `dark` (optional, defaults to light)

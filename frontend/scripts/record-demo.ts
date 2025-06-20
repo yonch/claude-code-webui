@@ -17,6 +17,12 @@ const DEMO_SCENARIOS = [
 ] as const;
 
 type DemoScenario = (typeof DEMO_SCENARIOS)[number];
+type Theme = "light" | "dark" | "both";
+
+interface RecordingOptions {
+  scenario: DemoScenario;
+  theme: Theme;
+}
 
 function createOutputDir(): string {
   const outputDir = join(process.cwd(), "demo-recordings");
@@ -27,9 +33,11 @@ function createOutputDir(): string {
   return outputDir;
 }
 
-function runPlaywrightTest(scenario: DemoScenario): Promise<void> {
+function runPlaywrightTest(options: RecordingOptions): Promise<void> {
   return new Promise((resolve, reject) => {
-    console.log(`🎬 Recording demo scenario: ${scenario}`);
+    const { scenario, theme } = options;
+    const themeLabel = theme !== "light" ? ` (${theme})` : "";
+    console.log(`🎬 Recording demo scenario: ${scenario}${themeLabel}`);
 
     const args = [
       "test",
@@ -46,19 +54,20 @@ function runPlaywrightTest(scenario: DemoScenario): Promise<void> {
       env: {
         ...process.env,
         DEMO_SCENARIO: scenario,
+        DEMO_THEME: theme,
         DEMO_OUTPUT_DIR: createOutputDir(),
       },
     });
 
     child.on("close", (code) => {
       if (code === 0) {
-        console.log(`✅ Successfully recorded ${scenario} demo`);
+        console.log(`✅ Successfully recorded ${scenario} demo${themeLabel}`);
         resolve();
       } else {
         console.error(
-          `❌ Failed to record ${scenario} demo (exit code: ${code})`,
+          `❌ Failed to record ${scenario} demo${themeLabel} (exit code: ${code})`,
         );
-        reject(new Error(`Recording failed for ${scenario}`));
+        reject(new Error(`Recording failed for ${scenario}${themeLabel}`));
       }
     });
 
@@ -69,9 +78,33 @@ function runPlaywrightTest(scenario: DemoScenario): Promise<void> {
   });
 }
 
+function parseArguments(): RecordingOptions {
+  const args = process.argv.slice(2);
+  let scenario: DemoScenario = "codeGeneration";
+  let theme: Theme = "light";
+
+  // Parse scenario (first positional argument)
+  if (args[0] && DEMO_SCENARIOS.includes(args[0] as DemoScenario)) {
+    scenario = args[0] as DemoScenario;
+  } else if (args[0] === "all") {
+    // Special case handled in main()
+  }
+
+  // Parse --theme option
+  const themeArg = args.find((arg) => arg.startsWith("--theme="));
+  if (themeArg) {
+    const themeValue = themeArg.split("=")[1] as Theme;
+    if (["light", "dark", "both"].includes(themeValue)) {
+      theme = themeValue;
+    }
+  }
+
+  return { scenario, theme };
+}
+
 async function main() {
   const args = process.argv.slice(2);
-  const scenarioArg = args[0] as DemoScenario;
+  const options = parseArguments();
 
   console.log("🎥 Claude Code Web UI Demo Recorder");
   console.log("=====================================");
@@ -96,21 +129,37 @@ async function main() {
   }
 
   try {
-    if (scenarioArg && DEMO_SCENARIOS.includes(scenarioArg)) {
-      // Record specific scenario
-      await runPlaywrightTest(scenarioArg);
-    } else if (scenarioArg === "all") {
+    const firstArg = args[0];
+
+    if (firstArg === "all") {
       // Record all scenarios
+      const themeLabel = options.theme !== "light" ? ` (${options.theme})` : "";
       console.log(
-        `📝 Recording all ${DEMO_SCENARIOS.length} demo scenarios...`,
+        `📝 Recording all ${DEMO_SCENARIOS.length} demo scenarios${themeLabel}...`,
       );
-      for (const scenario of DEMO_SCENARIOS) {
-        await runPlaywrightTest(scenario);
+
+      if (options.theme === "both") {
+        // Record both themes for all scenarios
+        for (const scenario of DEMO_SCENARIOS) {
+          await runPlaywrightTest({ scenario, theme: "light" });
+          await runPlaywrightTest({ scenario, theme: "dark" });
+        }
+      } else {
+        // Record single theme for all scenarios
+        for (const scenario of DEMO_SCENARIOS) {
+          await runPlaywrightTest({ scenario, theme: options.theme });
+        }
       }
     } else {
-      // Default to codeGeneration scenario
-      console.log("📝 No scenario specified, recording codeGeneration demo...");
-      await runPlaywrightTest("codeGeneration");
+      // Record specific scenario (or default)
+      if (options.theme === "both") {
+        // Record both themes for the scenario
+        await runPlaywrightTest({ scenario: options.scenario, theme: "light" });
+        await runPlaywrightTest({ scenario: options.scenario, theme: "dark" });
+      } else {
+        // Record single theme
+        await runPlaywrightTest(options);
+      }
     }
 
     console.log("🎉 Demo recording completed successfully!");
@@ -129,4 +178,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(console.error);
 }
 
-export { runPlaywrightTest, DEMO_SCENARIOS };
+export { runPlaywrightTest, DEMO_SCENARIOS, type RecordingOptions, type Theme };
