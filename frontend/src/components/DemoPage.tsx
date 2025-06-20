@@ -51,14 +51,22 @@ export function DemoPage() {
 
     // For demo with URL theme, disable transitions temporarily
     if (themeParam) {
-      const style = document.createElement("style");
-      style.textContent =
-        "*, *::before, *::after { transition: none !important; animation: none !important; }";
-      document.head.appendChild(style);
+      const styleId = "demo-disable-transitions";
+      let style = document.getElementById(styleId) as HTMLStyleElement;
+      if (!style) {
+        style = document.createElement("style");
+        style.id = styleId;
+        style.textContent =
+          "*, *::before, *::after { transition: none !important; animation: none !important; }";
+        document.head.appendChild(style);
+      }
 
       // Remove after a short delay
       setTimeout(() => {
-        document.head.removeChild(style);
+        const existingStyle = document.getElementById(styleId);
+        if (existingStyle) {
+          document.head.removeChild(existingStyle);
+        }
       }, 100);
     }
 

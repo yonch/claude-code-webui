@@ -22,11 +22,10 @@ test.describe("Demo Page Validation", () => {
       await page.waitForTimeout(500);
     }
 
-    console.log("✅ Demo page validation passed");
   });
 
   test("demo scenarios are accessible", async ({ page }) => {
-    for (const [key, value] of Object.entries(DEMO_SCENARIOS_MAP)) {
+    for (const [, value] of Object.entries(DEMO_SCENARIOS_MAP)) {
       await page.goto(`/demo?scenario=${value}`, { waitUntil: "networkidle" });
 
       await expect(page.locator('[data-demo-active="true"]')).toBeVisible();
@@ -34,7 +33,6 @@ test.describe("Demo Page Validation", () => {
         timeout: 10000,
       });
 
-      console.log(`✅ Scenario ${key} (${value}) loads correctly`);
     }
   });
 });

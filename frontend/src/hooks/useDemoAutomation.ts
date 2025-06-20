@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { AllMessage, ChatMessage } from "../types";
 import { useChatState } from "./chat/useChatState";
 import { usePermissions } from "./chat/usePermissions";
@@ -62,12 +62,11 @@ class SeededRandom {
   }
 }
 
-// Use fixed seed for reproducible demos
-const demoRandom = new SeededRandom(42);
-
 export function useDemoAutomation(
   options: DemoAutomationOptions = {},
 ): DemoAutomationHook {
+  // Use fixed seed for reproducible demos (per hook instance)
+  const demoRandom = useMemo(() => new SeededRandom(42), []);
   const {
     autoStart = true,
     typingSpeed = DEFAULT_TYPING_SPEED,
@@ -165,7 +164,7 @@ export function useDemoAutomation(
 
       typeNextCharacter();
     },
-    [typingSpeed, finalSetInput],
+    [typingSpeed, finalSetInput, demoRandom],
   );
 
   // Process stream data
@@ -424,7 +423,7 @@ export function useDemoAutomation(
     }
 
     finalResetRequestState();
-  }, [finalSetInput, finalResetRequestState]);
+  }, [finalSetInput, finalResetRequestState, demoRandom]);
 
   const startDemo = useCallback(() => {
     if (isCompleted) {

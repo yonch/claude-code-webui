@@ -29,7 +29,7 @@ npm run record-demo
 ### Quick Commands
 
 - **Default (Light Mode)**: `npm run record-demo`
-- **Dark Mode**: `npm run record-demo:dark`
+- **Dark Mode**: `npm run record-demo basic --theme=dark`
 
 ### Advanced Usage
 
@@ -52,12 +52,12 @@ npx tsx scripts/record-demo.ts all --theme=dark
 npx tsx scripts/record-demo.ts all --theme=both
 ```
 
-### Manual Recording
+### Validation Testing
 
-Run Playwright tests directly:
+Run demo validation tests:
 
 ```bash
-npm run test:demo
+npx playwright test tests/demo-validation.spec.ts
 ```
 
 ## Output
@@ -69,11 +69,10 @@ npm run test:demo
 ## How It Works
 
 1. **Shared Constants**: `demo-constants.ts` defines scenarios and types
-2. **Playwright Configuration**: `playwright.config.ts` sets up video recording
-3. **Recording Tests**: `demo-recorder.spec.ts` contains the recording logic
-4. **Recording Script**: `record-demo.ts` orchestrates the recording process
-5. **Validation Tests**: `../tests/demo-validation.spec.ts` validates demo functionality
-6. **Demo Detection**: Waits for `[data-demo-completed="true"]` to stop recording
+2. **Playwright Configuration**: `playwright.config.ts` sets up recording environment
+3. **Recording Script**: `record-demo.ts` orchestrates the recording process with native video recording
+4. **Validation Tests**: `../tests/demo-validation.spec.ts` validates demo functionality
+5. **Demo Detection**: Waits for `[data-demo-completed="true"]` to stop recording
 
 ## Troubleshooting
 
