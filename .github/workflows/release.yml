@@ -72,7 +72,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download all artifacts
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+        working-directory: frontend
+
+      - name: Record demo videos
+        run: |
+          cd frontend
+          npm run record-demo codeGeneration -- --theme=both
+        continue-on-error: true
+
+      - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           path: ./artifacts
@@ -82,6 +103,7 @@ jobs:
         with:
           files: |
             artifacts/*/*
+            frontend/demo-recordings/*.webm
           generate_release_notes: true
           draft: false
           prerelease: false
