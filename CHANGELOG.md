@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.1.17](https://github.com/sugyan/claude-code-webui/compare/v0.1.16...v0.1.17) - 2025-06-22
+- Fix demo comparison workflow and release pipeline issues by @sugyan in https://github.com/sugyan/claude-code-webui/pull/81
+
 ## [v0.1.16](https://github.com/sugyan/claude-code-webui/compare/v0.1.15...v0.1.16) - 2025-06-22
 - Add Lefthook for automated code quality enforcement by @sugyan in https://github.com/sugyan/claude-code-webui/pull/74
 - Add Playwright demo recording automation with dark mode support by @sugyan in https://github.com/sugyan/claude-code-webui/pull/77
