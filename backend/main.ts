@@ -230,8 +230,30 @@ app.post("/api/chat", async (c) => {
   });
 });
 
-// Static file serving - use import.meta.dirname to access embedded dist directory
+// Static file serving with SPA fallback
+// Serve static assets (CSS, JS, images, etc.)
+app.use("/assets/*", serveStatic({ root: import.meta.dirname + "/dist" }));
+
+// Serve root-level static files (favicon, etc.) with SPA fallback
 app.use("/*", serveStatic({ root: import.meta.dirname + "/dist" }));
+
+// SPA fallback for all unmatched routes (but not API routes)
+app.get("*", async (c) => {
+  // Skip API routes
+  if (c.req.path.startsWith("/api/")) {
+    return c.notFound();
+  }
+
+  // Serve index.html for client-side routing
+  try {
+    const indexPath = import.meta.dirname + "/dist/index.html";
+    const indexContent = await Deno.readTextFile(indexPath);
+    return c.html(indexContent);
+  } catch (error) {
+    console.error("Failed to serve index.html:", error);
+    return c.text("Application not found", 404);
+  }
+});
 
 if (import.meta.main) {
   console.log(`🚀 Server starting on http://${HOST}:${PORT}`);
