@@ -1,4 +1,6 @@
 import type {
+  SDKUserMessage,
+  SDKAssistantMessage,
   SDKSystemMessage,
   SDKResultMessage,
 } from "@anthropic-ai/claude-code";
@@ -52,6 +54,21 @@ export type ToolResultMessage = {
   summary: string;
   timestamp: number;
 };
+
+// TimestampedSDKMessage types for conversation history API
+// These extend Claude SDK types with timestamp information
+type WithTimestamp<T> = T & { timestamp: string };
+
+export type TimestampedSDKUserMessage = WithTimestamp<SDKUserMessage>;
+export type TimestampedSDKAssistantMessage = WithTimestamp<SDKAssistantMessage>;
+export type TimestampedSDKSystemMessage = WithTimestamp<SDKSystemMessage>;
+export type TimestampedSDKResultMessage = WithTimestamp<SDKResultMessage>;
+
+export type TimestampedSDKMessage =
+  | TimestampedSDKUserMessage
+  | TimestampedSDKAssistantMessage
+  | TimestampedSDKSystemMessage
+  | TimestampedSDKResultMessage;
 
 export type AllMessage =
   | ChatMessage

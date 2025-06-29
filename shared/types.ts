@@ -38,15 +38,15 @@ export interface HistoryListResponse {
   conversations: ConversationSummary[];
 }
 
-// TODO: This type will be used in the second API endpoint implementation (Issue #104)
-// GET /api/projects/:projectPath/histories/:sessionId
+// Conversation history types
+// Note: messages are typed as unknown[] to avoid frontend/backend dependency issues
+// Frontend should cast to TimestampedSDKMessage[] (defined in frontend/src/types.ts)
 export interface ConversationHistory {
   sessionId: string;
-  messages: unknown[]; // Will be ChatMessage[] but avoiding frontend type dependency
+  messages: unknown[]; // TimestampedSDKMessage[] in practice, but avoiding frontend type dependency
   metadata: {
     startTime: string;
     endTime: string;
     messageCount: number;
-    continuedFrom?: string;
   };
 }
