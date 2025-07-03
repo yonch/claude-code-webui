@@ -1,14 +1,5 @@
-import { useCallback } from "react";
-import type {
-  AllMessage,
-  ChatMessage,
-  SystemMessage,
-  ToolMessage,
-  ToolResultMessage,
-  SDKMessage,
-} from "../../types";
-import { MESSAGE_CONSTANTS } from "../../utils/constants";
-import { formatToolArguments } from "../../utils/toolUtils";
+import type { AllMessage, ChatMessage } from "../../types";
+import { useMessageConverter } from "../useMessageConverter";
 
 export interface StreamingContext {
   currentAssistantMessage: ChatMessage | null;
@@ -28,87 +19,20 @@ export interface StreamingContext {
   onAbortRequest?: () => void;
 }
 
+/**
+ * Hook that provides message processing functions for streaming context.
+ * Now delegates to the unified message converter for consistency.
+ */
 export function useMessageProcessor() {
-  const createSystemMessage = useCallback(
-    (claudeData: Extract<SDKMessage, { type: "system" }>): SystemMessage => {
-      return {
-        ...claudeData,
-        timestamp: Date.now(),
-      };
-    },
-    [],
-  );
-
-  const createToolMessage = useCallback(
-    (contentItem: {
-      name?: string;
-      input?: Record<string, unknown>;
-    }): ToolMessage => {
-      const toolName = contentItem.name || "Unknown";
-      const argsDisplay = formatToolArguments(contentItem.input);
-
-      return {
-        type: "tool",
-        content: `${toolName}${argsDisplay}`,
-        timestamp: Date.now(),
-      };
-    },
-    [],
-  );
-
-  const createResultMessage = useCallback(
-    (claudeData: Extract<SDKMessage, { type: "result" }>): SystemMessage => {
-      return {
-        ...claudeData,
-        timestamp: Date.now(),
-      };
-    },
-    [],
-  );
-
-  const createToolResultMessage = useCallback(
-    (toolName: string, content: string): ToolResultMessage => {
-      const summary = generateSummary(content);
-
-      return {
-        type: "tool_result",
-        toolName,
-        content,
-        summary,
-        timestamp: Date.now(),
-      };
-    },
-    [],
-  );
+  const converter = useMessageConverter();
 
   return {
-    createSystemMessage,
-    createToolMessage,
-    createResultMessage,
-    createToolResultMessage,
+    // Delegate to unified converter
+    createSystemMessage: converter.createSystemMessage,
+    createToolMessage: converter.createToolMessage,
+    createResultMessage: converter.createResultMessage,
+    createToolResultMessage: converter.createToolResultMessage,
+    convertTimestampedSDKMessage: converter.convertTimestampedSDKMessage,
+    convertConversationHistory: converter.convertConversationHistory,
   };
-}
-
-// Generate a summary from tool result content
-function generateSummary(content: string): string {
-  if (content.includes("\n")) {
-    const lines = content.split("\n").filter((line) => line.trim());
-    if (lines.length > 0) {
-      return `${lines.length} ${lines.length === 1 ? "line" : "lines"}`;
-    }
-  } else if (content.includes("Found")) {
-    const match = content.match(/Found (\d+)/);
-    if (match) {
-      return `Found ${match[1]}`;
-    }
-  } else if (content.includes("files")) {
-    const match = content.match(/(\d+)\s+files?/);
-    if (match) {
-      return `${match[1]} files`;
-    }
-  } else if (content.length < MESSAGE_CONSTANTS.SUMMARY_MAX_LENGTH) {
-    return content.trim();
-  }
-
-  return `${content.length} chars`;
 }
