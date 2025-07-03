@@ -39,6 +39,7 @@ export function ChatPage() {
   const currentView = searchParams.get("view");
   const sessionId = searchParams.get("sessionId");
   const isHistoryView = currentView === "history";
+  const isLoadedConversation = !!sessionId && !isHistoryView;
 
   const { theme, toggleTheme } = useTheme();
   const { processStreamLine } = useClaudeStreaming();
@@ -295,6 +296,22 @@ export function ChatPage() {
     navigate({ search: "" });
   }, [navigate]);
 
+  const handleBackToHistory = useCallback(() => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("view", "history");
+    navigate({ search: searchParams.toString() });
+  }, [navigate]);
+
+  const handleBackToProjects = useCallback(() => {
+    navigate("/");
+  }, [navigate]);
+
+  const handleBackToProjectChat = useCallback(() => {
+    if (workingDirectory) {
+      navigate(`/projects${workingDirectory}`);
+    }
+  }, [navigate, workingDirectory]);
+
   // Handle global keyboard shortcuts
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -323,23 +340,61 @@ export function ChatPage() {
                 <ChevronLeftIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
               </button>
             )}
+            {isLoadedConversation && (
+              <button
+                onClick={handleBackToHistory}
+                className="p-2 rounded-lg bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-all duration-200 backdrop-blur-sm shadow-sm hover:shadow-md"
+                aria-label="Back to history"
+              >
+                <ChevronLeftIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+              </button>
+            )}
             <div>
-              <h1 className="text-slate-800 dark:text-slate-100 text-3xl font-bold tracking-tight">
-                {isHistoryView
-                  ? "Conversation History"
-                  : sessionId
-                    ? "Conversation"
-                    : "Claude Code Web UI"}
-              </h1>
+              <nav aria-label="Breadcrumb">
+                <div className="flex items-center">
+                  <button
+                    onClick={handleBackToProjects}
+                    className="text-slate-800 dark:text-slate-100 text-3xl font-bold tracking-tight hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 rounded-md px-1 -mx-1"
+                    aria-label="Back to project selection"
+                  >
+                    Claude Code Web UI
+                  </button>
+                  {(isHistoryView || sessionId) && (
+                    <>
+                      <span
+                        className="text-slate-800 dark:text-slate-100 text-3xl font-bold tracking-tight mx-3 select-none"
+                        aria-hidden="true"
+                      >
+                        {" "}
+                        ›{" "}
+                      </span>
+                      <h1
+                        className="text-slate-800 dark:text-slate-100 text-3xl font-bold tracking-tight"
+                        aria-current="page"
+                      >
+                        {isHistoryView
+                          ? "Conversation History"
+                          : "Conversation"}
+                      </h1>
+                    </>
+                  )}
+                </div>
+              </nav>
               {workingDirectory && (
-                <p className="text-slate-600 dark:text-slate-400 text-sm font-mono mt-1">
-                  {workingDirectory}
+                <div className="flex items-center text-sm font-mono mt-1">
+                  <button
+                    onClick={handleBackToProjectChat}
+                    className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 rounded px-1 -mx-1 cursor-pointer"
+                    aria-label={`Return to new chat in ${workingDirectory}`}
+                  >
+                    {workingDirectory}
+                  </button>
                   {sessionId && (
-                    <span className="ml-2 text-xs">
+                    <span className="ml-2 text-xs text-slate-600 dark:text-slate-400">
                       Session: {sessionId.substring(0, 8)}...
                     </span>
                   )}
-                </p>
+                </div>
               )}
             </div>
           </div>
