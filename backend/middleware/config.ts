@@ -2,13 +2,6 @@ import { createMiddleware } from "hono/factory";
 import type { AppConfig } from "../types.ts";
 
 /**
- * Configuration options for the middleware
- */
-interface ConfigOptions {
-  debugMode: boolean;
-}
-
-/**
  * Creates configuration middleware that makes app-wide settings available to all handlers
  * via context variables. This eliminates the need to pass configuration parameters
  * to individual handler functions.
@@ -16,20 +9,14 @@ interface ConfigOptions {
  * @param options Configuration options
  * @returns Hono middleware function
  */
-export function createConfigMiddleware(options: ConfigOptions) {
+export function createConfigMiddleware(options: AppConfig) {
   return createMiddleware<{
     Variables: {
       config: AppConfig;
     };
   }>(async (c, next) => {
-    // Initialize application configuration
-    const config: AppConfig = {
-      debugMode: options.debugMode,
-      // Future configuration options can be added here
-    };
-
     // Set configuration in context for access by handlers
-    c.set("config", config);
+    c.set("config", options);
 
     await next();
   });
