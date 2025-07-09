@@ -101,8 +101,8 @@ export function ChatPage() {
   } = usePermissions();
 
   const handlePermissionError = useCallback(
-    (toolName: string, pattern: string, toolUseId: string) => {
-      showPermissionDialog(toolName, pattern, toolUseId);
+    (toolName: string, patterns: string[], toolUseId: string) => {
+      showPermissionDialog(toolName, patterns, toolUseId);
     },
     [showPermissionDialog],
   );
@@ -234,25 +234,12 @@ export function ChatPage() {
   const handlePermissionAllow = useCallback(() => {
     if (!permissionDialog) return;
 
-    const pattern = permissionDialog.pattern;
-    closePermissionDialog();
+    // Add all patterns temporarily
+    let updatedAllowedTools = allowedTools;
+    permissionDialog.patterns.forEach((pattern) => {
+      updatedAllowedTools = allowToolTemporary(pattern, updatedAllowedTools);
+    });
 
-    if (currentSessionId) {
-      sendMessage("continue", allowToolTemporary(pattern), true);
-    }
-  }, [
-    permissionDialog,
-    currentSessionId,
-    sendMessage,
-    allowToolTemporary,
-    closePermissionDialog,
-  ]);
-
-  const handlePermissionAllowPermanent = useCallback(() => {
-    if (!permissionDialog) return;
-
-    const pattern = permissionDialog.pattern;
-    const updatedAllowedTools = allowToolPermanent(pattern);
     closePermissionDialog();
 
     if (currentSessionId) {
@@ -262,6 +249,30 @@ export function ChatPage() {
     permissionDialog,
     currentSessionId,
     sendMessage,
+    allowedTools,
+    allowToolTemporary,
+    closePermissionDialog,
+  ]);
+
+  const handlePermissionAllowPermanent = useCallback(() => {
+    if (!permissionDialog) return;
+
+    // Add all patterns permanently
+    let updatedAllowedTools = allowedTools;
+    permissionDialog.patterns.forEach((pattern) => {
+      updatedAllowedTools = allowToolPermanent(pattern, updatedAllowedTools);
+    });
+
+    closePermissionDialog();
+
+    if (currentSessionId) {
+      sendMessage("continue", updatedAllowedTools, true);
+    }
+  }, [
+    permissionDialog,
+    currentSessionId,
+    sendMessage,
+    allowedTools,
     allowToolPermanent,
     closePermissionDialog,
   ]);
@@ -476,8 +487,7 @@ export function ChatPage() {
       {permissionDialog && (
         <PermissionDialog
           isOpen={permissionDialog.isOpen}
-          toolName={permissionDialog.toolName}
-          pattern={permissionDialog.pattern}
+          patterns={permissionDialog.patterns}
           onAllow={handlePermissionAllow}
           onAllowPermanent={handlePermissionAllowPermanent}
           onDeny={handlePermissionDeny}
