@@ -1,17 +1,21 @@
 /**
- * Deno-specific entry point
+ * Node.js-specific entry point
  *
- * This module handles Deno-specific initialization including CLI argument parsing,
- * Claude CLI validation, and server startup using the DenoRuntime.
+ * This module handles Node.js-specific initialization including CLI argument parsing,
+ * Claude CLI validation, and server startup using the NodeRuntime.
  */
 
-import { createApp } from "../app.ts";
-import { DenoRuntime } from "../runtime/deno.ts";
-import { parseCliArgs } from "./args.ts";
+import { createApp } from "../app.js";
+import { NodeRuntime } from "../runtime/node.js";
+import { parseCliArgs } from "./args.js";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 
-async function main() {
-  // Initialize Deno runtime
-  const runtime = new DenoRuntime();
+// Get directory path for this file
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+async function main(runtime: NodeRuntime) {
 
   // Parse CLI arguments
   const args = await parseCliArgs(runtime);
@@ -28,14 +32,14 @@ async function main() {
   // Create application
   const app = await createApp(runtime, {
     debugMode: args.debug,
-    distPath: new URL("../dist", import.meta.url).pathname,
+    distPath: join(__dirname, "../dist"),
   });
 
   // Start server
   runtime.serve(args.port, args.host, app.fetch);
 }
 
-async function validateClaudeCli(runtime: DenoRuntime) {
+async function validateClaudeCli(runtime: NodeRuntime) {
   try {
     const result = await runtime.runCommand("claude", ["--version"]);
 
@@ -53,10 +57,8 @@ async function validateClaudeCli(runtime: DenoRuntime) {
 }
 
 // Run the application
-if (import.meta.main) {
-  const runtime = new DenoRuntime();
-  main().catch((error) => {
-    console.error("Failed to start server:", error);
-    runtime.exit(1);
-  });
-}
+const runtime = new NodeRuntime();
+main(runtime).catch((error) => {
+  console.error("Failed to start server:", error);
+  runtime.exit(1);
+});

@@ -58,8 +58,9 @@ chmod +x claude-code-webui-macos-arm64
 ### Option 2: Development Mode
 
 ```bash
-# Backend
-cd backend && deno task dev
+# Backend (choose one)
+cd backend && deno task dev    # Deno runtime
+cd backend && npm run dev      # Node.js runtime
 
 # Frontend (new terminal)
 cd frontend && npm run dev
@@ -71,6 +72,7 @@ cd frontend && npm run dev
 
 - ✅ **Claude CLI** installed and authenticated ([Get it here](https://github.com/anthropics/claude-code))
 - ✅ **Modern browser** (Chrome, Firefox, Safari, Edge)
+- ✅ **dotenvx** (for development): [Install guide](https://dotenvx.com/docs/install)
 
 
 ---
@@ -122,9 +124,13 @@ PORT=9000 DEBUG=true ./claude-code-webui
 git clone https://github.com/sugyan/claude-code-webui.git
 cd claude-code-webui
 
-# Start backend
+# Install dotenvx (see prerequisites)
+
+# Start backend (choose one)
 cd backend
-deno task dev
+deno task dev    # Deno runtime
+# OR
+npm run dev      # Node.js runtime
 
 # Start frontend (new terminal)
 cd frontend
@@ -139,7 +145,9 @@ Create `.env` file in project root:
 echo "PORT=9000" > .env
 ```
 
-Both backend and frontend will automatically use this port.
+Both backend and frontend will automatically use this port:
+- Backend: Uses dotenvx to read the `.env` file
+- Frontend: Uses Vite's built-in `.env` support
 
 
 ---
