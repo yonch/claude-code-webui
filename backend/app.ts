@@ -23,27 +23,10 @@ export interface AppConfig {
   distPath: string;
 }
 
-export async function createApp(
+export function createApp(
   runtime: Runtime,
   config: AppConfig,
-): Promise<Hono<ConfigContext>> {
-  // Runtime-specific imports
-  // deno-lint-ignore no-explicit-any
-  let serveStatic: any;
-  if (
-    typeof globalThis.process !== "undefined" &&
-    globalThis.process.versions?.node
-  ) {
-    // Node.js environment
-    const { serveStatic: nodeServeStatic } = await import(
-      "@hono/node-server/serve-static"
-    );
-    serveStatic = nodeServeStatic;
-  } else {
-    // Deno environment
-    const { serveStatic: denoServeStatic } = await import("hono/deno");
-    serveStatic = denoServeStatic;
-  }
+): Hono<ConfigContext> {
   const app = new Hono<ConfigContext>();
 
   // Store AbortControllers for each request (shared with chat handler)
@@ -90,9 +73,12 @@ export async function createApp(
 
   // Static file serving with SPA fallback
   // Serve static assets (CSS, JS, images, etc.)
-  app.use("/assets/*", serveStatic({ root: config.distPath }));
+  const serveStatic = runtime.createStaticFileMiddleware({
+    root: config.distPath,
+  });
+  app.use("/assets/*", serveStatic);
   // Serve root level files (favicon, etc.)
-  app.use("/*", serveStatic({ root: config.distPath }));
+  app.use("/*", serveStatic);
 
   // SPA fallback - serve index.html for all unmatched routes (except API routes)
   app.get("*", async (c) => {

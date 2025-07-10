@@ -10,6 +10,8 @@ import type {
   FileStats,
   Runtime,
 } from "./types.ts";
+import type { MiddlewareHandler } from "hono";
+import { serveStatic } from "hono/deno";
 
 export class DenoRuntime implements Runtime {
   async readTextFile(path: string): Promise<string> {
@@ -112,5 +114,15 @@ export class DenoRuntime implements Runtime {
     handler: (req: Request) => Response | Promise<Response>,
   ): void {
     Deno.serve({ port, hostname }, handler);
+  }
+
+  createStaticFileMiddleware(
+    options: { root: string },
+  ): MiddlewareHandler {
+    return serveStatic(options);
+  }
+
+  resolveProjectPath(relativePath: string): string {
+    return new URL(relativePath, import.meta.url).pathname;
   }
 }
