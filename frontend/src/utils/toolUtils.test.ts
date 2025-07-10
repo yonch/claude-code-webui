@@ -34,7 +34,7 @@ describe("toolUtils", () => {
         command: "echo hello; ls; pwd",
       });
       expect(result.toolName).toBe("Bash");
-      expect(result.commands).toEqual(["ls"]); // echo and pwd are builtins
+      expect(result.commands).toEqual(["echo", "ls"]); // pwd is builtin, echo and ls require permission
     });
 
     it("should handle commands with pipe separator", () => {
@@ -65,12 +65,36 @@ describe("toolUtils", () => {
       expect(result.commands).toEqual(["*"]);
     });
 
-    it("should return only builtins when no external commands found", () => {
+    it("should extract echo command (no longer a builtin)", () => {
       const result = extractToolInfo("Bash", {
         command: "cd dir && pwd && echo hello",
       });
       expect(result.toolName).toBe("Bash");
-      expect(result.commands).toEqual([]); // All are builtins
+      expect(result.commands).toEqual(["echo"]); // cd and pwd are builtins, echo requires permission
+    });
+
+    it("should handle command -v (no longer a builtin)", () => {
+      const result = extractToolInfo("Bash", {
+        command: "command -v ls",
+      });
+      expect(result.toolName).toBe("Bash");
+      expect(result.commands).toEqual(["command"]); // command now requires permission
+    });
+
+    it("should handle type command (no longer a builtin)", () => {
+      const result = extractToolInfo("Bash", {
+        command: "type -t ls",
+      });
+      expect(result.toolName).toBe("Bash");
+      expect(result.commands).toEqual(["type"]); // type now requires permission
+    });
+
+    it("should use fallback when all commands are builtins", () => {
+      const result = extractToolInfo("Bash", {
+        command: "cd /tmp && pwd && which git",
+      });
+      expect(result.toolName).toBe("Bash");
+      expect(result.commands).toEqual(["cd", "pwd", "which"]); // All are builtins, use fallback
     });
 
     it("should handle find command with complex arguments", () => {
