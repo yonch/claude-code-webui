@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.1.28](https://github.com/sugyan/claude-code-webui/compare/v0.1.27...v0.1.28) - 2025-07-10
+- Add Node.js CLI entry point and runtime support by @sugyan in https://github.com/sugyan/claude-code-webui/pull/144
+- Remove runtime branches by abstracting static file serving and path resolution by @sugyan in https://github.com/sugyan/claude-code-webui/pull/146
+- fix: resolve permission dialog crash and improve bash builtin handling (#147) by @sugyan in https://github.com/sugyan/claude-code-webui/pull/148
+
 ## [v0.1.27](https://github.com/sugyan/claude-code-webui/compare/v0.1.26...v0.1.27) - 2025-07-09
 - fix: update release workflow to resolve build failures by @sugyan in https://github.com/sugyan/claude-code-webui/pull/142
 
