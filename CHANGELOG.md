@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.29](https://github.com/sugyan/claude-code-webui/compare/0.1.28...0.1.29) - 2025-07-11
+- fix: update release workflow to trigger on tags without v prefix by @sugyan in https://github.com/sugyan/claude-code-webui/pull/158
+
 ## [0.1.28](https://github.com/sugyan/claude-code-webui/compare/v0.1.28...0.1.28) - 2025-07-11
 - feat: implement npm package configuration and TypeScript build setup by @sugyan in https://github.com/sugyan/claude-code-webui/pull/153
 - fix: unify static file paths across Deno and Node.js builds by @sugyan in https://github.com/sugyan/claude-code-webui/pull/157
