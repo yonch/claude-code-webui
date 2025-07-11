@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.28](https://github.com/sugyan/claude-code-webui/compare/v0.1.28...0.1.28) - 2025-07-11
+- feat: implement npm package configuration and TypeScript build setup by @sugyan in https://github.com/sugyan/claude-code-webui/pull/153
+- fix: unify static file paths across Deno and Node.js builds by @sugyan in https://github.com/sugyan/claude-code-webui/pull/157
+
 ## [v0.1.28](https://github.com/sugyan/claude-code-webui/compare/v0.1.27...v0.1.28) - 2025-07-10
 - Add Node.js CLI entry point and runtime support by @sugyan in https://github.com/sugyan/claude-code-webui/pull/144
 - Remove runtime branches by abstracting static file serving and path resolution by @sugyan in https://github.com/sugyan/claude-code-webui/pull/146
