@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.33](https://github.com/sugyan/claude-code-webui/compare/0.1.32...0.1.33) - 2025-07-11
+- fix: unify backend testing to use npm run test by @sugyan in https://github.com/sugyan/claude-code-webui/pull/169
+
 ## [0.1.32](https://github.com/sugyan/claude-code-webui/compare/0.1.31...0.1.32) - 2025-07-11
 - fix: remove redundant version consistency check from npm publishing workflow by @sugyan in https://github.com/sugyan/claude-code-webui/pull/167
 
