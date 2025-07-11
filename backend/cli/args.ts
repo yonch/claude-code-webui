@@ -6,6 +6,7 @@
 
 import { program } from "commander";
 import type { Runtime } from "../runtime/types.ts";
+import { VERSION } from "./version.ts";
 
 export interface ParsedArgs {
   debug: boolean;
@@ -13,21 +14,9 @@ export interface ParsedArgs {
   host: string;
 }
 
-export async function parseCliArgs(runtime: Runtime): Promise<ParsedArgs> {
-  // Read version from VERSION file
-  let version = "unknown";
-  try {
-    const versionPath = runtime.resolveProjectPath("../VERSION");
-    const versionContent = await runtime.readTextFile(versionPath);
-    version = versionContent.trim();
-  } catch (error) {
-    console.error(
-      `Error reading VERSION file: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-    );
-    runtime.exit(1);
-  }
+export function parseCliArgs(runtime: Runtime): ParsedArgs {
+  // Use version from auto-generated version.ts file
+  const version = VERSION;
 
   // Get default port from environment
   const defaultPort = parseInt(runtime.getEnv("PORT") || "8080", 10);

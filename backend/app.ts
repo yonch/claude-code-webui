@@ -20,7 +20,7 @@ import { handleAbortRequest } from "./handlers/abort.ts";
 
 export interface AppConfig {
   debugMode: boolean;
-  distPath: string;
+  staticPath: string;
 }
 
 export function createApp(
@@ -74,11 +74,9 @@ export function createApp(
   // Static file serving with SPA fallback
   // Serve static assets (CSS, JS, images, etc.)
   const serveStatic = runtime.createStaticFileMiddleware({
-    root: config.distPath,
+    root: config.staticPath,
   });
   app.use("/assets/*", serveStatic);
-  // Serve root level files (favicon, etc.)
-  app.use("/*", serveStatic);
 
   // SPA fallback - serve index.html for all unmatched routes (except API routes)
   app.get("*", async (c) => {
@@ -90,7 +88,7 @@ export function createApp(
     }
 
     try {
-      const indexPath = `${config.distPath}/index.html`;
+      const indexPath = `${config.staticPath}/index.html`;
       const indexFile = await runtime.readBinaryFile(indexPath);
       return c.html(new TextDecoder().decode(indexFile));
     } catch (error) {

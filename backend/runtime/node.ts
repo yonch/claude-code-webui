@@ -166,7 +166,7 @@ export class NodeRuntime implements Runtime {
       hostname,
     });
 
-    console.log(`Node.js server listening on ${hostname}:${port}`);
+    console.log(`Listening on http://${hostname}:${port}/`);
   }
 
   createStaticFileMiddleware(
@@ -175,9 +175,4 @@ export class NodeRuntime implements Runtime {
     return serveStatic(options);
   }
 
-  resolveProjectPath(relativePath: string): string {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = dirname(__filename);
-    return join(__dirname, relativePath);
-  }
 }

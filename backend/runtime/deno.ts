@@ -121,8 +121,4 @@ export class DenoRuntime implements Runtime {
   ): MiddlewareHandler {
     return serveStatic(options);
   }
-
-  resolveProjectPath(relativePath: string): string {
-    return new URL(relativePath, import.meta.url).pathname;
-  }
 }

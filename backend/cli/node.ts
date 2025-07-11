@@ -5,20 +5,14 @@
  * Claude CLI validation, and server startup using the NodeRuntime.
  */
 
-import { createApp } from "../app.js";
-import { NodeRuntime } from "../runtime/node.js";
-import { parseCliArgs } from "./args.js";
-import { validateClaudeCli } from "./validation.js";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
-
-// Get directory path for this file
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { createApp } from "../app.ts";
+import { NodeRuntime } from "../runtime/node.ts";
+import { parseCliArgs } from "./args.ts";
+import { validateClaudeCli } from "./validation.ts";
 
 async function main(runtime: NodeRuntime) {
   // Parse CLI arguments
-  const args = await parseCliArgs(runtime);
+  const args = parseCliArgs(runtime);
 
   console.log(`🚀 Server starting on ${args.host}:${args.port}`);
 
@@ -32,7 +26,7 @@ async function main(runtime: NodeRuntime) {
   // Create application
   const app = createApp(runtime, {
     debugMode: args.debug,
-    distPath: join(__dirname, "../dist"),
+    staticPath: "./dist/static",
   });
 
   // Start server

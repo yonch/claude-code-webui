@@ -12,7 +12,7 @@ import { validateClaudeCli } from "./validation.ts";
 
 async function main(runtime: DenoRuntime) {
   // Parse CLI arguments
-  const args = await parseCliArgs(runtime);
+  const args = parseCliArgs(runtime);
 
   console.log(`🚀 Server starting on ${args.host}:${args.port}`);
 
@@ -26,7 +26,7 @@ async function main(runtime: DenoRuntime) {
   // Create application
   const app = createApp(runtime, {
     debugMode: args.debug,
-    distPath: new URL("../dist", import.meta.url).pathname,
+    staticPath: new URL("../static", import.meta.url).pathname,
   });
 
   // Start server
