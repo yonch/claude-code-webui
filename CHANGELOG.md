@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.31](https://github.com/sugyan/claude-code-webui/compare/0.1.30...0.1.31) - 2025-07-11
+- docs: add --claude-path option to README by @sugyan in https://github.com/sugyan/claude-code-webui/pull/164
+- feat: add CI/CD npm publishing automation by @sugyan in https://github.com/sugyan/claude-code-webui/pull/166
+
 ## [0.1.30](https://github.com/sugyan/claude-code-webui/compare/0.1.29...0.1.30) - 2025-07-11
 - chore: update @anthropic-ai/claude-code to version 1.0.48 by @sugyan in https://github.com/sugyan/claude-code-webui/pull/160
 - feat: add --claude-path CLI option with optimized path resolution by @sugyan in https://github.com/sugyan/claude-code-webui/pull/162
