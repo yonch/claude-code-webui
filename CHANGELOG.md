@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.36](https://github.com/sugyan/claude-code-webui/compare/0.1.35...0.1.36) - 2025-07-13
+- feature: Add Enter behavior toggle feature for chat input by @xiaocang in https://github.com/sugyan/claude-code-webui/pull/173
+- feat: implement dual linting strategy for backend with Deno/ESLint by @sugyan in https://github.com/sugyan/claude-code-webui/pull/182
+
 ## [0.1.35](https://github.com/sugyan/claude-code-webui/compare/0.1.34...0.1.35) - 2025-07-12
 - fix: resolve static path for npm global installation by @sugyan in https://github.com/sugyan/claude-code-webui/pull/177
 - fix: add prepack script to include README and LICENSE in npm package by @sugyan in https://github.com/sugyan/claude-code-webui/pull/180
