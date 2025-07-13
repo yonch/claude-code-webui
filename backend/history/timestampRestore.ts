@@ -62,10 +62,7 @@ export function sortMessagesByTimestamp(
 /**
  * Calculate conversation metadata from messages
  */
-export function calculateConversationMetadata(
-  messages: RawHistoryLine[],
-  _sessionId: string,
-): {
+export function calculateConversationMetadata(messages: RawHistoryLine[]): {
   startTime: string;
   endTime: string;
   messageCount: number;
@@ -97,7 +94,7 @@ export function calculateConversationMetadata(
  */
 export function processConversationMessages(
   messages: RawHistoryLine[],
-  sessionId: string,
+  _sessionId: string,
 ): {
   messages: unknown[];
   metadata: {
@@ -113,7 +110,7 @@ export function processConversationMessages(
   const sortedMessages = sortMessagesByTimestamp(restoredMessages);
 
   // Calculate metadata
-  const metadata = calculateConversationMetadata(sortedMessages, sessionId);
+  const metadata = calculateConversationMetadata(sortedMessages);
 
   // Return as unknown[] for frontend compatibility
   return {

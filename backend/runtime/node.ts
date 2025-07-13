@@ -22,8 +22,6 @@ import type {
   Runtime,
 } from "./types.ts";
 import type { MiddlewareHandler } from "hono";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
 import { serveStatic } from "@hono/node-server/serve-static";
 
 export class NodeRuntime implements Runtime {
@@ -169,10 +167,7 @@ export class NodeRuntime implements Runtime {
     console.log(`Listening on http://${hostname}:${port}/`);
   }
 
-  createStaticFileMiddleware(
-    options: { root: string },
-  ): MiddlewareHandler {
+  createStaticFileMiddleware(options: { root: string }): MiddlewareHandler {
     return serveStatic(options);
   }
-
 }

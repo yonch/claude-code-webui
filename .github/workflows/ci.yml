@@ -35,14 +35,23 @@ jobs:
       - name: Install and cache Deno dependencies
         run: cd backend && deno install && deno cache cli/deno.ts
 
-      - name: Format check
-        run: cd backend && deno fmt --check
+      - name: Format check (Deno)
+        run: cd backend && deno task format:check
 
-      - name: Lint
-        run: cd backend && deno lint
+      - name: Format check (Prettier)
+        run: cd backend && npm run format:check
 
-      - name: Type check
-        run: cd backend && deno check
+      - name: Lint (Deno)
+        run: cd backend && deno task lint
+
+      - name: Lint (ESLint)
+        run: cd backend && npm run lint
+
+      - name: Type check (Deno)
+        run: cd backend && deno task check
+
+      - name: Type check (TypeScript)
+        run: cd backend && npm run typecheck
 
       - name: Test
         run: cd backend && npm run test

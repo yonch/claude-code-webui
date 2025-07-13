@@ -1,6 +1,7 @@
 {
   "name": "claude-code-webui",
   "version": "0.1.35",
+  "type": "module",
   "description": "Web-based interface for the Claude Code CLI with streaming chat interface",
   "keywords": [
     "claude",
@@ -23,7 +24,6 @@
     "url": "https://github.com/sugyan/claude-code-webui/issues"
   },
   "homepage": "https://github.com/sugyan/claude-code-webui#readme",
-  "type": "module",
   "main": "dist/cli/node.js",
   "bin": {
     "claude-code-webui": "dist/cli/node.js"
@@ -46,7 +46,9 @@
     "build:static": "node scripts/copy-frontend.js",
     "start": "node dist/cli/node.js",
     "test": "vitest --run --reporter=verbose",
-    "lint": "eslint **/*.ts --ignore-pattern dist/",
+    "lint": "eslint \"**/*.ts\" --ignore-pattern dist/",
+    "format": "prettier --write \"**/*.ts\"",
+    "format:check": "prettier --check \"**/*.ts\"",
     "typecheck": "tsc --noEmit",
     "prepack": "cp ../README.md ./ && cp ../LICENSE ./",
     "prepublishOnly": "npm run build && npm run test"
@@ -59,8 +61,11 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
     "esbuild": "^0.25.6",
     "eslint": "^9.0.0",
+    "prettier": "^3.6.2",
     "rimraf": "^6.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",
