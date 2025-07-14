@@ -8,7 +8,7 @@ import type { Runtime } from "../runtime/types.ts";
 
 /**
  * Validates that the Claude CLI is available and working
- * Uses `which` command to ensure proper PATH detection without npm package interference
+ * Uses platform-specific command (`which` on Unix, `where` on Windows) for PATH detection
  * Exits process if Claude CLI is not found or not working
  * @param runtime - Runtime abstraction for system operations
  * @param customPath - Optional custom path to claude executable to validate
@@ -19,26 +19,54 @@ export async function validateClaudeCli(
   customPath?: string,
 ): Promise<string> {
   try {
-    let claudePath: string;
+    let claudePath = "";
 
     if (customPath) {
       // Use custom path if provided
       claudePath = customPath;
       console.log(`🔍 Validating custom Claude path: ${customPath}`);
     } else {
-      // Auto-detect using which command
-      const whichResult = await runtime.runCommand("which", ["claude"]);
+      // Auto-detect using platform-specific command
+      const platform = runtime.getPlatform();
 
-      if (!whichResult.success || !whichResult.stdout.trim()) {
-        console.error("❌ Claude CLI not found in PATH");
-        console.error("   Please install claude-code globally:");
-        console.error(
-          "   Visit: https://claude.ai/code for installation instructions",
-        );
-        runtime.exit(1);
+      if (platform === "windows") {
+        // Try multiple possible executable names on Windows
+        const candidates = ["claude", "claude.exe", "claude.cmd"];
+        let found = false;
+
+        for (const candidate of candidates) {
+          const result = await runtime.runCommand("where", [candidate]);
+          if (result.success && result.stdout.trim()) {
+            claudePath = result.stdout.trim();
+            found = true;
+            break;
+          }
+        }
+
+        if (!found) {
+          console.error("❌ Claude CLI not found in PATH");
+          console.error("   Searched for: claude, claude.exe, claude.cmd");
+          console.error("   Please install claude-code globally:");
+          console.error(
+            "   Visit: https://claude.ai/code for installation instructions",
+          );
+          runtime.exit(1);
+        }
+      } else {
+        // Unix-like systems (macOS, Linux)
+        const whichResult = await runtime.runCommand("which", ["claude"]);
+
+        if (!whichResult.success || !whichResult.stdout.trim()) {
+          console.error("❌ Claude CLI not found in PATH");
+          console.error("   Please install claude-code globally:");
+          console.error(
+            "   Visit: https://claude.ai/code for installation instructions",
+          );
+          runtime.exit(1);
+        }
+
+        claudePath = whichResult.stdout.trim();
       }
-
-      claudePath = whichResult.stdout.trim();
     }
 
     // Verify the claude executable works
