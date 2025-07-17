@@ -16,6 +16,7 @@ import { PermissionDialog } from "./PermissionDialog";
 import { HistoryView } from "./HistoryView";
 import { getChatUrl, getProjectsUrl } from "../config/api";
 import { KEYBOARD_SHORTCUTS } from "../utils/constants";
+import { normalizeWindowsPath } from "../utils/pathUtils";
 import type { StreamingContext } from "../hooks/streaming/useMessageProcessor";
 
 export function ChatPage() {
@@ -52,7 +53,17 @@ export function ChatPage() {
     }
 
     const project = projects.find((p) => p.path === workingDirectory);
-    return project?.encodedName || null;
+
+    // Normalize paths for comparison (handle Windows path issues)
+    const normalizedWorking = normalizeWindowsPath(workingDirectory);
+    const normalizedProject = projects.find(
+      (p) => normalizeWindowsPath(p.path) === normalizedWorking,
+    );
+
+    // Use normalized result if exact match fails
+    const finalProject = project || normalizedProject;
+
+    return finalProject?.encodedName || null;
   }, [workingDirectory, projects]);
 
   // Load conversation history if sessionId is provided
