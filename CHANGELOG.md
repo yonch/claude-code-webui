@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.38](https://github.com/sugyan/claude-code-webui/compare/0.1.37...0.1.38) - 2025-07-19
+- Change version option from -V to -v to match Claude CLI by @sugyan in https://github.com/sugyan/claude-code-webui/pull/189
+- feat: add comprehensive Windows support by @sugyan in https://github.com/sugyan/claude-code-webui/pull/193
+- fix: resolve asdf shim paths for Claude Code SDK compatibility by @sugyan in https://github.com/sugyan/claude-code-webui/pull/191
+- feat: Universal Claude CLI path detection with detectClaudeCliPath by @sugyan in https://github.com/sugyan/claude-code-webui/pull/194
+- feat: simplify Node.js runtime with Hono v1.17.0 absolute path support by @sugyan in https://github.com/sugyan/claude-code-webui/pull/195
+
 ## [0.1.37](https://github.com/sugyan/claude-code-webui/compare/0.1.36...0.1.37) - 2025-07-14
 - docs: improve npm installation documentation and badge layout by @sugyan in https://github.com/sugyan/claude-code-webui/pull/184
 - feat: add Windows support for Claude Code WebUI by @sugyan in https://github.com/sugyan/claude-code-webui/pull/186
