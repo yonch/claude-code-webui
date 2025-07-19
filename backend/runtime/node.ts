@@ -5,9 +5,10 @@
  * Provides equivalent functionality to the Deno runtime for cross-platform support.
  */
 
-import { constants as fsConstants, lstatSync, promises as fs } from "node:fs";
+import { constants as fsConstants, promises as fs } from "node:fs";
 import { spawn, type SpawnOptions } from "node:child_process";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
+import { join } from "node:path";
 import process from "node:process";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
@@ -30,6 +31,17 @@ export class NodeRuntime implements Runtime {
     return new Uint8Array(buffer);
   }
 
+  async writeTextFile(
+    path: string,
+    content: string,
+    options?: { mode?: number },
+  ): Promise<void> {
+    await fs.writeFile(path, content, "utf8");
+    if (options?.mode !== undefined) {
+      await fs.chmod(path, options.mode);
+    }
+  }
+
   async exists(path: string): Promise<boolean> {
     try {
       await fs.access(path, fsConstants.F_OK);
@@ -50,28 +62,6 @@ export class NodeRuntime implements Runtime {
     };
   }
 
-  async lstat(path: string): Promise<FileStats> {
-    const stats = await fs.lstat(path);
-    return {
-      isFile: stats.isFile(),
-      isDirectory: stats.isDirectory(),
-      isSymlink: stats.isSymbolicLink(),
-      size: stats.size,
-      mtime: stats.mtime,
-    };
-  }
-
-  lstatSync(path: string): FileStats {
-    const stats = lstatSync(path);
-    return {
-      isFile: stats.isFile(),
-      isDirectory: stats.isDirectory(),
-      isSymlink: stats.isSymbolicLink(),
-      size: stats.size,
-      mtime: stats.mtime,
-    };
-  }
-
   async *readDir(path: string): AsyncIterable<DirectoryEntry> {
     const entries = await fs.readdir(path, { withFileTypes: true });
     for (const entry of entries) {
@@ -81,6 +71,19 @@ export class NodeRuntime implements Runtime {
         isDirectory: entry.isDirectory(),
         isSymlink: entry.isSymbolicLink(),
       };
+    }
+  }
+
+  async withTempDir<T>(callback: (tempDir: string) => Promise<T>): Promise<T> {
+    const tempDir = await fs.mkdtemp(join(tmpdir(), "claude-webui-temp-"));
+    try {
+      return await callback(tempDir);
+    } finally {
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+      } catch {
+        // Silently ignore cleanup errors - temp dir will be cleaned up by OS eventually
+      }
     }
   }
 
@@ -156,11 +159,16 @@ export class NodeRuntime implements Runtime {
     return candidates;
   }
 
-  runCommand(command: string, args: string[]): Promise<CommandResult> {
+  runCommand(
+    command: string,
+    args: string[],
+    options?: { env?: Record<string, string> },
+  ): Promise<CommandResult> {
     return new Promise((resolve) => {
       const isWindows = this.getPlatform() === "windows";
       const spawnOptions: SpawnOptions = {
         stdio: ["ignore", "pipe", "pipe"],
+        env: options?.env ? { ...process.env, ...options.env } : process.env,
       };
 
       // On Windows, always use cmd.exe /c for all commands

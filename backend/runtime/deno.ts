@@ -22,6 +22,17 @@ export class DenoRuntime implements Runtime {
     return await Deno.readFile(path);
   }
 
+  async writeTextFile(
+    path: string,
+    content: string,
+    options?: { mode?: number },
+  ): Promise<void> {
+    await Deno.writeTextFile(path, content);
+    if (options?.mode !== undefined) {
+      await Deno.chmod(path, options.mode);
+    }
+  }
+
   async exists(path: string): Promise<boolean> {
     try {
       await Deno.stat(path);
@@ -42,28 +53,6 @@ export class DenoRuntime implements Runtime {
     };
   }
 
-  async lstat(path: string): Promise<FileStats> {
-    const info = await Deno.lstat(path);
-    return {
-      isFile: info.isFile,
-      isDirectory: info.isDirectory,
-      isSymlink: info.isSymlink,
-      size: info.size,
-      mtime: info.mtime,
-    };
-  }
-
-  lstatSync(path: string): FileStats {
-    const info = Deno.lstatSync(path);
-    return {
-      isFile: info.isFile,
-      isDirectory: info.isDirectory,
-      isSymlink: info.isSymlink,
-      size: info.size,
-      mtime: info.mtime,
-    };
-  }
-
   async *readDir(path: string): AsyncIterable<DirectoryEntry> {
     for await (const entry of Deno.readDir(path)) {
       yield {
@@ -72,6 +61,19 @@ export class DenoRuntime implements Runtime {
         isDirectory: entry.isDirectory,
         isSymlink: entry.isSymlink,
       };
+    }
+  }
+
+  async withTempDir<T>(callback: (tempDir: string) => Promise<T>): Promise<T> {
+    const tempDir = await Deno.makeTempDir();
+    try {
+      return await callback(tempDir);
+    } finally {
+      try {
+        await Deno.remove(tempDir, { recursive: true });
+      } catch {
+        // Silently ignore cleanup errors - temp dir will be cleaned up by OS eventually
+      }
     }
   }
 
@@ -147,11 +149,16 @@ export class DenoRuntime implements Runtime {
     return candidates;
   }
 
-  async runCommand(command: string, args: string[]): Promise<CommandResult> {
+  async runCommand(
+    command: string,
+    args: string[],
+    options?: { env?: Record<string, string> },
+  ): Promise<CommandResult> {
     const cmd = new Deno.Command(command, {
       args,
       stdout: "piped",
       stderr: "piped",
+      env: options?.env,
     });
 
     const result = await cmd.output();
