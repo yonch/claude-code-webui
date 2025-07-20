@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.39](https://github.com/sugyan/claude-code-webui/compare/0.1.38...0.1.39) - 2025-07-20
+- feat: add Claude Code hooks for automatic prettier formatting by @sugyan in https://github.com/sugyan/claude-code-webui/pull/196
+- feat: improve Windows path handling for cross-platform compatibility by @sugyan in https://github.com/sugyan/claude-code-webui/pull/198
+
 ## [0.1.38](https://github.com/sugyan/claude-code-webui/compare/0.1.37...0.1.38) - 2025-07-19
 - Change version option from -V to -v to match Claude CLI by @sugyan in https://github.com/sugyan/claude-code-webui/pull/189
 - feat: add comprehensive Windows support by @sugyan in https://github.com/sugyan/claude-code-webui/pull/193
