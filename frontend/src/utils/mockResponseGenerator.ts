@@ -8,10 +8,26 @@ export interface MockStreamResponse {
   error?: string;
 }
 
+export interface ButtonActionData {
+  buttonType:
+    | "permission_allow"
+    | "permission_deny"
+    | "permission_allow_permanent";
+}
+
 export interface MockScenarioStep {
-  type: "system" | "assistant" | "result" | "permission_error";
+  type:
+    | "system"
+    | "assistant"
+    | "result"
+    | "permission_error"
+    | "button_focus"
+    | "button_click";
   delay: number; // delay in milliseconds before this step
-  data: SDKMessage | { toolName: string; pattern: string; toolUseId: string };
+  data:
+    | SDKMessage
+    | { toolName: string; pattern: string; toolUseId: string }
+    | ButtonActionData;
 }
 
 // Generate realistic Claude system messages
@@ -114,7 +130,7 @@ export function* generateMockStream(
 ): Generator<MockStreamResponse, void, unknown> {
   for (const step of steps) {
     if (step.type === "permission_error") {
-      // This would trigger permission dialog in real app
+      // This would trigger permission request in real app
       const errorData = step.data as {
         toolName: string;
         pattern: string;
@@ -202,8 +218,22 @@ export const DEMO_SCENARIOS = {
         },
       },
       {
+        type: "button_focus" as const,
+        delay: 500,
+        data: {
+          buttonType: "permission_allow",
+        },
+      },
+      {
+        type: "button_click" as const,
+        delay: 700,
+        data: {
+          buttonType: "permission_allow",
+        },
+      },
+      {
         type: "assistant" as const,
-        delay: 2000,
+        delay: 1000,
         data: createAssistantMessage(
           "I can see this is the main App.tsx file for the Claude Code Web UI project. It's a React application that uses React Router for navigation between a project selector page and the main chat interface. The app includes theme management with light/dark mode support, and provides a web-based interface for interacting with the Claude CLI tool. The routing system allows users to first select a working directory, then engage in conversations with Claude within that project context.",
           "demo-session-files",
@@ -248,8 +278,22 @@ export const DEMO_SCENARIOS = {
         },
       },
       {
+        type: "button_focus" as const,
+        delay: 500,
+        data: {
+          buttonType: "permission_allow",
+        },
+      },
+      {
+        type: "button_click" as const,
+        delay: 700,
+        data: {
+          buttonType: "permission_allow",
+        },
+      },
+      {
         type: "assistant" as const,
-        delay: 2200,
+        delay: 1000,
         data: createToolUseMessage(
           "Read",
           { file_path: "/Users/demo/claude-code-webui/frontend/src" },
@@ -330,8 +374,29 @@ if __name__ == "__main__":
         },
       },
       {
+        type: "button_focus" as const,
+        delay: 500,
+        data: {
+          buttonType: "permission_allow",
+        },
+      },
+      {
+        type: "button_focus" as const,
+        delay: 500,
+        data: {
+          buttonType: "permission_allow_permanent",
+        },
+      },
+      {
+        type: "button_click" as const,
+        delay: 700,
+        data: {
+          buttonType: "permission_allow_permanent",
+        },
+      },
+      {
         type: "assistant" as const,
-        delay: 2000,
+        delay: 1000,
         data: createAssistantMessage(
           "Great! I've created the Fibonacci script. Now let me run it to show you the results.",
           "demo-session-codegen",
@@ -360,8 +425,22 @@ if __name__ == "__main__":
         },
       },
       {
+        type: "button_focus" as const,
+        delay: 700,
+        data: {
+          buttonType: "permission_allow",
+        },
+      },
+      {
+        type: "button_click" as const,
+        delay: 700,
+        data: {
+          buttonType: "permission_allow",
+        },
+      },
+      {
         type: "assistant" as const,
-        delay: 2200,
+        delay: 1200,
         data: createAssistantMessage(
           "Perfect! The script executed successfully. Here's what it generated:\n\n```\nFibonacci sequence (10 terms): [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]\nSum: 88\n```\n\nThe Fibonacci script calculates the first 10 numbers in the sequence and shows their sum. Each number is the sum of the two preceding ones, starting from 0 and 1. This demonstrates a complete development workflow from writing code to execution!",
           "demo-session-codegen",

@@ -5,6 +5,7 @@ import { usePermissions } from "./chat/usePermissions";
 import {
   scenarioToStream,
   type MockScenarioStep,
+  type ButtonActionData,
   DEMO_SCENARIOS,
 } from "../utils/mockResponseGenerator";
 import type { SDKMessage } from "../types";
@@ -26,6 +27,7 @@ interface DemoAutomationOptions {
   autoStart?: boolean;
   typingSpeed?: number; // characters per second
   scenarioKey?: keyof typeof DEMO_SCENARIOS;
+  pauseAtStep?: number; // Step number to pause at
   onStepComplete?: (step: number) => void;
   onDemoComplete?: () => void;
   addMessage?: (message: AllMessage | ChatMessage) => void;
@@ -33,11 +35,13 @@ interface DemoAutomationOptions {
   startRequest?: () => void;
   resetRequestState?: () => void;
   generateRequestId?: () => string;
-  showPermissionDialog?: (
+  showPermissionRequest?: (
     toolName: string,
     patterns: string[],
     toolUseId: string,
   ) => void;
+  onButtonFocus?: (buttonType: string) => void;
+  onButtonClick?: (buttonType: string) => void;
 }
 
 const DEFAULT_TYPING_SPEED = 30; // characters per second
@@ -71,6 +75,7 @@ export function useDemoAutomation(
     autoStart = true,
     typingSpeed = DEFAULT_TYPING_SPEED,
     scenarioKey = "basic",
+    pauseAtStep,
     onStepComplete,
     onDemoComplete,
     addMessage: externalAddMessage,
@@ -78,7 +83,9 @@ export function useDemoAutomation(
     startRequest: externalStartRequest,
     resetRequestState: externalResetRequestState,
     generateRequestId: externalGenerateRequestId,
-    showPermissionDialog: externalShowPermissionDialog,
+    showPermissionRequest: externalShowPermissionRequest,
+    onButtonFocus,
+    onButtonClick,
   } = options;
 
   // State
@@ -118,8 +125,8 @@ export function useDemoAutomation(
 
   // Permissions - use external if provided, otherwise use internal
   const permissionsHook = usePermissions();
-  const finalShowPermissionDialog =
-    externalShowPermissionDialog || permissionsHook.showPermissionDialog;
+  const finalShowPermissionRequest =
+    externalShowPermissionRequest || permissionsHook.showPermissionRequest;
 
   // Get current scenario
   const scenario = scenarioToStream(scenarioKey);
@@ -176,11 +183,23 @@ export function useDemoAutomation(
           pattern: string;
           toolUseId: string;
         };
-        finalShowPermissionDialog(
+        finalShowPermissionRequest(
           errorData.toolName,
           [errorData.pattern],
           errorData.toolUseId,
         );
+        return;
+      }
+
+      if (step.type === "button_focus") {
+        const buttonData = step.data as ButtonActionData;
+        onButtonFocus?.(buttonData.buttonType);
+        return;
+      }
+
+      if (step.type === "button_click") {
+        const buttonData = step.data as ButtonActionData;
+        onButtonClick?.(buttonData.buttonType);
         return;
       }
 
@@ -274,8 +293,10 @@ export function useDemoAutomation(
       setHasReceivedInit,
       setCurrentAssistantMessage,
       updateLastMessage,
-      finalShowPermissionDialog,
+      finalShowPermissionRequest,
       finalAddMessage,
+      onButtonFocus,
+      onButtonClick,
     ],
   );
 
@@ -314,6 +335,13 @@ export function useDemoAutomation(
 
       onStepComplete?.(nextStep);
 
+      // Check if we should pause at this step
+      if (pauseAtStep && currentStep === pauseAtStep) {
+        console.log(`Demo paused at step ${currentStep} as requested`);
+        setIsPaused(true);
+        return;
+      }
+
       if (nextStep > scenario.length) {
         setIsCompleted(true);
         finalResetRequestState();
@@ -325,6 +353,7 @@ export function useDemoAutomation(
     scenario,
     isPaused,
     isCompleted,
+    pauseAtStep,
     processStreamData,
     finalResetRequestState,
     onStepComplete,
@@ -460,15 +489,20 @@ export function useDemoAutomation(
 
   // Cleanup on unmount
   useEffect(() => {
+    // Capture current refs for cleanup
+    const stepTimeout = stepTimeoutRef.current;
+    const typingTimeout = typingTimeoutRef.current;
+    const typingInterval = typingIntervalRef.current;
+
     return () => {
-      if (stepTimeoutRef.current) {
-        clearTimeout(stepTimeoutRef.current);
+      if (stepTimeout) {
+        clearTimeout(stepTimeout);
       }
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
+      if (typingTimeout) {
+        clearTimeout(typingTimeout);
       }
-      if (typingIntervalRef.current) {
-        clearTimeout(typingIntervalRef.current);
+      if (typingInterval) {
+        clearTimeout(typingInterval);
       }
     };
   }, []);
@@ -478,7 +512,7 @@ export function useDemoAutomation(
     if (scenarioKey === "fileOperations") {
       // Auto-allow permissions after a short delay for demo purposes
       const timer = setTimeout(() => {
-        // This would be handled by the permission dialog in the component
+        // This would be handled by the permission interface in the component
       }, 2000);
 
       return () => clearTimeout(timer);

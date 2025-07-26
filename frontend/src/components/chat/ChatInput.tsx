@@ -3,6 +3,20 @@ import { StopIcon } from "@heroicons/react/24/solid";
 import { UI_CONSTANTS, KEYBOARD_SHORTCUTS } from "../../utils/constants";
 import { useEnterBehavior } from "../../hooks/useEnterBehavior";
 import { EnterModeMenu } from "./EnterModeMenu";
+import { PermissionInputPanel } from "./PermissionInputPanel";
+
+interface PermissionData {
+  patterns: string[];
+  onAllow: () => void;
+  onAllowPermanent: () => void;
+  onDeny: () => void;
+  getButtonClassName?: (
+    buttonType: "allow" | "allowPermanent" | "deny",
+    defaultClassName: string,
+  ) => string;
+  onSelectionChange?: (selection: "allow" | "allowPermanent" | "deny") => void;
+  externalSelectedOption?: "allow" | "allowPermanent" | "deny" | null;
+}
 
 interface ChatInputProps {
   input: string;
@@ -11,6 +25,9 @@ interface ChatInputProps {
   onInputChange: (value: string) => void;
   onSubmit: () => void;
   onAbort: () => void;
+  // Permission mode props
+  showPermissions?: boolean;
+  permissionData?: PermissionData;
 }
 
 export function ChatInput({
@@ -20,17 +37,34 @@ export function ChatInput({
   onInputChange,
   onSubmit,
   onAbort,
+  showPermissions = false,
+  permissionData,
 }: ChatInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [isComposing, setIsComposing] = useState(false);
   const { enterBehavior } = useEnterBehavior();
 
-  // Focus input when not loading
+  // Focus input when not loading and not in permission mode
   useEffect(() => {
-    if (!isLoading && inputRef.current) {
+    if (!isLoading && !showPermissions && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [isLoading]);
+  }, [isLoading, showPermissions]);
+
+  // Handle ESC key for permission denial
+  useEffect(() => {
+    if (!showPermissions || !permissionData) return;
+
+    const handleEscKey = (e: KeyboardEvent) => {
+      if (e.key === KEYBOARD_SHORTCUTS.ABORT) {
+        e.preventDefault();
+        permissionData.onDeny();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscKey);
+    return () => document.removeEventListener("keydown", handleEscKey);
+  }, [showPermissions, permissionData]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -91,6 +125,21 @@ export function ChatInput({
     setTimeout(() => setIsComposing(false), 0);
   };
 
+  // If we're in permission mode, show the permission panel instead
+  if (showPermissions && permissionData) {
+    return (
+      <PermissionInputPanel
+        patterns={permissionData.patterns}
+        onAllow={permissionData.onAllow}
+        onAllowPermanent={permissionData.onAllowPermanent}
+        onDeny={permissionData.onDeny}
+        getButtonClassName={permissionData.getButtonClassName}
+        onSelectionChange={permissionData.onSelectionChange}
+        externalSelectedOption={permissionData.externalSelectedOption}
+      />
+    );
+  }
+
   return (
     <div className="flex-shrink-0">
       <form onSubmit={handleSubmit} className="relative">
@@ -102,11 +151,7 @@ export function ChatInput({
           onCompositionStart={handleCompositionStart}
           onCompositionEnd={handleCompositionEnd}
           placeholder={
-            isLoading && currentRequestId
-              ? "Processing... (Press ESC to stop)"
-              : enterBehavior === "send"
-                ? "Type your message... (Enter to send)"
-                : "Type your message... (Shift+Enter to send)"
+            isLoading && currentRequestId ? "Processing..." : "Type message..."
           }
           rows={1}
           className={`w-full px-4 py-3 pr-40 bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm shadow-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none overflow-hidden min-h-[48px] max-h-[${UI_CONSTANTS.TEXTAREA_MAX_HEIGHT}px]`}
