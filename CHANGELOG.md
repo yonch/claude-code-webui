@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.41](https://github.com/sugyan/claude-code-webui/compare/0.1.40...0.1.41) - 2025-07-26
+- feat: replace blocking modal permission dialog with inline interface by @sugyan in https://github.com/sugyan/claude-code-webui/pull/203
+- feat: add comprehensive README screenshots with optimized layout by @sugyan in https://github.com/sugyan/claude-code-webui/pull/205
+- chore: update @anthropic-ai/claude-code to version 1.0.61 by @sugyan in https://github.com/sugyan/claude-code-webui/pull/206
+
 ## [0.1.40](https://github.com/sugyan/claude-code-webui/compare/0.1.39...0.1.40) - 2025-07-22
 - feat: comprehensive Windows compatibility and configuration improvements by @sugyan in https://github.com/sugyan/claude-code-webui/pull/199
 - feat: add comprehensive GitHub issue templates by @sugyan in https://github.com/sugyan/claude-code-webui/pull/202
