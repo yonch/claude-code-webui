@@ -10,6 +10,45 @@
 
 [🎬 **View Demo**](https://github.com/user-attachments/assets/35dd960c-ed1a-43ee-927d-ca9cdb490855)
 
+## 📱 Screenshots
+
+<div align="center">
+
+| Desktop Interface                                                                             | Mobile Experience                                                                           |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| <img src="docs/images/screenshot-desktop-basic-dark.png" alt="Desktop Interface" width="600"> | <img src="docs/images/screenshot-mobile-basic-dark.png" alt="Mobile Interface" width="250"> |
+| _Chat-based coding interface with instant responses and ready input field_                    | _Mobile-optimized chat experience with touch-friendly design_                               |
+
+</div>
+
+<details>
+<summary><strong>💡 Light Theme Screenshots</strong></summary>
+
+<div align="center">
+
+| Desktop (Light)                                                                            | Mobile (Light)                                                                           |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| <img src="docs/images/screenshot-desktop-basic.png" alt="Desktop Light Theme" width="600"> | <img src="docs/images/screenshot-mobile-basic.png" alt="Mobile Light Theme" width="250"> |
+| _Clean light interface for daytime coding sessions_                                        | _iPhone SE optimized light theme interface_                                              |
+
+</div>
+
+</details>
+
+<details>
+<summary><strong>🔧 Advanced Features</strong></summary>
+
+<div align="center">
+
+| Desktop Permission Dialog                                                                              | Mobile Permission Dialog                                                                              |
+| ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| <img src="docs/images/screenshot-desktop-fileOperations-dark.png" alt="Permission Dialog" width="600"> | <img src="docs/images/screenshot-mobile-fileOperations-dark.png" alt="Mobile Permission" width="250"> |
+| _Secure tool access with granular permission controls and clear approval workflow_                     | _Touch-optimized permission interface for mobile devices_                                             |
+
+</div>
+
+</details>
+
 ---
 
 ## 📑 Table of Contents
