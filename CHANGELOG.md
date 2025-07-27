@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.42](https://github.com/sugyan/claude-code-webui/compare/0.1.41...0.1.42) - 2025-07-27
+- fix: include docs/ directory in npm package for README images by @sugyan in https://github.com/sugyan/claude-code-webui/pull/207
+- fix: add permissions to demo-comparison workflow for issue creation by @sugyan in https://github.com/sugyan/claude-code-webui/pull/209
+- chore: cleanup documentation and remove unused files by @sugyan in https://github.com/sugyan/claude-code-webui/pull/210
+
 ## [0.1.41](https://github.com/sugyan/claude-code-webui/compare/0.1.40...0.1.41) - 2025-07-26
 - feat: replace blocking modal permission dialog with inline interface by @sugyan in https://github.com/sugyan/claude-code-webui/pull/203
 - feat: add comprehensive README screenshots with optimized layout by @sugyan in https://github.com/sugyan/claude-code-webui/pull/205
