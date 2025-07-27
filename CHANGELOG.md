@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.44](https://github.com/sugyan/claude-code-webui/compare/0.1.43...0.1.44) - 2025-07-27
+- fix: use absolute URLs for README images to properly display on npm by @sugyan in https://github.com/sugyan/claude-code-webui/pull/215
+
 ## [0.1.43](https://github.com/sugyan/claude-code-webui/compare/0.1.42...0.1.43) - 2025-07-27
 - Update video URL of README.md by @sugyan in https://github.com/sugyan/claude-code-webui/pull/212
 - fix: include images in npm package for README display by @sugyan in https://github.com/sugyan/claude-code-webui/pull/214
