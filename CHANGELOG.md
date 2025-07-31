@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.45](https://github.com/sugyan/claude-code-webui/compare/0.1.44...0.1.45) - 2025-07-31
+- feat: make demo page available only in development mode by @sugyan in https://github.com/sugyan/claude-code-webui/pull/217
+- fix: add Windows .cmd parsing fallback for node.exe colocated environments by @sugyan in https://github.com/sugyan/claude-code-webui/pull/219
+
 ## [0.1.44](https://github.com/sugyan/claude-code-webui/compare/0.1.43...0.1.44) - 2025-07-27
 - fix: use absolute URLs for README images to properly display on npm by @sugyan in https://github.com/sugyan/claude-code-webui/pull/215
 
