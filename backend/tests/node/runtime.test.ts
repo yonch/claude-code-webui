@@ -13,16 +13,10 @@ describe("Node.js Runtime", () => {
 
   it("should implement all required interface methods", () => {
     const requiredMethods = [
-      "readTextFile",
-      "readBinaryFile",
-      "exists",
-      "stat",
-      "readDir",
-      "getEnv",
-      "getArgs",
-      "exit",
+      "findExecutable",
       "runCommand",
       "serve",
+      "createStaticFileMiddleware",
     ];
 
     for (const method of requiredMethods) {
@@ -30,32 +24,6 @@ describe("Node.js Runtime", () => {
         typeof (runtime as unknown as Record<string, unknown>)[method],
       ).toBe("function");
     }
-  });
-
-  it("should access environment variables", () => {
-    const path = runtime.getEnv("PATH");
-    expect(typeof path).toBe("string");
-    expect(path!.length).toBeGreaterThan(0);
-  });
-
-  it("should return command line arguments as array", () => {
-    const args = runtime.getArgs();
-    expect(Array.isArray(args)).toBe(true);
-  });
-
-  it("should check file existence", async () => {
-    const exists = await runtime.exists("package.json");
-    expect(exists).toBe(true);
-  });
-
-  it("should read files asynchronously", async () => {
-    const content = await runtime.readTextFile("package.json");
-    expect(typeof content).toBe("string");
-    expect(content.length).toBeGreaterThan(0);
-
-    // Verify it's actually JSON
-    const parsed = JSON.parse(content);
-    expect(parsed.name).toBe("claude-code-webui");
   });
 
   it("should execute commands", async () => {
