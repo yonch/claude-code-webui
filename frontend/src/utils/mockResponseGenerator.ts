@@ -12,23 +12,28 @@ export interface ButtonActionData {
   buttonType:
     | "permission_allow"
     | "permission_deny"
-    | "permission_allow_permanent";
+    | "permission_allow_permanent"
+    | "plan_accept_with_edits"
+    | "plan_accept_default"
+    | "plan_keep_planning";
 }
 
-export interface MockScenarioStep {
-  type:
-    | "system"
-    | "assistant"
-    | "result"
-    | "permission_error"
-    | "button_focus"
-    | "button_click";
-  delay: number; // delay in milliseconds before this step
-  data:
-    | SDKMessage
-    | { toolName: string; pattern: string; toolUseId: string }
-    | ButtonActionData;
-}
+export type MockScenarioStep =
+  | {
+      type: "system" | "assistant" | "user" | "result";
+      delay: number; // delay in milliseconds before this step
+      data: SDKMessage;
+    }
+  | {
+      type: "permission_error";
+      delay: number;
+      data: { toolName: string; pattern: string; toolUseId: string };
+    }
+  | {
+      type: "button_focus" | "button_click";
+      delay: number;
+      data: ButtonActionData;
+    };
 
 // Generate realistic Claude system messages
 export function createSystemMessage(
@@ -69,6 +74,41 @@ export function createAssistantMessage(
   };
 }
 
+// Generate combined assistant message with both text and tool_use (like real SDK)
+export function createCombinedAssistantMessage(
+  textContent: string,
+  toolUse: {
+    id: string;
+    name: string;
+    input: Record<string, unknown>;
+  },
+  sessionId: string,
+): Extract<SDKMessage, { type: "assistant" }> {
+  return {
+    type: "assistant",
+    message: {
+      id: "msg_" + generateId(),
+      type: "message",
+      role: "assistant",
+      content: [
+        { type: "text", text: textContent },
+        {
+          type: "tool_use",
+          id: toolUse.id,
+          name: toolUse.name,
+          input: toolUse.input,
+        },
+      ],
+      model: "claude-3-5-sonnet-20241022",
+      stop_reason: "tool_use",
+      stop_sequence: null,
+      usage: { input_tokens: 25, output_tokens: 65 },
+    },
+    parent_tool_use_id: null,
+    session_id: sessionId,
+  };
+}
+
 // Generate realistic Claude result messages
 export function createResultMessage(
   sessionId: string,
@@ -90,6 +130,93 @@ export function createResultMessage(
       output_tokens: outputTokens,
       total_tokens: inputTokens + outputTokens,
     },
+  };
+}
+
+// Generate ExitPlanMode tool use message
+export function createExitPlanModeToolUse(
+  sessionId: string,
+  planContent: string,
+): Extract<SDKMessage, { type: "assistant" }> {
+  const toolUseId = generateId();
+  return {
+    type: "assistant",
+    message: {
+      id: "msg_" + generateId(),
+      type: "message",
+      role: "assistant",
+      content: [
+        {
+          type: "tool_use",
+          id: toolUseId,
+          name: "ExitPlanMode",
+          input: {
+            plan: planContent,
+          },
+        },
+      ],
+      model: "claude-3-5-sonnet-20241022",
+      stop_reason: "tool_use",
+      stop_sequence: null,
+      usage: { input_tokens: 25, output_tokens: 28 },
+    },
+    parent_tool_use_id: null,
+    session_id: sessionId,
+  };
+}
+
+// Generate ExitPlanMode tool use message with specific ID
+export function createExitPlanModeToolUseWithId(
+  sessionId: string,
+  toolUseId: string,
+  planContent: string,
+): Extract<SDKMessage, { type: "assistant" }> {
+  return {
+    type: "assistant",
+    message: {
+      id: "msg_" + generateId(),
+      type: "message",
+      role: "assistant",
+      content: [
+        {
+          type: "tool_use",
+          id: toolUseId,
+          name: "ExitPlanMode",
+          input: {
+            plan: planContent,
+          },
+        },
+      ],
+      model: "claude-3-5-sonnet-20241022",
+      stop_reason: "tool_use",
+      stop_sequence: null,
+      usage: { input_tokens: 25, output_tokens: 28 },
+    },
+    parent_tool_use_id: null,
+    session_id: sessionId,
+  };
+}
+
+// Generate ExitPlanMode tool result message
+export function createExitPlanModeToolResult(
+  sessionId: string,
+  toolUseId: string,
+): Extract<SDKMessage, { type: "user" }> {
+  return {
+    type: "user",
+    message: {
+      role: "user",
+      content: [
+        {
+          type: "tool_result",
+          tool_use_id: toolUseId,
+          content: "Exit plan mode?",
+          is_error: true, // Mark as error to trigger permission dialog
+        },
+      ],
+    },
+    parent_tool_use_id: null,
+    session_id: sessionId,
   };
 }
 
@@ -161,6 +288,8 @@ export const DEMO_INPUTS = {
     "Please analyze the frontend code structure and suggest improvements",
   codeGeneration:
     "Write a simple Python script that calculates fibonacci numbers and run it",
+  planMode:
+    "Create a simple README.md file for this project with basic documentation",
 } as const;
 
 // Predefined demo scenarios
@@ -453,11 +582,173 @@ if __name__ == "__main__":
       },
     ],
   },
+  planMode: (() => {
+    // Generate a consistent tool use ID that will be shared between tool_use and tool_result
+    const planToolUseId = "demo-plan-tool-" + Date.now();
+    const planContent = `# README Creation Plan
+
+## Overview
+I'll create a comprehensive README.md file for the Claude Code Web UI project with essential documentation.
+
+## Implementation Steps
+1. **Project Analysis**: Review the project structure to understand key features
+2. **README Structure**: Create sections for description, installation, usage, and features
+3. **Content Creation**: Write clear, concise documentation with examples
+4. **Final Review**: Ensure all important aspects are covered
+
+## Deliverables
+- Professional README.md file with project overview
+- Installation and usage instructions
+- Feature descriptions and screenshots references
+- Development and contribution guidelines`;
+
+    return {
+      sessionId: "demo-session-plan",
+      inputText: DEMO_INPUTS.planMode,
+      steps: [
+        {
+          type: "system" as const,
+          delay: 600,
+          data: createSystemMessage("demo-session-plan"),
+        },
+        {
+          type: "assistant" as const,
+          delay: 1200,
+          data: createCombinedAssistantMessage(
+            "I'll help you create a comprehensive README.md file! Let me first analyze the project structure and create a documentation plan.",
+            {
+              id: planToolUseId,
+              name: "ExitPlanMode",
+              input: { plan: planContent },
+            },
+            "demo-session-plan",
+          ),
+        },
+        {
+          type: "user" as const,
+          delay: 1500,
+          data: createExitPlanModeToolResult(
+            "demo-session-plan",
+            planToolUseId,
+          ),
+        },
+        {
+          type: "button_focus",
+          delay: 800,
+          data: {
+            buttonType: "plan_accept_with_edits",
+          },
+        },
+        {
+          type: "button_click",
+          delay: 1000,
+          data: {
+            buttonType: "plan_accept_with_edits",
+          },
+        },
+        // Post-approval implementation steps (after user accepts plan with edits)
+        {
+          type: "assistant" as const,
+          delay: 1500,
+          data: createAssistantMessage(
+            "Excellent! Now I'll implement the README creation plan. Let me start by examining the project structure to understand the key features.",
+            "demo-session-plan",
+          ),
+        },
+        {
+          type: "assistant" as const,
+          delay: 1800,
+          data: createToolUseMessage(
+            "Read",
+            { file_path: "/Users/demo/claude-code-webui/package.json" },
+            "demo-session-plan",
+            "read-package-json",
+          ),
+        },
+        {
+          type: "assistant" as const,
+          delay: 1200,
+          data: createAssistantMessage(
+            "Great! I can see this is the Claude Code Web UI project. Now I'll create a comprehensive README.md file with all the essential information.",
+            "demo-session-plan",
+          ),
+        },
+        {
+          type: "assistant" as const,
+          delay: 1600,
+          data: createToolUseMessage(
+            "Write",
+            {
+              file_path: "/Users/demo/claude-code-webui/README.md",
+              content: `# Claude Code Web UI
+
+A modern, web-based interface for the Claude Code CLI tool that provides streaming responses in an intuitive chat interface.
+
+## ✨ Features
+
+- **🌐 Web Interface**: Access Claude Code through your browser
+- **💬 Real-time Chat**: Streaming responses with live updates
+- **📁 Project Management**: Select and switch between project directories
+- **🎨 Theme Support**: Light/dark theme with system preference detection
+- **📝 Conversation History**: Browse and restore previous chat sessions
+
+## 🚀 Quick Start
+
+1. **Install Dependencies**
+   \`\`\`bash
+   # Backend
+   cd backend && npm install
+   
+   # Frontend  
+   cd frontend && npm install
+   \`\`\`
+
+2. **Start the Application**
+   \`\`\`bash
+   # Start backend (port 8080)
+   cd backend && npm run dev
+   
+   # Start frontend (port 3000)
+   cd frontend && npm run dev
+   \`\`\`
+
+3. **Open your browser** and navigate to \`http://localhost:3000\`
+
+## 🏗️ Architecture
+
+- **Backend**: TypeScript + Hono framework (Deno/Node.js)
+- **Frontend**: React + Vite + TailwindCSS + TypeScript
+- **Streaming**: Real-time JSON streaming from Claude CLI
+
+## 📄 License
+
+MIT License - see LICENSE file for details.`,
+            },
+            "demo-session-plan",
+            "write-readme",
+          ),
+        },
+        {
+          type: "assistant" as const,
+          delay: 1200,
+          data: createAssistantMessage(
+            "Perfect! I've successfully created a comprehensive README.md file with:\n\n✅ Clear project description and features\n✅ Quick start installation guide\n✅ Architecture overview\n✅ Professional formatting with emojis\n\nThe README provides all essential information for users and contributors. Notice how I was able to read the project structure and create the file seamlessly without additional permission requests - that's the power of plan mode approval!",
+            "demo-session-plan",
+          ),
+        },
+        {
+          type: "result" as const,
+          delay: 1000,
+          data: createResultMessage("demo-session-plan", 85, 280),
+        },
+      ],
+    };
+  })(),
 } as const;
 
 // Helper to convert scenario to stream responses
 export function scenarioToStream(
   scenarioKey: keyof typeof DEMO_SCENARIOS,
 ): MockScenarioStep[] {
-  return [...DEMO_SCENARIOS[scenarioKey].steps];
+  return [...DEMO_SCENARIOS[scenarioKey].steps] as MockScenarioStep[];
 }

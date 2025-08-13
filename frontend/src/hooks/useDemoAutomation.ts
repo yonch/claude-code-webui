@@ -10,6 +10,7 @@ import {
 } from "../utils/mockResponseGenerator";
 import type { SDKMessage } from "../types";
 import { formatToolArguments } from "../utils/toolUtils";
+import { createToolResultMessage } from "../utils/messageConversion";
 
 export interface DemoAutomationHook {
   currentStep: number;
@@ -233,7 +234,6 @@ export function useDemoAutomation(
             { type: "assistant" }
           >;
 
-          // Process the assistant message content
           for (const contentItem of assistantMsg.message.content) {
             if (contentItem.type === "text") {
               const textContent = (contentItem as { text: string }).text;
@@ -258,17 +258,82 @@ export function useDemoAutomation(
                 input: Record<string, unknown>;
               };
 
-              const argsDisplay = formatToolArguments(toolUse.input);
-              const toolMessage: AllMessage = {
-                type: "tool",
-                content: `${toolUse.name}${argsDisplay}`,
-                timestamp: Date.now(),
-              };
-              finalAddMessage(toolMessage);
+              // Special handling for ExitPlanMode - create plan message instead of tool message
+              if (toolUse.name === "ExitPlanMode") {
+                const planContent = (toolUse.input?.plan as string) || "";
+                const planMessage = {
+                  type: "plan" as const,
+                  plan: planContent,
+                  toolUseId: toolUse.id || "",
+                  timestamp: Date.now(),
+                };
+                finalAddMessage(planMessage);
+              } else {
+                const argsDisplay = formatToolArguments(toolUse.input);
+                const toolMessage: AllMessage = {
+                  type: "tool",
+                  content: `${toolUse.name}${argsDisplay}`,
+                  timestamp: Date.now(),
+                };
+                finalAddMessage(toolMessage);
+              }
             }
           }
 
           setCurrentAssistantMessage(null);
+          break;
+        }
+
+        case "user": {
+          // Handle user messages containing tool results (like ExitPlanMode)
+          const userMsg = sdkMessage as Extract<SDKMessage, { type: "user" }>;
+          const messageContent = userMsg.message.content;
+
+          if (Array.isArray(messageContent)) {
+            for (const contentItem of messageContent) {
+              if (contentItem.type === "tool_result") {
+                const toolResult = contentItem as {
+                  type: "tool_result";
+                  tool_use_id: string;
+                  content: string;
+                  is_error?: boolean;
+                };
+
+                // Check for permission errors (similar to useToolHandling.ts)
+                if (
+                  toolResult.is_error &&
+                  !toolResult.content.includes("tool_use_error")
+                ) {
+                  // For demo, we need to trigger permission dialog
+                  // Since this is ExitPlanMode, show plan permission request
+                  if (toolResult.content === "Exit plan mode?") {
+                    // This indicates an ExitPlanMode permission error
+                    // Check if showPlanModeRequest is available (it should be from usePermissions)
+                    // For now, trigger regular permission request with ExitPlanMode pattern
+                    // The ChatPage.tsx logic will convert this to plan mode request
+                    finalShowPermissionRequest(
+                      "ExitPlanMode",
+                      ["ExitPlanMode"],
+                      toolResult.tool_use_id,
+                    );
+                  } else {
+                    // For other tool permission errors, show regular permission dialog
+                    finalShowPermissionRequest(
+                      "Unknown",
+                      ["*"],
+                      toolResult.tool_use_id,
+                    );
+                  }
+                } else {
+                  const toolResultMessage = createToolResultMessage(
+                    "Tool result",
+                    toolResult.content,
+                  );
+                  finalAddMessage(toolResultMessage);
+                }
+              }
+            }
+          }
           break;
         }
 
