@@ -8,7 +8,7 @@
 
 > **A modern web interface for Claude Code CLI** - Transform your command-line coding experience into an intuitive web-based chat interface
 
-[🎬 **View Demo**](https://github.com/user-attachments/assets/9a022b2c-1d87-4699-8266-b036427d0b61)
+[🎬 **View Demo**](https://github.com/user-attachments/assets/33e769b0-b17e-470b-8163-c71ef186b5af)
 
 ## 📱 Screenshots
 
