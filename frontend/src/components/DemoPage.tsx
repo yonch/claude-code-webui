@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useLocation } from "react-router-dom";
-import { type Theme } from "../hooks/useTheme";
+import { type Theme } from "../types/settings";
 import { STORAGE_KEYS, getStorageItem, setStorageItem } from "../utils/storage";
 import { useChatState } from "../hooks/chat/useChatState";
 import { usePermissions } from "../hooks/chat/usePermissions";
 import { useDemoAutomation } from "../hooks/useDemoAutomation";
-import { ThemeToggle } from "./chat/ThemeToggle";
+import { SettingsButton } from "./SettingsButton";
+import { SettingsModal } from "./SettingsModal";
 import { ChatInput } from "./chat/ChatInput";
 import { ChatMessages } from "./chat/ChatMessages";
 import { DEMO_SCENARIOS } from "../utils/mockResponseGenerator";
@@ -28,6 +29,9 @@ export function DemoPage() {
   const pauseAtStep = pauseAtParam ? parseInt(pauseAtParam, 10) : undefined;
 
   // Get theme from URL or use system default
+  // NOTE: DemoPage manages its own theme state separately from SettingsContext
+  // to support URL-based theme overrides (?theme=dark) and disable transitions
+  // during demo recording/playback for visual consistency
   const themeParam = searchParams.get("theme");
   const [theme, setTheme] = useState<Theme>(() => {
     if (themeParam === "dark" || themeParam === "light") {
@@ -41,10 +45,15 @@ export function DemoPage() {
     return getStorageItem(STORAGE_KEYS.THEME, systemDefault);
   });
 
-  const toggleTheme = () => {
-    // For demo, theme is controlled by URL parameter
-    if (themeParam) return;
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  // Settings modal state
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const handleSettingsClick = () => {
+    setIsSettingsOpen(true);
+  };
+
+  const handleSettingsClose = () => {
+    setIsSettingsOpen(false);
   };
 
   // Apply theme to DOM (similar to useTheme hook but with URL override)
@@ -362,7 +371,7 @@ export function DemoPage() {
               {demoWorkingDirectory}
             </p>
           </div>
-          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          <SettingsButton onClick={handleSettingsClick} />
         </div>
 
         {/* Demo Controls (only shown with ?control=true) */}
@@ -436,6 +445,9 @@ export function DemoPage() {
           permissionData={permissionData}
           planPermissionData={planPermissionData}
         />
+
+        {/* Settings Modal */}
+        <SettingsModal isOpen={isSettingsOpen} onClose={handleSettingsClose} />
       </div>
     </div>
   );
