@@ -24,8 +24,8 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 # Install Deno dependencies and build backend
 WORKDIR /app/backend
 RUN deno install && deno cache cli/deno.ts
-RUN deno run -A npm:node@latest scripts/copy-frontend.js
-RUN deno run -A npm:node@latest scripts/generate-version.js
+RUN node scripts/copy-frontend.js
+RUN node scripts/generate-version.js
 RUN deno compile \
     --allow-net \
     --allow-run \
