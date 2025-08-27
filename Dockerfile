@@ -2,10 +2,12 @@
 
 # Frontend build stage - use Node.js for faster npm operations
 FROM node:22-alpine AS frontend-builder
+WORKDIR /app
+COPY frontend/package*.json ./frontend/
+RUN cd frontend && npm ci
+COPY frontend/ ./frontend/
+COPY shared/ ./shared/
 WORKDIR /app/frontend
-COPY frontend/package*.json ./
-RUN npm ci
-COPY frontend/ ./
 RUN npm run build
 
 # Backend build stage - use Deno for binary compilation
