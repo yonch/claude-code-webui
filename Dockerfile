@@ -1,20 +1,25 @@
 # Multi-stage build for claude-code-webui container
 
-# Build stage - build the self-contained binary
-FROM denoland/deno:2.4.5 AS builder
+# Frontend build stage - use Node.js for faster npm operations
+FROM node:22-alpine AS frontend-builder
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm ci --only=production
+COPY frontend/ ./
+RUN npm run build
 
-# Set working directory
+# Backend build stage - use Deno for binary compilation
+FROM denoland/deno:2.4.5 AS backend-builder
 WORKDIR /app
 
-# Copy source code
-COPY . .
+# Copy backend source
+COPY backend/ ./backend/
+COPY shared/ ./shared/
 
-# Install frontend dependencies and build
-WORKDIR /app/frontend
-RUN deno run -A npm:npm@latest ci
-RUN deno run -A npm:npm@latest run build
+# Copy built frontend from previous stage
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
-# Build backend binary
+# Install Deno dependencies and build backend
 WORKDIR /app/backend
 RUN deno install && deno cache cli/deno.ts
 RUN deno run -A npm:node@latest scripts/copy-frontend.js
@@ -41,8 +46,8 @@ RUN addgroup -g 1001 -S appgroup && \
 # Install Claude CLI globally
 RUN npm install -g @anthropic-ai/claude-code@1.0.77
 
-# Copy the compiled binary from builder stage
-COPY --from=builder /app/claude-code-webui /usr/local/bin/claude-code-webui
+# Copy the compiled binary from backend builder stage
+COPY --from=backend-builder /app/claude-code-webui /usr/local/bin/claude-code-webui
 
 # Make binary executable and owned by appuser
 RUN chmod +x /usr/local/bin/claude-code-webui && \
