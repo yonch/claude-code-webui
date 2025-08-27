@@ -1,7 +1,7 @@
 # Multi-stage build for claude-code-webui container
 
 # Build stage - build the self-contained binary
-FROM denoland/deno:2.1 AS builder
+FROM denoland/deno:2.4.5 AS builder
 
 # Set working directory
 WORKDIR /app
