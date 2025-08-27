@@ -9,13 +9,13 @@ COPY frontend/ ./frontend/
 COPY shared/ ./shared/
 COPY backend/scripts/ ./backend/scripts/
 COPY backend/package.json ./backend/package.json
+COPY backend/cli/ ./backend/cli/
 WORKDIR /app/frontend
 RUN npm run build
 # Copy frontend assets to backend static directory and generate version
 WORKDIR /app
 RUN node backend/scripts/copy-frontend.js
-WORKDIR /app/backend
-RUN node scripts/generate-version.js
+RUN cd backend && node scripts/generate-version.js
 
 # Backend build stage - use Deno for binary compilation
 FROM denoland/deno:2.4.5 AS backend-builder
