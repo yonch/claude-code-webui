@@ -7,8 +7,15 @@ COPY frontend/package*.json ./frontend/
 RUN cd frontend && npm ci
 COPY frontend/ ./frontend/
 COPY shared/ ./shared/
+COPY backend/scripts/ ./backend/scripts/
+COPY backend/package.json ./backend/package.json
 WORKDIR /app/frontend
 RUN npm run build
+# Copy frontend assets to backend static directory and generate version
+WORKDIR /app
+RUN node backend/scripts/copy-frontend.js
+WORKDIR /app/backend
+RUN node scripts/generate-version.js
 
 # Backend build stage - use Deno for binary compilation
 FROM denoland/deno:2.4.5 AS backend-builder
@@ -18,14 +25,13 @@ WORKDIR /app
 COPY backend/ ./backend/
 COPY shared/ ./shared/
 
-# Copy built frontend from previous stage
-COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
+# Copy prepared files from frontend-builder stage
+COPY --from=frontend-builder /app/backend/dist ./backend/dist
+COPY --from=frontend-builder /app/backend/cli/version.ts ./backend/cli/version.ts
 
 # Install Deno dependencies and build backend
 WORKDIR /app/backend
 RUN deno install && deno cache cli/deno.ts
-RUN node scripts/copy-frontend.js
-RUN node scripts/generate-version.js
 RUN deno compile \
     --allow-net \
     --allow-run \
