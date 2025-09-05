@@ -13,6 +13,7 @@ import { usePermissions } from "../hooks/chat/usePermissions";
 import { usePermissionMode } from "../hooks/chat/usePermissionMode";
 import { useAbortController } from "../hooks/chat/useAbortController";
 import { useAutoHistoryLoader } from "../hooks/useHistoryLoader";
+import { useToast } from "../hooks/useToast";
 import { SettingsButton } from "./SettingsButton";
 import { SettingsModal } from "./SettingsModal";
 import { HistoryButton } from "./chat/HistoryButton";
@@ -30,6 +31,9 @@ export function ChatPage() {
   const [searchParams] = useSearchParams();
   const [projects, setProjects] = useState<ProjectInfo[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [activeSubscription, setActiveSubscription] =
+    useState<AbortController | null>(null);
+  const { showToast, ToastComponent } = useToast();
 
   // Extract and normalize working directory from URL
   const workingDirectory = (() => {
@@ -93,10 +97,12 @@ export function ChatPage() {
     isLoading,
     currentSessionId,
     currentRequestId,
+    lastMessageId,
     hasShownInitMessage,
     currentAssistantMessage,
     setInput,
     setCurrentSessionId,
+    setLastMessageId,
     setHasShownInitMessage,
     setHasReceivedInit,
     setCurrentAssistantMessage,
@@ -106,6 +112,7 @@ export function ChatPage() {
     generateRequestId,
     resetRequestState,
     startRequest,
+    removeThinkingMessages,
   } = useChatState({
     initialMessages: historyMessages,
     initialSessionId: loadedSessionId || undefined,
@@ -140,45 +147,69 @@ export function ChatPage() {
     [showPermissionRequest, showPlanModeRequest],
   );
 
-  const sendMessage = useCallback(
+  // Unified function for sending messages and subscribing to sessions
+  const sendChatRequest = useCallback(
     async (
-      messageContent?: string,
+      message?: string | null,
       tools?: string[],
       hideUserMessage = false,
       overridePermissionMode?: PermissionMode,
+      sessionIdOverride?: string,
     ) => {
-      const content = messageContent || input.trim();
-      if (!content || isLoading) return;
-
-      const requestId = generateRequestId();
-
-      // Only add user message to chat if not hidden
-      if (!hideUserMessage) {
-        const userMessage: ChatMessage = {
-          type: "chat",
-          role: "user",
-          content: content,
-          timestamp: Date.now(),
-        };
-        addMessage(userMessage);
+      // Cancel any existing subscription before sending a new request
+      if (activeSubscription) {
+        activeSubscription.abort();
+        setActiveSubscription(null);
       }
 
-      if (!messageContent) clearInput();
-      startRequest();
+      const requestId = generateRequestId();
+      const isSubscriptionOnly = message === null;
+      const controller = isSubscriptionOnly ? new AbortController() : undefined;
+
+      // Handle subscription mode
+      if (isSubscriptionOnly && controller) {
+        setActiveSubscription(controller);
+      }
+
+      // Handle message mode
+      if (!isSubscriptionOnly) {
+        const content = message !== undefined ? message : input.trim();
+        if (!content) return;
+
+        // Show toast notification that message was sent
+        if (!hideUserMessage) {
+          showToast("Message sent");
+        }
+
+        if (message === undefined) clearInput();
+        startRequest();
+      }
 
       try {
         const response = await fetch(getChatUrl(), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          ...(controller ? { signal: controller.signal } : {}),
           body: JSON.stringify({
-            message: content,
+            ...(message !== null && message !== undefined
+              ? { message }
+              : message === undefined
+                ? { message: input.trim() }
+                : {}),
             requestId,
-            ...(currentSessionId ? { sessionId: currentSessionId } : {}),
+            ...(sessionIdOverride || currentSessionId
+              ? { sessionId: sessionIdOverride || currentSessionId }
+              : {}),
+            ...(lastMessageId ? { resumeFromMessageId: lastMessageId } : {}),
             allowedTools: tools || allowedTools,
             ...(workingDirectory ? { workingDirectory } : {}),
             permissionMode: overridePermissionMode || permissionMode,
           } as ChatRequest),
         });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
         if (!response.body) throw new Error("No response body");
 
@@ -195,6 +226,7 @@ export function ChatPage() {
           addMessage,
           updateLastMessage,
           onSessionId: setCurrentSessionId,
+          onMessageId: setLastMessageId,
           shouldShowInitMessage: () => !hasShownInitMessage,
           onInitMessageShown: () => setHasShownInitMessage(true),
           get hasReceivedInit() {
@@ -206,38 +238,67 @@ export function ChatPage() {
           },
           onPermissionError: handlePermissionError,
           onAbortRequest: async () => {
-            shouldAbort = true;
-            await createAbortHandler(requestId)();
+            if (controller) {
+              controller.abort();
+            } else {
+              shouldAbort = true;
+              await createAbortHandler(currentSessionId || requestId)();
+            }
+          },
+          onIdle: () => {
+            // Remove thinking messages and reset request state when session completes processing
+            removeThinkingMessages();
+            resetRequestState();
           },
         };
 
         while (true) {
           const { done, value } = await reader.read();
-          if (done || shouldAbort) break;
+          if (done || shouldAbort || controller?.signal.aborted) break;
 
           const chunk = decoder.decode(value);
           const lines = chunk.split("\n").filter((line) => line.trim());
 
           for (const line of lines) {
-            if (shouldAbort) break;
+            if (shouldAbort || controller?.signal.aborted) break;
             processStreamLine(line, streamingContext);
           }
 
-          if (shouldAbort) break;
+          if (shouldAbort || controller?.signal.aborted) break;
         }
       } catch (error) {
-        console.error("Failed to send message:", error);
-        addMessage({
-          type: "chat",
-          role: "assistant",
-          content: "Error: Failed to get response",
-          timestamp: Date.now(),
-        });
+        if ((error as any)?.name !== "AbortError") {
+          console.error(
+            isSubscriptionOnly
+              ? "Failed to subscribe to session:"
+              : "Failed to send message:",
+            error,
+          );
+          if (!isSubscriptionOnly) {
+            // Show error toast
+            const errorMessage =
+              error instanceof Error ? error.message : "Unknown error";
+            showToast(`Failed to send message: ${errorMessage}`);
+
+            addMessage({
+              type: "chat",
+              role: "assistant",
+              content: `Error: Failed to get response (${errorMessage})`,
+              timestamp: Date.now(),
+            });
+          }
+        }
       } finally {
-        resetRequestState();
+        if (controller === activeSubscription) {
+          setActiveSubscription(null);
+        }
+        if (!isSubscriptionOnly) {
+          resetRequestState();
+        }
       }
     },
     [
+      activeSubscription,
       input,
       isLoading,
       currentSessionId,
@@ -246,25 +307,54 @@ export function ChatPage() {
       currentAssistantMessage,
       workingDirectory,
       permissionMode,
+      lastMessageId,
       generateRequestId,
       clearInput,
       startRequest,
       addMessage,
       updateLastMessage,
       setCurrentSessionId,
+      setLastMessageId,
       setHasShownInitMessage,
       setHasReceivedInit,
       setCurrentAssistantMessage,
       resetRequestState,
+      removeThinkingMessages,
       processStreamLine,
       handlePermissionError,
       createAbortHandler,
+      showToast,
     ],
   );
 
+  // Subscribe to session updates without sending a message
+  const subscribeToSession = useCallback(
+    async (sessionId: string) => {
+      await sendChatRequest(null, undefined, false, undefined, sessionId);
+    },
+    [sendChatRequest],
+  );
+
+  const sendMessage = useCallback(
+    async (
+      messageContent?: string,
+      tools?: string[],
+      hideUserMessage = false,
+      overridePermissionMode?: PermissionMode,
+    ) => {
+      await sendChatRequest(
+        messageContent,
+        tools,
+        hideUserMessage,
+        overridePermissionMode,
+      );
+    },
+    [sendChatRequest],
+  );
+
   const handleAbort = useCallback(() => {
-    abortRequest(currentRequestId, isLoading, resetRequestState);
-  }, [abortRequest, currentRequestId, isLoading, resetRequestState]);
+    abortRequest(currentSessionId, isLoading, resetRequestState);
+  }, [abortRequest, currentSessionId, isLoading, resetRequestState]);
 
   // Permission request handlers
   const handlePermissionAllow = useCallback(() => {
@@ -399,6 +489,35 @@ export function ChatPage() {
     };
     loadProjects();
   }, []);
+
+  // Update URL when session ID changes
+  useEffect(() => {
+    // Only update URL if we have a session ID and we're not in history view
+    if (currentSessionId && !isHistoryView) {
+      const searchParams = new URLSearchParams(location.search);
+      const urlSessionId = searchParams.get("sessionId");
+
+      // Only update if the URL doesn't already have this session ID
+      if (urlSessionId !== currentSessionId) {
+        searchParams.set("sessionId", currentSessionId);
+        navigate({ search: searchParams.toString() }, { replace: true });
+      }
+    }
+  }, [currentSessionId, isHistoryView, navigate, location.search]);
+
+  // Subscribe to session updates when we have a session ID and aren't loading messages
+  useEffect(() => {
+    if (currentSessionId && !isLoading && !historyLoading) {
+      subscribeToSession(currentSessionId);
+    }
+
+    // Clean up subscription on unmount or session change
+    return () => {
+      if (activeSubscription) {
+        activeSubscription.abort();
+      }
+    };
+  }, [currentSessionId]);
 
   const handleBackToChat = useCallback(() => {
     navigate({ search: "" });
@@ -586,6 +705,9 @@ export function ChatPage() {
 
         {/* Settings Modal */}
         <SettingsModal isOpen={isSettingsOpen} onClose={handleSettingsClose} />
+
+        {/* Toast Notifications */}
+        {ToastComponent}
       </div>
     </div>
   );

@@ -28,6 +28,7 @@ export function useChatState(options: ChatStateOptions = {}) {
     initialSessionId,
   );
   const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
+  const [lastMessageId, setLastMessageId] = useState<string | null>(null);
   const [hasShownInitMessage, setHasShownInitMessage] = useState(false);
   const [hasReceivedInit, setHasReceivedInit] = useState(false);
   const [currentAssistantMessage, setCurrentAssistantMessage] =
@@ -78,6 +79,10 @@ export function useChatState(options: ChatStateOptions = {}) {
     setHasReceivedInit(false);
   }, []);
 
+  const removeThinkingMessages = useCallback(() => {
+    setMessages((prev) => prev.filter((msg) => msg.type !== "thinking"));
+  }, []);
+
   return {
     // State
     messages,
@@ -85,6 +90,7 @@ export function useChatState(options: ChatStateOptions = {}) {
     isLoading,
     currentSessionId,
     currentRequestId,
+    lastMessageId,
     hasShownInitMessage,
     hasReceivedInit,
     currentAssistantMessage,
@@ -95,6 +101,7 @@ export function useChatState(options: ChatStateOptions = {}) {
     setIsLoading,
     setCurrentSessionId,
     setCurrentRequestId,
+    setLastMessageId,
     setHasShownInitMessage,
     setHasReceivedInit,
     setCurrentAssistantMessage,
@@ -106,5 +113,6 @@ export function useChatState(options: ChatStateOptions = {}) {
     generateRequestId,
     resetRequestState,
     startRequest,
+    removeThinkingMessages,
   };
 }

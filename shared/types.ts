@@ -1,13 +1,15 @@
 export interface StreamResponse {
-  type: "claude_json" | "error" | "done" | "aborted";
-  data?: unknown; // SDKMessage object for claude_json type
+  type: "claude_json" | "error" | "done" | "aborted" | "user_message";
+  messageId?: string; // Unique ID for message ordering and resume
+  data?: unknown; // SDKMessage object for claude_json type, or user message data for user_message type
   error?: string;
 }
 
 export interface ChatRequest {
-  message: string;
+  message?: string; // Optional - when not provided, just subscribes to session updates
   sessionId?: string;
   requestId: string;
+  resumeFromMessageId?: string; // Optional - replay events from this messageId onwards
   allowedTools?: string[];
   workingDirectory?: string;
   permissionMode?: "default" | "plan" | "acceptEdits";

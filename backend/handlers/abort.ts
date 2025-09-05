@@ -1,17 +1,15 @@
 import { Context } from "hono";
 import { logger } from "../utils/logger.ts";
+import type { SessionManager } from "../services/sessionManager.ts";
 
 /**
  * Handles POST /api/abort/:requestId requests
- * Aborts an ongoing chat request by request ID
+ * Aborts an ongoing chat request by session ID
  * @param c - Hono context object with config variables
- * @param requestAbortControllers - Map of request IDs to AbortControllers
+ * @param sessionManager - SessionManager instance
  * @returns JSON response indicating success or failure
  */
-export function handleAbortRequest(
-  c: Context,
-  requestAbortControllers: Map<string, AbortController>,
-) {
+export function handleAbortRequest(c: Context, sessionManager: SessionManager) {
   const requestId = c.req.param("requestId");
 
   if (!requestId) {
@@ -19,19 +17,24 @@ export function handleAbortRequest(
   }
 
   logger.api.debug(`Abort attempt for request: ${requestId}`);
-  logger.api.debug(
-    `Active requests: ${Array.from(requestAbortControllers.keys())}`,
-  );
 
-  const abortController = requestAbortControllers.get(requestId);
-  if (abortController) {
-    abortController.abort();
-    requestAbortControllers.delete(requestId);
+  // The requestId is actually the sessionId in the new architecture
+  // since we want to abort the session's current execution
+  const session = sessionManager.getSession(requestId);
+  if (!session) {
+    return c.json({ error: "Session not found" }, 404);
+  }
 
-    logger.api.debug(`Aborted request: ${requestId}`);
+  const result = session.abort();
 
-    return c.json({ success: true, message: "Request aborted" });
+  if (result.aborted) {
+    logger.api.debug(`Aborted session: ${requestId}`);
+    return c.json({
+      success: true,
+      message: "Session aborted",
+      clearedQueueSize: result.clearedQueueSize,
+    });
   } else {
-    return c.json({ error: "Request not found or already completed" }, 404);
+    return c.json({ error: "Session not currently processing" }, 404);
   }
 }

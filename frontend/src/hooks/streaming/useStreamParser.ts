@@ -4,6 +4,7 @@ import type {
   SDKMessage,
   SystemMessage,
   AbortMessage,
+  ChatMessage,
 } from "../../types";
 import {
   isSystemMessage,
@@ -98,10 +99,29 @@ export function useStreamParser() {
       try {
         const data: StreamResponse = JSON.parse(line);
 
+        // Track messageId if present
+        if (data.messageId && context.onMessageId) {
+          context.onMessageId(data.messageId);
+        }
+
         if (data.type === "claude_json" && data.data) {
           // data.data is already an SDKMessage object, no need to parse
           const claudeData = data.data as SDKMessage;
           processClaudeData(claudeData, context);
+        } else if (data.type === "user_message" && data.data) {
+          // Handle user message from backend (when message is queued)
+          const userMessageData = data.data as {
+            message: string;
+            timestamp: number;
+          };
+          const userMessage: ChatMessage = {
+            type: "chat",
+            role: "user",
+            content: userMessageData.message,
+            timestamp: userMessageData.timestamp,
+            messageId: data.messageId,
+          };
+          context.addMessage(userMessage);
         } else if (data.type === "error") {
           const errorMessage: SystemMessage = {
             type: "error",
@@ -119,6 +139,11 @@ export function useStreamParser() {
           };
           context.addMessage(abortedMessage);
           context.setCurrentAssistantMessage(null);
+        } else if (data.type === "done") {
+          // Session completed processing - clean up thinking messages and reset state
+          if (context.onIdle) {
+            context.onIdle();
+          }
         }
       } catch (parseError) {
         console.error("Failed to parse stream line:", parseError);

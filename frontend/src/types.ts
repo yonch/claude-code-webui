@@ -12,6 +12,7 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: number;
+  messageId?: string; // Track message ID for resume functionality
 }
 
 // Error message for streaming errors
@@ -28,6 +29,16 @@ export type AbortMessage = {
   subtype: "abort";
   message: string;
   timestamp: number;
+};
+
+// User message sent from backend when message is queued
+export type UserMessage = {
+  type: "user_message";
+  messageId: string;
+  data: {
+    message: string;
+    timestamp: number;
+  };
 };
 
 // System message extending SDK types with timestamp

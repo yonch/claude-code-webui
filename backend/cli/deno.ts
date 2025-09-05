@@ -12,6 +12,7 @@ import { validateClaudeCli } from "./validation.ts";
 import { logger, setupLogger } from "../utils/logger.ts";
 import { dirname, fromFileUrl, join } from "@std/path";
 import { exit } from "../utils/os.ts";
+import { initializeSessionManager } from "../services/sessionManager.ts";
 
 async function main(runtime: DenoRuntime) {
   // Parse CLI arguments
@@ -26,6 +27,9 @@ async function main(runtime: DenoRuntime) {
 
   // Validate Claude CLI availability and get the detected CLI path
   const cliPath = await validateClaudeCli(runtime, args.claudePath);
+
+  // Initialize the SessionManager singleton with the CLI path
+  initializeSessionManager(cliPath);
 
   // Create application
   const __dirname = dirname(fromFileUrl(import.meta.url));

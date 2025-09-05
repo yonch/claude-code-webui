@@ -14,6 +14,7 @@ import { setupLogger, logger } from "../utils/logger.ts";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { exit } from "../utils/os.ts";
+import { initializeSessionManager } from "../services/sessionManager.ts";
 
 async function main(runtime: NodeRuntime) {
   // Parse CLI arguments
@@ -28,6 +29,9 @@ async function main(runtime: NodeRuntime) {
 
   // Validate Claude CLI availability and get the detected CLI path
   const cliPath = await validateClaudeCli(runtime, args.claudePath);
+
+  // Initialize the SessionManager singleton with the CLI path
+  initializeSessionManager(cliPath);
 
   // Use absolute path for static files (supported in @hono/node-server v1.17.0+)
   // Node.js 20.11.0+ compatible with fallback for older versions

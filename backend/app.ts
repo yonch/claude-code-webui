@@ -19,6 +19,7 @@ import { handleChatRequest } from "./handlers/chat.ts";
 import { handleAbortRequest } from "./handlers/abort.ts";
 import { logger } from "./utils/logger.ts";
 import { readBinaryFile } from "./utils/fs.ts";
+import { sessionManager } from "./services/sessionManager.ts";
 
 export interface AppConfig {
   debugMode: boolean;
@@ -31,9 +32,6 @@ export function createApp(
   config: AppConfig,
 ): Hono<ConfigContext> {
   const app = new Hono<ConfigContext>();
-
-  // Store AbortControllers for each request (shared with chat handler)
-  const requestAbortControllers = new Map<string, AbortController>();
 
   // CORS middleware
   app.use(
@@ -67,10 +65,10 @@ export function createApp(
   );
 
   app.post("/api/abort/:requestId", (c) =>
-    handleAbortRequest(c, requestAbortControllers),
+    handleAbortRequest(c, sessionManager),
   );
 
-  app.post("/api/chat", (c) => handleChatRequest(c, requestAbortControllers));
+  app.post("/api/chat", (c) => handleChatRequest(c, sessionManager));
 
   // Static file serving with SPA fallback
   // Serve static assets (CSS, JS, images, etc.)

@@ -14,9 +14,9 @@ export const getApiUrl = (endpoint: string) => {
   return endpoint;
 };
 
-// Helper function to get abort URL
-export const getAbortUrl = (requestId: string) => {
-  return `${API_CONFIG.ENDPOINTS.ABORT}/${requestId}`;
+// Helper function to get abort URL (using sessionId)
+export const getAbortUrl = (sessionId: string) => {
+  return `${API_CONFIG.ENDPOINTS.ABORT}/${sessionId}`;
 };
 
 // Helper function to get chat URL

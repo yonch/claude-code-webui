@@ -139,16 +139,21 @@ export function useAutoHistoryLoader(
   sessionId?: string,
 ): HistoryLoaderResult {
   const historyLoader = useHistoryLoader();
+  const [hasLoadedInitialHistory, setHasLoadedInitialHistory] = useState(false);
 
   useEffect(() => {
-    if (encodedProjectName && sessionId) {
+    // Only load history once on initial mount when sessionId is provided
+    // Don't reload when sessionId changes (e.g., during conversation resume)
+    if (encodedProjectName && sessionId && !hasLoadedInitialHistory) {
       historyLoader.loadHistory(encodedProjectName, sessionId);
+      setHasLoadedInitialHistory(true);
     } else if (!sessionId) {
       // Only clear if there's no sessionId - don't clear while waiting for encodedProjectName
       historyLoader.clearHistory();
+      setHasLoadedInitialHistory(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [encodedProjectName, sessionId]);
+  }, [encodedProjectName, sessionId, hasLoadedInitialHistory]);
 
   return historyLoader;
 }

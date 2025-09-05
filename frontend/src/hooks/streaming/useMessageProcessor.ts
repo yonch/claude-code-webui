@@ -7,6 +7,7 @@ export interface StreamingContext {
   addMessage: (msg: AllMessage) => void;
   updateLastMessage: (content: string) => void;
   onSessionId?: (sessionId: string) => void;
+  onMessageId?: (messageId: string) => void;
   shouldShowInitMessage?: () => boolean;
   onInitMessageShown?: () => void;
   hasReceivedInit?: boolean;
@@ -17,6 +18,7 @@ export interface StreamingContext {
     toolUseId: string,
   ) => void;
   onAbortRequest?: () => void;
+  onIdle?: () => void;
 }
 
 /**
