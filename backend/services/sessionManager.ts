@@ -12,6 +12,9 @@ import {
 } from "@anthropic-ai/claude-code";
 import { logger } from "../utils/logger.ts";
 import type { StreamResponse } from "../../shared/types.ts";
+import { loadConversation } from "../history/conversationLoader.ts";
+import { encodeProjectName } from "../history/pathUtils.ts";
+import type { RawHistoryLine } from "../history/parser.ts";
 
 export interface QueuedMessage {
   messageId: string;
@@ -34,6 +37,10 @@ export class Session {
   messageHistory: StreamResponse[] = []; // History of all events for replay
   currentExecution: SessionExecution | null = null;
   isProcessing: boolean = false;
+  historyLoaded: boolean = false; // Track if history has been loaded from disk
+  workingDirectory: string | null = null; // Working directory for this session
+  lastActivityTime: number = Date.now(); // Track last activity for idle timeout
+  cleanupTimer: ReturnType<typeof setTimeout> | null = null; // Timer for delayed cleanup
   private manager: SessionManager;
 
   constructor(manager: SessionManager) {
@@ -41,11 +48,12 @@ export class Session {
   }
 
   subscribe(subscriber: SessionSubscriber, resumeFromMessageId?: string): void {
-    // Replay messages if resumeFromMessageId is provided
-    if (resumeFromMessageId && this.messageHistory.length > 0) {
-      let foundStartPoint = false;
+    // If no resumeFromMessageId provided, replay entire history
+    // If resumeFromMessageId provided, replay from that point
+    if (this.messageHistory.length > 0) {
+      let foundStartPoint = !resumeFromMessageId; // Start immediately if no resume point
       for (const event of this.messageHistory) {
-        // Start sending events after we find the resumeFromMessageId
+        // Start sending events after we find the resumeFromMessageId (or immediately if none)
         if (foundStartPoint) {
           try {
             subscriber.send(event);
@@ -57,7 +65,7 @@ export class Session {
             return; // Don't add subscriber if replay fails
           }
         }
-        if (event.messageId === resumeFromMessageId) {
+        if (resumeFromMessageId && event.messageId === resumeFromMessageId) {
           foundStartPoint = true;
         }
       }
@@ -81,13 +89,13 @@ export class Session {
       logger.app.debug(`Subscriber ${subscriberId} removed from session`);
     }
 
-    // Request cleanup if session is empty
+    // Schedule cleanup if session is empty and idle
     if (
       this.subscribers.size === 0 &&
       !this.isProcessing &&
       this.messageQueue.length === 0
     ) {
-      this.manager.cleanupSession(this);
+      this.manager.scheduleCleanup(this);
     }
   }
 
@@ -98,6 +106,15 @@ export class Session {
     permissionMode?: PermissionMode,
   ): string {
     const messageId = crypto.randomUUID();
+
+    // Update last activity time
+    this.lastActivityTime = Date.now();
+
+    // Cancel any pending cleanup since we have new activity
+    if (this.cleanupTimer) {
+      clearTimeout(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
 
     const queuedMessage: QueuedMessage = {
       messageId,
@@ -161,9 +178,75 @@ export class SessionManager {
   private sessions = new Map<string, Session>(); // Keyed by Claude session ID once available
   private pendingSessions = new Set<Session>(); // Sessions without Claude ID yet
   private cliPath: string;
+  private readonly IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes in milliseconds
 
   constructor(cliPath: string) {
     this.cliPath = cliPath;
+  }
+
+  /**
+   * Convert history line to StreamResponse format
+   */
+  private convertHistoryToStreamResponse(
+    historyLine: RawHistoryLine,
+  ): StreamResponse {
+    // Convert RawHistoryLine to StreamResponse format
+    // RawHistoryLine is already in Claude SDK format, so we wrap it as claude_json
+    return {
+      type: "claude_json",
+      messageId: crypto.randomUUID(),
+      data: historyLine,
+    };
+  }
+
+  /**
+   * Load conversation history from disk into session
+   */
+  private async loadHistoryIntoSession(session: Session): Promise<void> {
+    if (
+      !session.claudeSessionId ||
+      !session.workingDirectory ||
+      session.historyLoaded
+    ) {
+      return;
+    }
+
+    try {
+      // Encode the working directory to get the project name
+      const encodedProjectName = encodeProjectName(session.workingDirectory);
+
+      // Load the conversation history
+      const conversationHistory = await loadConversation(
+        encodedProjectName,
+        session.claudeSessionId,
+      );
+
+      if (conversationHistory && conversationHistory.messages.length > 0) {
+        // Convert history messages to StreamResponse format
+        const historyEvents: StreamResponse[] = [];
+
+        for (const message of conversationHistory.messages) {
+          // The messages are already in the correct format (RawHistoryLine)
+          historyEvents.push(
+            this.convertHistoryToStreamResponse(message as RawHistoryLine),
+          );
+        }
+
+        // Prepend history to messageHistory (before any new messages)
+        session.messageHistory = [...historyEvents, ...session.messageHistory];
+        session.historyLoaded = true;
+
+        logger.app.debug(
+          `Loaded ${historyEvents.length} history events for session ${session.claudeSessionId}`,
+        );
+      }
+    } catch (error) {
+      // Log error but don't fail - session can continue without history
+      logger.app.error(
+        `Failed to load history for session ${session.claudeSessionId}: {error}`,
+        { error },
+      );
+    }
   }
 
   /**
@@ -183,6 +266,38 @@ export class SessionManager {
   }
 
   /**
+   * Get or create a session, loading history if needed
+   */
+  async getOrCreateSession(
+    sessionId: string | null,
+    workingDirectory?: string,
+  ): Promise<Session> {
+    if (sessionId) {
+      // Try to get existing session from memory
+      const existingSession = this.getSession(sessionId);
+      if (existingSession) {
+        return existingSession;
+      }
+
+      // Session ID provided but not in memory - create a new session that will resume from this ID
+      const session = this.newSession();
+      session.claudeSessionId = sessionId;
+      session.workingDirectory = workingDirectory || null;
+      this.registerSession(session, sessionId);
+
+      // Load history from disk
+      await this.loadHistoryIntoSession(session);
+
+      return session;
+    } else {
+      // No session ID provided, create new session
+      const session = this.newSession();
+      session.workingDirectory = workingDirectory || null;
+      return session;
+    }
+  }
+
+  /**
    * Register a session with its Claude ID (called when first response arrives or when resuming)
    */
   registerSession(session: Session, claudeSessionId: string): void {
@@ -195,12 +310,59 @@ export class SessionManager {
   }
 
   /**
+   * Schedule session cleanup after idle timeout
+   */
+  scheduleCleanup(session: Session): void {
+    // Cancel any existing cleanup timer
+    if (session.cleanupTimer) {
+      clearTimeout(session.cleanupTimer);
+    }
+
+    const timeSinceLastActivity = Date.now() - session.lastActivityTime;
+    const timeUntilCleanup = Math.max(
+      0,
+      this.IDLE_TIMEOUT_MS - timeSinceLastActivity,
+    );
+
+    logger.app.debug(
+      `Scheduling cleanup for session ${session.claudeSessionId} in ${Math.round(timeUntilCleanup / 1000)} seconds`,
+    );
+
+    session.cleanupTimer = setTimeout(() => {
+      // Check if session is still idle
+      if (
+        session.subscribers.size === 0 &&
+        !session.isProcessing &&
+        session.messageQueue.length === 0
+      ) {
+        const idleTime = Date.now() - session.lastActivityTime;
+        if (idleTime >= this.IDLE_TIMEOUT_MS) {
+          this.cleanupSession(session);
+        } else {
+          // Reschedule if not idle long enough
+          this.scheduleCleanup(session);
+        }
+      }
+    }, timeUntilCleanup);
+  }
+
+  /**
    * Clean up an empty session
    */
   cleanupSession(session: Session): void {
+    // Cancel cleanup timer if exists
+    if (session.cleanupTimer) {
+      clearTimeout(session.cleanupTimer);
+      session.cleanupTimer = null;
+    }
+
     if (session.claudeSessionId) {
       this.sessions.delete(session.claudeSessionId);
-      logger.app.debug(`Session ${session.claudeSessionId} cleaned up`);
+      logger.app.debug(
+        `Session ${session.claudeSessionId} cleaned up after ${Math.round(
+          (Date.now() - session.lastActivityTime) / 1000,
+        )} seconds of inactivity`,
+      );
     } else {
       this.pendingSessions.delete(session);
       logger.app.debug(`Pending session cleaned up`);
@@ -211,6 +373,9 @@ export class SessionManager {
    * Broadcast event to all session subscribers and store in history
    */
   broadcast(session: Session, event: StreamResponse): void {
+    // Update last activity time for any broadcast
+    session.lastActivityTime = Date.now();
+
     // Store event in history for replay
     session.messageHistory.push(event);
 
@@ -288,6 +453,9 @@ export class SessionManager {
         // Process next message in queue if any
         if (session.messageQueue.length > 0) {
           setImmediate(() => this.processQueue(session));
+        } else if (session.subscribers.size === 0) {
+          // Schedule cleanup if no subscribers and no more messages
+          this.scheduleCleanup(session);
         }
       }
     }

@@ -14,7 +14,6 @@ import {
 } from "./middleware/config.ts";
 import { handleProjectsRequest } from "./handlers/projects.ts";
 import { handleHistoriesRequest } from "./handlers/histories.ts";
-import { handleConversationRequest } from "./handlers/conversations.ts";
 import { handleChatRequest } from "./handlers/chat.ts";
 import { handleAbortRequest } from "./handlers/abort.ts";
 import { logger } from "./utils/logger.ts";
@@ -60,9 +59,7 @@ export function createApp(
     handleHistoriesRequest(c),
   );
 
-  app.get("/api/projects/:encodedProjectName/histories/:sessionId", (c) =>
-    handleConversationRequest(c),
-  );
+  // Note: Individual conversation endpoint removed - now using subscription mechanism via /api/chat
 
   app.post("/api/abort/:requestId", (c) =>
     handleAbortRequest(c, sessionManager),

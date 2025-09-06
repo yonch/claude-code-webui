@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useState, useRef } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronLeftIcon } from "@heroicons/react/24/outline";
 import type {
@@ -12,7 +12,6 @@ import { useChatState } from "../hooks/chat/useChatState";
 import { usePermissions } from "../hooks/chat/usePermissions";
 import { usePermissionMode } from "../hooks/chat/usePermissionMode";
 import { useAbortController } from "../hooks/chat/useAbortController";
-import { useAutoHistoryLoader } from "../hooks/useHistoryLoader";
 import { useToast } from "../hooks/useToast";
 import { SettingsButton } from "./SettingsButton";
 import { SettingsModal } from "./SettingsModal";
@@ -31,8 +30,7 @@ export function ChatPage() {
   const [searchParams] = useSearchParams();
   const [projects, setProjects] = useState<ProjectInfo[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [activeSubscription, setActiveSubscription] =
-    useState<AbortController | null>(null);
+  const activeSubscriptionRef = useRef<AbortController | null>(null);
   const { showToast, ToastComponent } = useToast();
 
   // Extract and normalize working directory from URL
@@ -79,18 +77,9 @@ export function ChatPage() {
     return finalProject?.encodedName || null;
   }, [workingDirectory, projects]);
 
-  // Load conversation history if sessionId is provided
-  const {
-    messages: historyMessages,
-    loading: historyLoading,
-    error: historyError,
-    sessionId: loadedSessionId,
-  } = useAutoHistoryLoader(
-    getEncodedName() || undefined,
-    sessionId || undefined,
-  );
+  // History loading is now handled via subscription when sessionId is provided
 
-  // Initialize chat state with loaded history
+  // Initialize chat state
   const {
     messages,
     input,
@@ -114,8 +103,7 @@ export function ChatPage() {
     startRequest,
     removeThinkingMessages,
   } = useChatState({
-    initialMessages: historyMessages,
-    initialSessionId: loadedSessionId || undefined,
+    initialSessionId: sessionId || undefined,
   });
 
   const {
@@ -157,9 +145,9 @@ export function ChatPage() {
       sessionIdOverride?: string,
     ) => {
       // Cancel any existing subscription before sending a new request
-      if (activeSubscription) {
-        activeSubscription.abort();
-        setActiveSubscription(null);
+      if (activeSubscriptionRef.current) {
+        activeSubscriptionRef.current.abort();
+        activeSubscriptionRef.current = null;
       }
 
       const requestId = generateRequestId();
@@ -168,7 +156,7 @@ export function ChatPage() {
 
       // Handle subscription mode
       if (isSubscriptionOnly && controller) {
-        setActiveSubscription(controller);
+        activeSubscriptionRef.current = controller;
       }
 
       // Handle message mode
@@ -289,8 +277,8 @@ export function ChatPage() {
           }
         }
       } finally {
-        if (controller === activeSubscription) {
-          setActiveSubscription(null);
+        if (controller === activeSubscriptionRef.current) {
+          activeSubscriptionRef.current = null;
         }
         if (!isSubscriptionOnly) {
           resetRequestState();
@@ -298,7 +286,6 @@ export function ChatPage() {
       }
     },
     [
-      activeSubscription,
       input,
       isLoading,
       currentSessionId,
@@ -334,6 +321,15 @@ export function ChatPage() {
     },
     [sendChatRequest],
   );
+
+  // Auto-subscribe when we have a sessionId but it's not the current session
+  // This will load history and establish the subscription
+  useEffect(() => {
+    if (sessionId && sessionId !== currentSessionId && !isHistoryView) {
+      // Subscribe to the session to get history and updates
+      subscribeToSession(sessionId);
+    }
+  }, [sessionId, currentSessionId, isHistoryView, subscribeToSession]);
 
   const sendMessage = useCallback(
     async (
@@ -505,19 +501,29 @@ export function ChatPage() {
     }
   }, [currentSessionId, isHistoryView, navigate, location.search]);
 
+  // Track if we're currently subscribed to prevent duplicate subscriptions
+  const subscribedSessionRef = useRef<string | null>(null);
+
   // Subscribe to session updates when we have a session ID and aren't loading messages
   useEffect(() => {
-    if (currentSessionId && !isLoading && !historyLoading) {
+    if (
+      currentSessionId &&
+      !isLoading &&
+      subscribedSessionRef.current !== currentSessionId
+    ) {
+      subscribedSessionRef.current = currentSessionId;
       subscribeToSession(currentSessionId);
     }
 
     // Clean up subscription on unmount or session change
     return () => {
-      if (activeSubscription) {
-        activeSubscription.abort();
+      if (activeSubscriptionRef.current) {
+        activeSubscriptionRef.current.abort();
       }
+      subscribedSessionRef.current = null;
     };
-  }, [currentSessionId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSessionId, isLoading, subscribeToSession]);
 
   const handleBackToChat = useCallback(() => {
     navigate({ search: "" });
@@ -638,49 +644,6 @@ export function ChatPage() {
             encodedName={getEncodedName()}
             onBack={handleBackToChat}
           />
-        ) : historyLoading ? (
-          /* Loading conversation history */
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-slate-600 dark:text-slate-400">
-                Loading conversation history...
-              </p>
-            </div>
-          </div>
-        ) : historyError ? (
-          /* Error loading conversation history */
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center max-w-md">
-              <div className="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-8 h-8 text-red-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <h2 className="text-slate-800 dark:text-slate-100 text-xl font-semibold mb-2">
-                Error Loading Conversation
-              </h2>
-              <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
-                {historyError}
-              </p>
-              <button
-                onClick={() => navigate({ search: "" })}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Start New Conversation
-              </button>
-            </div>
-          </div>
         ) : (
           <>
             {/* Chat Messages */}

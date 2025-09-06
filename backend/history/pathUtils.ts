@@ -46,6 +46,16 @@ export async function getEncodedProjectName(
 }
 
 /**
+ * Encode a project path to the format used by Claude history directories
+ * Example: "/Users/sugyan/tmp/" → "-Users-sugyan-tmp"
+ */
+export function encodeProjectName(projectPath: string): string {
+  // Remove trailing slash and convert '/', '\', ':', and '.' to '-'
+  const normalizedPath = projectPath.replace(/\/$/, "");
+  return normalizedPath.replace(/[/\\:.]/g, "-");
+}
+
+/**
  * Validate that an encoded project name is safe
  */
 export function validateEncodedProjectName(encodedName: string): boolean {

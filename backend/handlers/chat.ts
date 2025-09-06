@@ -24,30 +24,17 @@ export async function handleChatRequest(
     chatRequest as unknown as Record<string, unknown>,
   );
 
-  // Get or create a session
-  let session: Session;
-  if (chatRequest.sessionId) {
-    // Try to get existing session from memory
-    const existingSession = sessionManager.getSession(chatRequest.sessionId);
-    if (existingSession) {
-      session = existingSession;
-      logger.chat.debug("Using existing session from memory");
-    } else {
-      // Session ID provided but not in memory - create a new session that will resume from this ID
-      session = sessionManager.newSession();
-      // Pre-populate the claudeSessionId so it will be resumed by Claude SDK
-      session.claudeSessionId = chatRequest.sessionId;
-      sessionManager.registerSession(session, chatRequest.sessionId);
-      logger.chat.debug(
-        "Created new session to resume from Claude session ID: {sessionId}",
-        {
-          sessionId: chatRequest.sessionId,
-        },
-      );
-    }
+  // Get or create a session (will load history if needed)
+  const session = await sessionManager.getOrCreateSession(
+    chatRequest.sessionId || null,
+    chatRequest.workingDirectory,
+  );
+
+  if (chatRequest.sessionId && session.historyLoaded) {
+    logger.chat.debug("Using session with loaded history");
+  } else if (chatRequest.sessionId) {
+    logger.chat.debug("Resuming session (no history on disk)");
   } else {
-    // No session ID provided, create new session
-    session = sessionManager.newSession();
     logger.chat.debug("Created new session");
   }
 
